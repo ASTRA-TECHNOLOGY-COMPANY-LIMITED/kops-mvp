@@ -1,6 +1,6 @@
 # Rà soát nguồn mới: INSPECTION và PRODUCTION (19/10/2026)
 
-Phạm vi: 10 file `.xlsx` mới trong `raw-docs/INSPECTION/` và `raw-docs/PRODUCTION/`. Chỉ đọc, không sửa file nguồn. Số liệu dưới đây được tính bằng script trên dữ liệu thật, đối chiếu với kho `dw/build/kops.duckdb` (ORDER RECAP, Production Status, Shipment Status).
+Phạm vi: 10 file `.xlsx` mới trong `raw-docs/INSPECTION/` và `raw-docs/PRODUCTION/`. *(Ngày 19/10 `raw-docs` đã được sắp xếp lại: bảng kiểm nay ở `INSPECTION/ORDER_TRACKING/CHALLENGER/26FW/`, 2 bản trùng ở `_DUPLICATES/`; xem `raw-docs/README.md`.)* Chỉ đọc, không sửa file nguồn. Số liệu dưới đây được tính bằng script trên dữ liệu thật, đối chiếu với kho `dw/build/kops.duckdb` (ORDER RECAP, Production Status, Shipment Status).
 
 > Quy ước: **[Q]** quan sát trực tiếp · **[S]** suy luận · **[R]** khuyến nghị cho MVP
 

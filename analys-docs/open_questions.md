@@ -8,17 +8,20 @@ Tài liệu này dành cho **người phụ trách nghiệp vụ của KLMAS**, 
 
 ## Viết tắt tên file
 
-Tất cả file nằm trong thư mục `raw-docs/` mà KLMAS đã gửi.
+Tất cả file nằm trong thư mục `raw-docs/` mà KLMAS đã gửi. Ngày 19/10/2026 thư mục đã được sắp xếp lại theo loại tài liệu (xem `raw-docs/README.md`); đường dẫn dưới đây là đường dẫn mới.
 
 | Viết tắt | Tên file đầy đủ | Người lập (theo tên file) |
 |---|---|---|
-| **[RECAP 26FW]** | `261015 MJ) 26FW CHALLENGER ORDER RECAP.xlsb` | MJ |
-| **[RECAP 27SS]** | `261015 MJ) 27SS CHALLENGER ORDER RECAP.xlsb` | MJ |
-| **[SHIPMENT]** | `261014R2 MJ) 26FW CHALLENGER ALL STYLES SHIPMENT STATUS.xlsx` | MJ |
-| **[PRODUCTION STATUS]** | `261012 HUONG) 26FW CLGR PRODUCTION AND SHIPPING STATUS(~10.10).xlsx` | HUONG |
+| **[RECAP 26FW]** | `ORDER/CHALLENGER/26FW/261015 MJ) 26FW CHALLENGER ORDER RECAP.xlsb` | MJ |
+| **[RECAP 27SS]** | `ORDER/CHALLENGER/27SS/261015 MJ) 27SS CHALLENGER ORDER RECAP.xlsb` | MJ |
+| **[SHIPMENT]** | `TRACKING/CHALLENGER/26FW/261014R2 MJ) 26FW CHALLENGER ALL STYLES SHIPMENT STATUS.xlsx` | MJ |
+| **[PRODUCTION STATUS]** | `TRACKING/CHALLENGER/26FW/261012 HUONG) 26FW CLGR PRODUCTION AND SHIPPING STATUS(~10.10).xlsx` | HUONG |
 | **[BÁO CÁO NGÀY &lt;nhà máy&gt;]** | `PRODUCTION/CHALLENGER/26FW/<nhà máy>/… DAILY PRODUCTION REPORT.xlsx` | Nhà máy |
-| **[BÁO CÁO NGÀY HAGACO]** | `PRODUCTION/DHG(DAEHAN GROBAL)/8 SECONDS/26FW/261015. DHG-HAGACO DAILY PRODUCTION REPORT.xlsx` | Nhà máy HAGACO |
-| **[BẢNG KIỂM]** | `INSPECTION/260727 HOA) 26SS CHALLENGER (TP+NATEXCO + MTT) KLMAS INSPECTION REPORT.xlsx` | HOA |
+| **[BÁO CÁO NGÀY HAGACO]** | `PRODUCTION/DHG(DAEHAN GROBAL)/8 SECONDS/26FW/HAGACO/261015. DHG-HAGACO DAILY PRODUCTION REPORT.xlsx` | Nhà máy HAGACO |
+| **[BẢNG KIỂM]** | `INSPECTION/ORDER_TRACKING/CHALLENGER/26FW/260727 HOA) 26SS CHALLENGER (TP+NATEXCO + MTT) KLMAS INSPECTION REPORT.xlsx` | HOA |
+| **[DỮ LIỆU KIỂM BÊN THỨ BA]** | `INSPECTION/THIRD_PARTY/INPUT DATA.xlsx` | Văn phòng kiểm hàng |
+| **[PHIẾU KIỂM]** | `INSPECTION/FORMS/KLMAS INSPECTION REPORT (FORM) - 2026.xlsx` (và `.pdf`) | — |
+| **[BÁO CÁO KIỂM MẪU]** | `INSPECTION/SAMPLES/FNJWD8411 261001 (REPORT FJ).pdf`, ảnh phiếu đã điền `INSPECTION/SAMPLES/REPORT.jpg` | — |
 
 Trong [RECAP], mỗi style chiếm một khối 4 dòng (dài hơn nếu có trên 4 màu). Dòng ghi ở đây là **dòng đầu của khối**: dòng có mã style ở cột D.
 
@@ -181,6 +184,7 @@ Hệ thống đã chạy theo cách hiểu dưới đây. KLMAS chỉ cần xác
   | **SON HA**, **JM** | [RECAP 27SS] cột E (SON HA từ dòng 535, JM từ dòng 372) |
   | NTC, HH (trong ghi chú đổi nhà máy) | [RECAP 26FW] dòng cuối của khối, cột E, vd. `260407 FIXED FACT(NTC)` (khối dòng 5–8) |
 
+- **Thêm:** trong [DỮ LIỆU KIỂM BÊN THỨ BA] (sheet DATA, cột I FACTORY, cột H VENDOR) có nhà máy **SON HA GLOBAL** và **FG** thuộc vendor DAEHAN GLOBAL KOREA.
 - **Câu hỏi:** xin danh sách nhà máy KLMAS đang làm việc, mỗi nhà máy một tên chuẩn và các tên viết tắt. Cụ thể: FG VINA và FG BAC GIANG là một hay hai nhà máy? SON HA và JM là nhà máy nào? NTC = NATEXCO, HH = HA HIEU, đúng không?
 - *Tạm hiểu:* như bảng trên; FG VINA và FG BAC GIANG là một; SON HA và JM tạm để riêng.
 
@@ -263,6 +267,7 @@ Không cần trả lời ngay. ASTRA sẽ hỏi lại khi làm tới phần liê
   - Dòng 39 (D — KLMAS DEFECT QTY), cột AA: **946** lỗi.
   - Dòng 40 (E — DEFECT RATE), ngày 24/09 (cột I): **1,77** (= 177%), vì file lấy 85 lỗi chia 48 cái **đạt**.
   - Sheet ẩn `TP (4)`: 1.440 lỗi nhưng 0 cái kiểm.
+- **Để so sánh:** trong [DỮ LIỆU KIỂM BÊN THỨ BA] (sheet DATA), với DISCOVERY và FILA thì SL lỗi (cột O) = tổng số đếm theo mã lỗi (cột Q + R), và tỷ lệ lỗi (cột S) = SL lỗi ÷ SL kiểm (cột M). Ví dụ dòng 2: 38 ÷ 212 = 17,9%. Bảng của HOA lại chia cho SL **đạt**.
 - **Câu hỏi:** "DEFECT QTY" là số **sản phẩm bị lỗi** hay số **điểm lỗi** (một sản phẩm có thể có nhiều lỗi, sửa xong vẫn đạt)? Tỷ lệ lỗi chính thức tính trên số đã kiểm hay số đạt?
 - *Tạm hiểu:* là số điểm lỗi; tỷ lệ = lỗi ÷ số đã kiểm. Giai đoạn 1 không hiển thị tỷ lệ lỗi.
 
@@ -376,6 +381,76 @@ Không cần trả lời ngay. ASTRA sẽ hỏi lại khi làm tới phần liê
 
 - **Ở đâu:** báo cáo ngày của nhà máy có cột số công nhân (`WORKERS SỐ CÔNG NHÂN`) và số chuyền. Nếu chỉ chia sản lượng cho số công nhân thì nhà máy may áo thun sẽ luôn "năng suất" hơn nhà máy may jacket.
 - **Câu hỏi:** KLMAS hoặc nhà máy có bảng SMV (số phút may chuẩn cho một sản phẩm) không?
+
+**Trả lời của KLMAS:**
+
+### Dữ liệu kiểm hàng bên thứ ba (QI1–QI8)
+
+Chỉ cần trả lời nếu PO quyết định đưa dashboard chất lượng kiểm hàng vào giai đoạn 1 (task M1-12). Phân tích chi tiết: `analys-docs/review_qc_third_party.md`.
+
+### QI1. Cột "Pre-FINAL" nghĩa là gì?
+
+- **Ở đâu:** [DỮ LIỆU KIỂM BÊN THỨ BA], sheet `DATA`, cột K (Pre-FINAL). Dòng 2 (style DWDV74066, ngày 01/06) ghi **0,17**; cùng dòng đó cột S (DEFECT RATE) ghi **0,179**. Cột K chỉ có giá trị ở khoảng 1.000 dòng.
+- **Câu hỏi:** cột K là tỷ lệ lỗi của lần kiểm pre-final (kiểm trước khi kiểm cuối)? Hay tỷ lệ lỗi làm tròn? Khi nào thì ghi?
+
+**Trả lời của KLMAS:**
+
+### QI2. "PRE-INSPECTION" trong cột BRAND là brand nào?
+
+- **Ở đâu:** sheet `DATA`, cột G (BRAND), **từ dòng 7.123 trở đi** (tháng 10/2026, 2.017 lần kiểm) ghi `PRE-INSPECTION` thay vì tên brand. Cột H (VENDOR) vẫn có: DAEHAN GLOBAL KOREA, SCORVV, EUNSUNG, MISEONG, FIL, KOFA… Các dòng này cũng thường trống cột A (LOCATION) và cột V (QC NAME).
+- **Câu hỏi:**
+  1. "PRE-INSPECTION" là một loại kiểm (kiểm trước) chứ không phải brand, đúng không?
+  2. Brand thật của các lần kiểm này là gì (vd. DAEHAN GLOBAL → 8 SECONDS)?
+  3. Có thể bổ sung tên kiểm viên và khu vực cho các dòng này không?
+
+**Trả lời của KLMAS:**
+
+### QI3. Cột "NUMBER ORDER" có phải là lần kiểm thứ mấy?
+
+- **Ở đâu:** sheet `DATA`, cột E. Style DWDV74066 màu CRS: ngày 01/06 ghi 1, 02/06 ghi 2, 03/06 ghi 3, 16/06 ghi 4. Trên phiếu giấy, ô này tương ứng "차수 / lần".
+- **Câu hỏi:** đây là lần kiểm thứ mấy của cùng style + màu, đúng không? Đếm theo màu hay theo cả style?
+
+**Trả lời của KLMAS:**
+
+### QI4. Một sản phẩm lỗi có thể ghi nhiều mã lỗi không?
+
+- **Ở đâu:** sheet `DATA`:
+  - Với DISCOVERY và FILA, SL lỗi (cột O) luôn bằng tổng số đếm theo mã (cột Q MINOR + cột R MAJOR). Ví dụ dòng 2–11: 38 = 1+5+2+1+1+6+12+2+7+1.
+  - Với PRE-INSPECTION thì không. Ví dụ dòng 7.123 (RY6938P07R): SL lỗi **82** nhưng các mã chỉ cộng lại **5**. Có 285 lần kiểm như vậy.
+- **Câu hỏi:** khi một sản phẩm có 2 lỗi, kiểm viên ghi 1 hay 2? Vì sao ở phần PRE-INSPECTION, tổng theo mã nhỏ hơn nhiều so với SL lỗi?
+
+**Trả lời của KLMAS:**
+
+### QI5. Khi nào kết quả là PASS, khi nào REJECT?
+
+- **Ở đâu:**
+  - [BÁO CÁO KIỂM MẪU] FNJWD8411, trang 1: tỷ lệ lỗi **23,9%**, kiểm 100%, kết quả **PASS**.
+  - [DỮ LIỆU KIỂM BÊN THỨ BA] sheet `DATA`, cột U (REMARK): 264 dòng ghi `REJECT DEFECT xx%`, có lần chỉ 20,8%.
+  - Trên [PHIẾU KIỂM], phần lấy mẫu có AQL major 2.5, minor 4.0.
+- **Câu hỏi:**
+  1. Với kiểm 100%, PASS nghĩa là "đã sửa hết hàng lỗi" chứ không theo tỷ lệ, đúng không?
+  2. Với kiểm lấy mẫu, ngưỡng REJECT tính theo bảng AQL hay theo % riêng của từng brand?
+  3. Sheet DATA không có cột kết quả. Có thể thêm cột PASS/REJECT không?
+
+**Trả lời của KLMAS:**
+
+### QI6. Các nhóm mã lỗi A–G dùng cho loại hàng nào?
+
+- **Ở đâu:** [DỮ LIỆU KIỂM BÊN THỨ BA], sheet `CODE`: 296 mã chia nhóm A (62 mã), B (58), C (47), D (34), E (36), F (31), G (28). Dữ liệu hiện chỉ dùng nhóm A.
+- **Câu hỏi:** đoán là A = quần áo, B = túi, C = giày, G = mũ. Còn D, E, F là gì? Phiếu giấy cho từng loại hàng có khác nhau không?
+
+**Trả lời của KLMAS:**
+
+### QI7. Có dòng nào bị nhập trùng không?
+
+- **Ở đâu:** sheet `DATA`: có 266 nhóm lần kiểm trùng hoàn toàn style, màu, ngày, SL kiểm và kiểm viên.
+- **Câu hỏi:** cùng ngày có thể kiểm cùng style + màu 2 lần với cùng số lượng (vd. 2 lô khác nhau) không? Nếu không thì đây là nhập trùng.
+
+**Trả lời của KLMAS:**
+
+### QI8. Ai nhập file INPUT DATA và nhập khi nào?
+
+- **Câu hỏi:** file này có phải là nơi duy nhất tổng hợp mọi phiếu kiểm của văn phòng không? Ai nhập, nhập trong ngày hay cuối tuần? Báo cáo PDF gửi khách (như FNJWD8411) có được làm từ file này không, hay làm riêng?
 
 **Trả lời của KLMAS:**
 

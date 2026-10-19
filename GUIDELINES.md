@@ -20,7 +20,7 @@ Khi tài liệu này mâu thuẫn với chỉ dẫn riêng của một công c�
 | Chuẩn UI và kiến trúc | `prototype/` | `KOPS_prototype.html` là chuẩn giao diện và luồng màn hình; `KOPS_prototype_architecture.md` là quyết định kỹ thuật |
 
 Quy tắc:
-- Không sửa, đổi tên hay xoá file trong `raw-docs/`.
+- Không sửa, đổi tên hay xoá file trong `raw-docs/`. Sắp xếp lại thư mục chỉ do PO quyết, phải giữ nguyên tên file và ghi nhật ký + cách hoàn tác trong `raw-docs/_REORG/`. Cấu trúc thư mục: `raw-docs/README.md`.
 - Mọi khẳng định về nghiệp vụ hay số liệu phải trích nguồn: tên file, sheet/ô, mục trong biên bản, hoặc output lệnh.
 - Tài liệu trong `analys-docs/` và `prototype/` được sửa qua PR như code. Khi sửa một quyết định đã chốt thì ghi lý do trong PR.
 

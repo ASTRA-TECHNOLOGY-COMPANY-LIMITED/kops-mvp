@@ -32,6 +32,15 @@ class Ctx:
                                 message=message, location=location))
 
 
+# Known source types that have no parser yet (Phase 1 tasks): registered and skipped without a warning.
+PENDING = [
+    ("DAILY PRODUCTION REPORT", "daily_production", "Parser planned in Phase 1 (M1-02)"),
+    ("KLMAS INSPECTION REPORT (FORM)", "inspection_form", "Blank inspection form (template, not data)"),
+    ("INSPECTION REPORT", "inspection_tracker", "Parser planned in Phase 1 (M1-06)"),
+    ("INPUT DATA", "qc_third_party", "Third-party QC database; parser proposed (M1-12)"),
+]
+
+
 def classify(path: Path):
     """Return (source_type, parser, season) from the file name, or (type, None, None) if not parsed."""
     name = path.name.upper()
@@ -44,12 +53,15 @@ def classify(path: Path):
             return "excel", "shipment_status", season
         if "PRODUCTION AND SHIPPING STATUS" in name:
             return "excel", "production_status", season
+        for key, stype, _ in PENDING:
+            if key in name:
+                return stype, None, season
         return "excel", None, season
     if ext == ".docx":
         return "meeting_note", "meeting_notes", season
     if ext == ".eml":
         return "email", "emails", season
-    if ext == ".pdf":
+    if ext in (".pdf", ".jpg", ".jpeg", ".png"):
         return "reference", None, None
     return "other", None, None
 
@@ -63,9 +75,17 @@ def file_date(name: str):
 
 
 def discover():
+    """All files under raw-docs (recursively) plus inbox .eml files.
+    Folders starting with '_' (e.g. _DUPLICATES, _REORG) and hidden files are ignored."""
     files = []
     if config.RAW_DOCS_DIR.exists():
-        files += [p for p in sorted(config.RAW_DOCS_DIR.iterdir()) if p.is_file() and not p.name.startswith((".", "~$"))]
+        for p in sorted(config.RAW_DOCS_DIR.rglob("*")):
+            rel = p.relative_to(config.RAW_DOCS_DIR).parts
+            if not p.is_file() or any(x.startswith(("_", ".")) for x in rel) or p.name.startswith("~$"):
+                continue
+            if p.suffix.lower() in (".eml", ".md", ".tsv", ".sh"):
+                continue                      # emails come from INBOX_DIRS; docs/scripts are not sources
+            files.append(p)
     for d in config.INBOX_DIRS:
         if d.exists():
             files += sorted(p for p in d.glob("*.eml"))
@@ -95,8 +115,9 @@ def build(verbose=True) -> Path:
             rec.update(status="DUPLICATE", message=f"Same content as file_id {seen[digest]}")
             ctx.issue("INFO", "DUPLICATE_FILE", path.name, rec["message"], path.name)
         elif parser is None:
-            rec.update(status="SKIPPED", message="Reference document - not parsed" if stype == "reference"
-                       else "Unknown template")
+            pending = next((m for _, s, m in PENDING if s == stype), None)
+            rec.update(status="SKIPPED", message=pending or ("Reference document - not parsed" if stype == "reference"
+                                                             else "Unknown template"))
             if stype == "excel":
                 ctx.issue("WARN", "UNKNOWN_TEMPLATE", path.name, "Excel file not matched to a parser", path.name)
         else:

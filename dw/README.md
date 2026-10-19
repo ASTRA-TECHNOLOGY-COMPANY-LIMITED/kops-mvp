@@ -32,10 +32,11 @@ Kết quả nằm trong `dw/build/` (đã `.gitignore`):
 
 | Muốn thêm | Làm gì |
 |---|---|
-| Phiên bản mới của một báo cáo | Thả file vào `raw-docs/`, giữ quy ước tên `YYMMDD… <mùa> … <loại báo cáo>`. Bản có ngày báo cáo mới nhất sẽ là bản hiện hành |
-| Mùa mới | Thả ORDER RECAP / Shipment / Production Status của mùa đó vào `raw-docs/`. Mã mùa (`26FW`, `27SS`) lấy từ tên file |
+| Phiên bản mới của một báo cáo | Thả file vào đúng thư mục theo `raw-docs/README.md` (vd. `ORDER/CHALLENGER/26FW/`), giữ quy ước tên `YYMMDD… <mùa> … <loại báo cáo>`. Bản có ngày báo cáo mới nhất sẽ là bản hiện hành. Pipeline quét đệ quy, bỏ qua thư mục bắt đầu bằng `_` |
+| Mùa mới | Thả ORDER RECAP vào `ORDER/<BRAND>/<MÙA>/`, Shipment / Production Status vào `TRACKING/<BRAND>/<MÙA>/`. Mã mùa (`26FW`, `27SS`) lấy từ tên file |
 | Email thật | Xuất `.eml` vào `raw-docs/inbox/` (không commit). Có thể chỉ thư mục khác bằng biến `KOPS_INBOX` |
-| Biên bản họp | Thả `.docx` vào `raw-docs/` |
+| Biên bản họp | Thả `.docx` vào `raw-docs/MEETINGS/` |
+| Báo cáo sản xuất ngày, bảng kiểm, dữ liệu kiểm bên thứ ba | Đã được nhận diện và đăng ký (trạng thái SKIPPED: parser nằm trong kế hoạch Phase 1, `plans/MVP_PHASE1_PLAN.md`) |
 
 Biến môi trường: `KOPS_RAW_DOCS` (thư mục nguồn), `KOPS_INBOX`, `KOPS_BUILD`, `KOPS_SOFFICE` (đường dẫn `soffice` nếu không nằm trong PATH).
 

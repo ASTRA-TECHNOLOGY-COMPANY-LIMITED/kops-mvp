@@ -25,11 +25,15 @@ Tài liệu này là **đặc tả** cho các đề xuất trong `review_inspect
 
 ```
 raw-docs/
-├── *.xlsx|xlsb|docx                              # ORDER RECAP, Shipment/Production Status, biên bản (như hiện tại)
-├── inbox/*.eml                                   # email thật (không commit)
-├── PRODUCTION/<KHÁCH>/<MÙA>/<NHÀ MÁY>/*.xlsx      # khách = brand, vd. CHALLENGER/26FW/TAN BINH MINH/
-├── PRODUCTION/<VENDOR>/<BRAND>/<MÙA>/*.xlsx       # khách qua vendor, vd. DHG(DAEHAN GROBAL)/8 SECONDS/26FW/
-└── INSPECTION/*.xlsx                             # bảng theo dõi kiểm hàng KLMAS
+├── COMPANY/ · MEETINGS/                                 # hồ sơ công ty, biên bản họp
+├── ORDER/<BRAND>/<MÙA>/                                 # ORDER RECAP
+├── TRACKING/<BRAND>/<MÙA>/                              # Production & Shipping Status, Shipment Status
+├── PRODUCTION/<BRAND>/<MÙA>/<NHÀ MÁY>/                  # báo cáo ngày, brand trực tiếp (CHALLENGER)
+├── PRODUCTION/<VENDOR>/<BRAND>/<MÙA>/<NHÀ MÁY>/         # báo cáo ngày, brand qua vendor (DHG/8 SECONDS/26FW/HAGACO)
+├── INSPECTION/ORDER_TRACKING/<BRAND>/<MÙA>/             # bảng theo dõi kiểm (đơn KLMAS)
+├── INSPECTION/THIRD_PARTY/ · FORMS/ · SAMPLES/          # kiểm hàng bên thứ ba, mẫu phiếu, mẫu báo cáo
+├── inbox/*.eml                                          # email thật (không commit)
+└── _DUPLICATES/ · _REORG/                               # bị pipeline bỏ qua
 ```
 
 Cách xác định metadata của một báo cáo ngày (theo thứ tự ưu tiên):
@@ -41,7 +45,7 @@ Cách xác định metadata của một báo cáo ngày (theo thứ tự ưu ti�
 | Vendor/khách | Thư mục `PRODUCTION/<X>/` khi có cấp brand bên dưới | — | = brand |
 | Mùa | Thư mục `26FW` | Tên file | Lỗi `SEASON_UNKNOWN` |
 
-Khi 3 nguồn cho nhà máy không khớp nhau (vd. file MTT đặt trong thư mục `DONG MY/`), dùng nguồn ưu tiên cao nhất và ghi `FILE_FOLDER_MISMATCH` (WARN). File trùng nội dung (sha256) → `DUPLICATE`, không nạp lại (đã có trong pipeline).
+Mô tả đầy đủ cấu trúc: `raw-docs/README.md` (sắp xếp lại ngày 19/10/2026). Pipeline đã quét đệ quy và bỏ qua thư mục bắt đầu bằng `_`. Khi 3 nguồn cho nhà máy không khớp nhau (trường hợp thật trước đây: file MTT đặt trong thư mục `DONG MY/`, nay đã chuyển vào `_DUPLICATES/`), dùng nguồn ưu tiên cao nhất và ghi `FILE_FOLDER_MISMATCH` (WARN). File trùng nội dung (sha256) → `DUPLICATE`, không nạp lại.
 
 ## 3. Nguồn mới và hợp đồng dữ liệu
 
@@ -197,7 +201,7 @@ Chạy với `KOPS_TODAY=2026-10-19`. Mọi số dưới đây đã được tí
 
 | # | Kiểm tra | Giá trị |
 |---|---|---|
-| G1 | File báo cáo ngày tìm thấy / trùng / nạp | 9 / 2 / 7 |
+| G1 | File báo cáo ngày tìm thấy / trùng / nạp (2 bản trùng đã nằm trong `_DUPLICATES/`, bị bỏ qua) | 7 / 0 / 7 |
 | G2 | Ngày báo cáo cuối theo nhà máy | DONG MY 28/09, HA HIEU 28/09, MTT 02/10, NATEXCO 08/09, TAN BINH MINH 15/10, TRUONG PHUC 14/10, HAGACO 15/10 |
 | G3 | Sheet TBM `13.01`, `14.01`, `15.01` | Thành 13/10, 14/10, 15/10, có `REPORT_DATE_FIXED` |
 | G4 | Style CHALLENGER có trong báo cáo ngày (sau alias Q3 + Q27) | 101, khớp ORDER RECAP cả 101 |

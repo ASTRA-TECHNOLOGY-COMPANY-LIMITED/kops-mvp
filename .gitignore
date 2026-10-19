@@ -2,7 +2,8 @@
 .DS_Store
 
 # Raw customer source files (large binaries, confidential) - keep local only
-raw-docs/
+raw-docs/*
+!raw-docs/README.md
 
 # Data warehouse MVP build output (contains KLMAS data) and local env
 dw/build/

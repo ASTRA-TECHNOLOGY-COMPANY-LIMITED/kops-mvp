@@ -37,6 +37,7 @@ spec: analys-docs/mvp_phase1_spec.md
 | M1-09 | Golden test G1–G13 + cập nhật test cũ (W33) | QA | M1-04 → M1-07 | 3h |
 | M1-10 | Cập nhật tài liệu: `dw/README.md`, `GUIDELINES.md` §7, `open_questions.md` (trạng thái R5/R7) | Tech Writer | M1-08, M1-09 | 2h |
 | M1-11 | Review tổng + chạy lại từ thư mục sạch + báo cáo cho PO | Code Reviewer + BA | tất cả | 2h |
+| M1-12 *(tuỳ chọn, chờ PO duyệt)* | Nạp dữ liệu kiểm hàng bên thứ ba (`INSPECTION/THIRD_PARTY/INPUT DATA.xlsx` + bảng mã lỗi) và tab "Chất lượng kiểm hàng" | Data Engineer + Frontend — Dashboard | M1-01 | 8h |
 
 **Tổng khoảng 48 giờ.** Song song được: M1-06 với M1-02…M1-05; M1-08 bắt đầu khung giao diện khi M1-04 xong.
 
@@ -51,8 +52,9 @@ M1-01 ─┬─ M1-02 ── M1-03 ─┬─ M1-04 ─┐
 
 ### M1-01 — Quy ước thư mục và metadata file
 - **Làm:** `pipeline.discover()` quét đệ quy `raw-docs/PRODUCTION/**` và `raw-docs/INSPECTION/**`. `classify()` nhận thêm 2 parser `daily_production`, `inspection_tracker`. Hàm `file_meta(path, workbook)` trả brand, vendor, nhà máy, mùa theo spec §2. Thêm các cột `brand`, `vendor`, `factory` vào `etl.source_file`.
+- **Ghi chú:** `discover()` đã quét đệ quy và bỏ qua `_DUPLICATES/`, `_REORG/` (làm sẵn khi sắp xếp lại `raw-docs`, 19/10). Task này còn lại phần metadata từ đường dẫn và tên file.
 - **Nghiệm thu:**
-  - File `DONG MY/261002 … (CHALLENGER - MTT)` → nhà máy MTT, trạng thái `DUPLICATE`, có `FILE_FOLDER_MISMATCH`.
+  - Test với file fixture: đặt một báo cáo MTT trong thư mục `DONG MY/` → nhà máy MTT, có `FILE_FOLDER_MISMATCH`.
   - File DHG → brand `8 SECONDS`, vendor `DHG(DAEHAN GROBAL)`, nhà máy `HAGACO`.
   - G1 đúng.
 
@@ -118,6 +120,10 @@ M1-01 ─┬─ M1-02 ── M1-03 ─┬─ M1-04 ─┐
 ### M1-11 — Review và bàn giao
 - **Làm:** xoá `dw/build/` và `dw/.venv/`, chạy lại từ đầu theo README. Review toàn bộ diff theo GUIDELINES; BA xác nhận các quy tắc nghiệp vụ khớp spec.
 - **Nghiệm thu:** báo cáo cho PO theo mẫu ở mục 4, kèm ảnh chụp dashboard và danh sách câu hỏi cần KLMAS trả lời.
+
+### M1-12 — Dữ liệu kiểm hàng bên thứ ba *(tuỳ chọn)*
+- **Làm:** parser `qc_third_party` cho sheet DATA (ghép các dòng mã lỗi vào lần kiểm theo khối: dòng có ORDER Q'TY là đầu lần kiểm) và sheet CODE (296 mã, nhóm A–G). Bảng `core.qc_inspection`, `core.qc_defect`, `core.defect_code`. Tab dashboard: Pareto lỗi, tỷ lệ lỗi theo nhà máy/vendor/tháng/loại hàng, số lần kiểm theo ngày. Ghi issue cho các vấn đề dữ liệu ở `analys-docs/review_qc_third_party.md` §3. Không hiển thị tên kiểm viên.
+- **Nghiệm thu:** 3.124 lần kiểm; SL kiểm 315.745; SL lỗi 68.678; điểm lỗi theo mã 68.653; A08 + A37 = 42,9% tổng điểm lỗi; 285 lần kiểm có tổng mã ≠ SL lỗi được ghi issue.
 
 ## 4. Mẫu báo cáo
 
