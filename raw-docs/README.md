@@ -1,8 +1,10 @@
 # raw-docs — tài liệu gốc từ KLMAS
 
-Thư mục này chứa file gốc KLMAS gửi. **Chỉ đọc**: không sửa nội dung, không đổi tên file. Toàn bộ thư mục không đưa lên git (dữ liệu kinh doanh), trừ file README này. Xin PO để lấy bộ file.
+Thư mục này là **bản tải về cục bộ** của các file KLMAS lưu trên **Google Drive của KLMAS**. Cây thư mục bên dưới do đội dự án tự sắp cho dễ tìm; Drive của KLMAS có cấu trúc khác. Vì vậy khi trao đổi với KLMAS chỉ dùng **tên file** (giữ nguyên như trên Drive), không dùng đường dẫn ở đây.
 
-Kho dữ liệu (`dw/`) quét toàn bộ thư mục này mỗi lần build và nhận loại file theo **tên file**. Thư mục giúp người tìm file, còn mùa, brand và nhà máy được lấy từ tên file và đường dẫn.
+**Chỉ đọc**: không sửa nội dung, không đổi tên file. Toàn bộ thư mục không đưa lên git (dữ liệu kinh doanh), trừ file README này. Xin PO để lấy bộ file.
+
+Kho dữ liệu (`dw/`) quét toàn bộ thư mục này mỗi lần build và nhận loại file theo **tên file**. Thư mục giúp người tìm file, còn mùa, brand và nhà máy được lấy từ nội dung và tên file; đường dẫn cục bộ chỉ là phương án cuối.
 
 ## Cấu trúc
 
@@ -38,6 +40,7 @@ Thư mục bắt đầu bằng `_` bị kho dữ liệu bỏ qua.
 | Dữ liệu kiểm bên thứ ba | `INSPECTION/THIRD_PARTY/` | `INPUT DATA` |
 | Biên bản họp | `MEETINGS/` | `.docx` |
 
+- File mới: tải từ Google Drive của KLMAS, **không đổi tên**.
 - Có bản mới của cùng một báo cáo: **thêm file mới** với ngày mới ở đầu tên, không ghi đè file cũ. Kho dữ liệu tự lấy bản mới nhất.
 - File đặt nhầm thư mục hoặc trùng nội dung: chuyển vào `_DUPLICATES/`, giữ nguyên đường dẫn con để biết gốc.
 

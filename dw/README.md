@@ -32,7 +32,7 @@ Kết quả nằm trong `dw/build/` (đã `.gitignore`):
 
 | Muốn thêm | Làm gì |
 |---|---|
-| Phiên bản mới của một báo cáo | Thả file vào đúng thư mục theo `raw-docs/README.md` (vd. `ORDER/CHALLENGER/26FW/`), giữ quy ước tên `YYMMDD… <mùa> … <loại báo cáo>`. Bản có ngày báo cáo mới nhất sẽ là bản hiện hành. Pipeline quét đệ quy, bỏ qua thư mục bắt đầu bằng `_` |
+| Phiên bản mới của một báo cáo | Tải bản mới từ Google Drive của KLMAS, **không đổi tên file**, đặt vào `raw-docs/` theo cây trong `raw-docs/README.md` (vd. `ORDER/CHALLENGER/26FW/`). Quy ước tên của KLMAS: `YYMMDD… <mùa> … <loại báo cáo>`. Bản có ngày báo cáo mới nhất sẽ là bản hiện hành. Pipeline quét đệ quy, bỏ qua thư mục bắt đầu bằng `_` |
 | Mùa mới | Thả ORDER RECAP vào `ORDER/<BRAND>/<MÙA>/`, Shipment / Production Status vào `TRACKING/<BRAND>/<MÙA>/`. Mã mùa (`26FW`, `27SS`) lấy từ tên file |
 | Email thật | Xuất `.eml` vào `raw-docs/inbox/` (không commit). Có thể chỉ thư mục khác bằng biến `KOPS_INBOX` |
 | Biên bản họp | Thả `.docx` vào `raw-docs/MEETINGS/` |
@@ -87,7 +87,7 @@ Gồm 8 tab, có chọn mùa, sáng/tối, chạy tốt trên điện thoại. B
 - **Email:** dùng bộ trích xuất rule-based (regex cho mã style, %, ETD, màu). 4 email trong `samples/inbox/` là **dữ liệu mẫu** (gắn `X-KOPS-Sample: true`, hiển thị nhãn SAMPLE). Bước tiếp theo là thay bằng LLM, vẫn giữ đúng output contract và bước duyệt (P-05).
 - **Chưa nạp:** sheet FAB (vật tư, định mức), báo cáo kiểm, báo cáo sản xuất ngày, minimap. Các tab liên quan ghi rõ "chưa có nguồn".
 - **Quy tắc nghiệp vụ** (RDD = ETD + 12, buffer 5 ngày, 45 pcs/ngày mặc định, dung sai 5%) nằm ở `config.py`, chờ KLMAS xác nhận (`analys-docs/open_questions.md`).
-- **Alias mã style** cho 3 cặp mã lệch giữa các file (Q3) đang tạm map và đánh dấu `STYLE_ALIAS_UNCONFIRMED`.
+- **Alias mã style** cho 3 cặp mã lệch giữa các file (Q05) đang tạm map và đánh dấu `STYLE_ALIAS_UNCONFIRMED`.
 - **DuckDB** dùng cho MVP. SQL viết theo lớp `raw → core → mart` nên chuyển sang PostgreSQL + dbt (kiến trúc đã chốt) chủ yếu là việc đổi dialect.
 
 ## Cấu trúc thư mục

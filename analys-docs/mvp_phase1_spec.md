@@ -4,7 +4,7 @@ Tài liệu này là **đặc tả** cho các đề xuất trong `review_inspect
 
 - Nền tảng hiện có: `dw/` (DuckDB, các lớp `etl → raw → stg → core → mart`, dashboard HTML, 19 golden test). Xem `dw/README.md`.
 - Quy tắc chung: `GUIDELINES.md`. Đặc biệt: file nguồn chỉ đọc; tổng luôn tính từ chi tiết; mọi bất thường ghi vào `etl.data_issue` kèm vị trí; không tự quyết câu hỏi nghiệp vụ.
-- Câu hỏi còn mở liên quan: Q1, Q3, Q23, Q24, Q26, Q27, Q28 (`open_questions.md` Phần 1). Code theo giả định ghi ở đó, để cấu hình được.
+- Câu hỏi còn mở liên quan: Q01, Q02, Q03, Q05, Q06, Q10, Q14 (`open_questions.md`, Ưu tiên 1–2). Code theo giả định ghi ở đó, để cấu hình được.
 
 ## 1. Mục tiêu và phạm vi
 
@@ -12,16 +12,20 @@ Tài liệu này là **đặc tả** cho các đề xuất trong `review_inspect
 
 | Trong Phase 1 | Ngoài Phase 1 |
 |---|---|
-| Nạp báo cáo sản xuất ngày (template CHALLENGER và HAGACO) | Tỷ lệ lỗi, scorecard kiểm viên (chờ Q25) |
-| Nạp SL kiểm đạt theo ngày từ bảng kiểm | Năng suất theo công nhân / xếp hạng nhà máy theo năng suất (chờ Q29) |
+| Nạp báo cáo sản xuất ngày (template CHALLENGER và HAGACO) | Tỷ lệ lỗi, scorecard kiểm viên (chờ Q22) |
+| Nạp SL kiểm đạt theo ngày từ bảng kiểm | Năng suất theo công nhân / xếp hạng nhà máy theo năng suất (chờ Q31) |
 | Dự báo ngày xong bằng sản lượng các ngày gần nhất | Lịch T&A, cảnh báo qua Zalo/email |
 | Độ tươi dữ liệu theo nhà máy và theo style | Nạp sheet FAB, checklist vật tư |
 | Funnel đặt → cắt → vào chuyền → ra chuyền → kiểm đạt → xuất | App nhập liệu, đăng nhập, RLS thật |
 | Chiều khách/brand (CHALLENGER, 8 SECONDS) | Buyer portal |
 | Yêu cầu đổi ETD trong ghi chú bảng kiểm → hàng chờ duyệt | Áp thay đổi tự động |
-| Quy ước thư mục nguồn + kiểm tra file đặt nhầm | Đồng bộ từ Google Drive / SharePoint |
+| Metadata file lấy từ nội dung và tên file (không phụ thuộc thư mục cục bộ) + kiểm tra file đặt nhầm | Tự đồng bộ từ Google Drive của KLMAS (backlog D-13, chờ Q07) |
 
-## 2. Quy ước thư mục nguồn
+## 2. Nguồn file và metadata
+
+**Bản gốc nằm trên Google Drive của KLMAS.** `raw-docs/` là bản tải về cục bộ, tên file giữ nguyên như trên Drive. Cây thư mục dưới đây do đội dự án tự sắp cho dễ tìm; KLMAS không dùng cây này và Drive có cấu trúc khác. Vì vậy metadata của file lấy từ **nội dung và tên file** trước; thư mục cục bộ chỉ là phương án cuối. Khi sau này đồng bộ thẳng từ Drive, file có thể nằm ở bất kỳ thư mục nào mà pipeline vẫn phải nhận đúng.
+
+Cây thư mục cục bộ:
 
 ```
 raw-docs/
@@ -41,9 +45,9 @@ Cách xác định metadata của một báo cáo ngày (theo thứ tự ưu ti�
 | Trường | 1. Lấy từ | 2. Nếu không có | 3. Nếu vẫn không có |
 |---|---|---|---|
 | Nhà máy | Tiêu đề ô A1 (`26FW- MTT FACT…`, `26FW- HAGACO-…`) | Tên file (`(CHALLENGER - MTT)`) | Thư mục cuối |
-| Brand | Thư mục ngay dưới `PRODUCTION/` hoặc dưới vendor (`8 SECONDS`) | Cột BUYER | `CHALLENGER` |
-| Vendor/khách | Thư mục `PRODUCTION/<X>/` khi có cấp brand bên dưới | — | = brand |
-| Mùa | Thư mục `26FW` | Tên file | Lỗi `SEASON_UNKNOWN` |
+| Brand | Tên file (`CHALLENGER`, `CLGR`) hoặc ánh xạ vendor trong `config.VENDOR_BRAND` (`DHG` → `8 SECONDS`) | Thư mục cục bộ (ghi `METADATA_FROM_FOLDER`, INFO) | `CHALLENGER` |
+| Vendor/khách | Tên file (`DHG-HAGACO`) qua `config.VENDOR_BRAND` | Thư mục cục bộ `PRODUCTION/<X>/` khi có cấp brand bên dưới | = brand |
+| Mùa | Tên file (`26FW`) | Thư mục cục bộ | Lỗi `SEASON_UNKNOWN` |
 
 Mô tả đầy đủ cấu trúc: `raw-docs/README.md` (sắp xếp lại ngày 19/10/2026). Pipeline đã quét đệ quy và bỏ qua thư mục bắt đầu bằng `_`. Khi 3 nguồn cho nhà máy không khớp nhau (trường hợp thật trước đây: file MTT đặt trong thư mục `DONG MY/`, nay đã chuyển vào `_DUPLICATES/`), dùng nguồn ưu tiên cao nhất và ghi `FILE_FOLDER_MISMATCH` (WARN). File trùng nội dung (sha256) → `DUPLICATE`, không nạp lại.
 
@@ -95,16 +99,16 @@ Thuật toán:
 | `core.inspection_day` | (nhà máy, ngày) → SL kiểm (dòng C), số kiểm viên (dòng F) | **Không nạp tên kiểm viên** (dữ liệu cá nhân, chưa cần ở Phase 1) |
 | `stg.inspection_remark` | `REQUEST ETD m/d` → đề xuất đổi ETD | Đưa vào `core.change_proposal`, nguồn `INSPECTION`, trạng thái `PENDING_REVIEW` |
 
-**Không nạp** dòng D (SL lỗi) và E (tỷ lệ lỗi) vào core/mart cho tới khi có câu trả lời Q25; chỉ giữ ở raw.
+**Không nạp** dòng D (SL lỗi) và E (tỷ lệ lỗi) vào core/mart cho tới khi có câu trả lời Q22; chỉ giữ ở raw.
 
-Style bộ (Q26): SL đạt của style = **min** theo món (một bộ chỉ đủ khi có cả 2 món); vẫn hiển thị từng món trong Style 360.
+Style bộ (Q10): SL đạt của style = **min** theo món (một bộ chỉ đủ khi có cả 2 món); vẫn hiển thị từng món trong Style 360.
 
 ### 3.4 Mã style
 
 - Mỗi brand có quy tắc mã riêng (đặt trong `config.py`):
   - CHALLENGER: `^CH[A-Z][0-9][MWU][A-Z]{2}[0-9]{4}$`
   - 8 SECONDS: `^LEV-[0-9]{5}` (giữ phần sau `#` làm `style_variant`)
-- Bổ sung alias chưa xác nhận (Q27): `CHE3WPT6986→CHF3WPT6986`, `CHE3WSK6754→CHF3WSK6754`, `CHE4MPT6441→CHF4MPT6441`, `CHE4WPT6842→CHF4WPT6842`. Áp alias ở mọi nguồn qua `core.style_key()`; ghi `STYLE_ALIAS_UNCONFIRMED`.
+- Bổ sung alias chưa xác nhận (Q06): `CHE3WPT6986→CHF3WPT6986`, `CHE3WSK6754→CHF3WSK6754`, `CHE4MPT6441→CHF4MPT6441`, `CHE4WPT6842→CHF4WPT6842`. Áp alias ở mọi nguồn qua `core.style_key()`; ghi `STYLE_ALIAS_UNCONFIRMED`.
 
 ## 4. Quy tắc tính toán
 
@@ -175,7 +179,7 @@ Cờ (issue hoặc cột trong mart):
 | mart | `style_funnel`, `funnel_assortment` | §4.5 |
 | mart | `style_360` | thêm cột từ `style_forecast` và `style_funnel`; `health` dùng dự báo mới |
 
-Mọi bảng mới có `brand`. Truy vấn mart cho dashboard nhận tham số brand; mặc định CHALLENGER (Q28).
+Mọi bảng mới có `brand`. Truy vấn mart cho dashboard nhận tham số brand; mặc định CHALLENGER (Q14).
 
 ## 6. Thay đổi dashboard
 
@@ -204,7 +208,7 @@ Chạy với `KOPS_TODAY=2026-10-19`. Mọi số dưới đây đã được tí
 | G1 | File báo cáo ngày tìm thấy / trùng / nạp (2 bản trùng đã nằm trong `_DUPLICATES/`, bị bỏ qua) | 7 / 0 / 7 |
 | G2 | Ngày báo cáo cuối theo nhà máy | DONG MY 28/09, HA HIEU 28/09, MTT 02/10, NATEXCO 08/09, TAN BINH MINH 15/10, TRUONG PHUC 14/10, HAGACO 15/10 |
 | G3 | Sheet TBM `13.01`, `14.01`, `15.01` | Thành 13/10, 14/10, 15/10, có `REPORT_DATE_FIXED` |
-| G4 | Style CHALLENGER có trong báo cáo ngày (sau alias Q3 + Q27) | 101, khớp ORDER RECAP cả 101 |
+| G4 | Style CHALLENGER có trong báo cáo ngày (sau alias Q05 + Q06) | 101, khớp ORDER RECAP cả 101 |
 | G5 | Style CHALLENGER đang chạy không có báo cáo ngày nào (`NO_REPORT`) | 9 |
 | G6 | CHF4MPT6444 (W33): output last-seen / rate / ready / days_late | 190 / 50 / 2026-10-25 / 18 |
 | G7 | CHF4WPT6846: output / ready / days_late | 290 / 2026-10-21 / 14 |

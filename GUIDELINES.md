@@ -15,12 +15,13 @@ Khi tài liệu này mâu thuẫn với chỉ dẫn riêng của một công c�
 
 | Nguồn | Vị trí | Ghi chú |
 |---|---|---|
-| File gốc của KLMAS | `raw-docs/` (local, không có trong git) | Chỉ đọc. Gồm Excel 26FW/27SS, hồ sơ năng lực (PDF tiếng Hàn), biên bản họp lần 1 (docx song ngữ). Xin PO để lấy |
+| File gốc của KLMAS | Bản gốc trên **Google Drive của KLMAS**; `raw-docs/` là bản tải về local, không có trong git | Chỉ đọc. Gồm Excel 26FW/27SS, báo cáo sản xuất ngày, bảng kiểm, hồ sơ năng lực (PDF tiếng Hàn), biên bản họp lần 1 (docx song ngữ). Xin PO để lấy. Cây thư mục trong `raw-docs/` do đội dự án tự sắp, khác với Drive |
 | Phân tích và thiết kế | `analys-docs/` | Nghiệp vụ, chất lượng dữ liệu, thiết kế DB, ETL, câu hỏi mở, roadmap, backlog |
 | Chuẩn UI và kiến trúc | `prototype/` | `KOPS_prototype.html` là chuẩn giao diện và luồng màn hình; `KOPS_prototype_architecture.md` là quyết định kỹ thuật |
 
 Quy tắc:
 - Không sửa, đổi tên hay xoá file trong `raw-docs/`. Sắp xếp lại thư mục chỉ do PO quyết, phải giữ nguyên tên file và ghi nhật ký + cách hoàn tác trong `raw-docs/_REORG/`. Cấu trúc thư mục: `raw-docs/README.md`.
+- Khi viết cho KLMAS (câu hỏi, báo cáo), dẫn file bằng **tên file** kèm sheet/ô/dòng, không dùng đường dẫn `raw-docs/…`: KLMAS lưu trên Google Drive theo cấu trúc khác. Code cũng không suy ra brand, mùa, nhà máy chỉ từ thư mục cục bộ.
 - Mọi khẳng định về nghiệp vụ hay số liệu phải trích nguồn: tên file, sheet/ô, mục trong biên bản, hoặc output lệnh.
 - Tài liệu trong `analys-docs/` và `prototype/` được sửa qua PR như code. Khi sửa một quyết định đã chốt thì ghi lý do trong PR.
 

@@ -57,7 +57,7 @@ kops-mvp/
 ├── prototype/             # prototype HTML (chuẩn UI và luồng màn hình), kiến trúc, dw_schema.sql
 ├── dw/                    # MVP data warehouse: nạp Excel + email + biên bản họp → DuckDB → dashboard
 ├── plans/                 # kế hoạch thực hiện cho người/agent (MVP Phase 1)
-└── raw-docs/              # file gốc của KLMAS — KHÔNG commit (trừ README.md mô tả cấu trúc), xin PO để lấy
+└── raw-docs/              # bản tải về từ Google Drive của KLMAS — KHÔNG commit (trừ README.md mô tả cấu trúc), xin PO để lấy
 ```
 
 ### Tài liệu trong `analys-docs/`

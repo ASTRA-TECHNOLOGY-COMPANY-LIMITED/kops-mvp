@@ -19,11 +19,11 @@ DASHBOARD_PATH = BUILD_DIR / "dashboard.html"
 
 # --- Business rules (configurable, pending KLMAS confirmation; see analys-docs/open_questions.md) ---
 RULES = {
-    "rdd_offset_days": 12,             # RDD = ETD VN + 12 (Q7)
+    "rdd_offset_days": 12,             # RDD = ETD VN + 12 (Q16)
     "ready_buffer_days": 5,            # finishing + inspection after sewing
     "default_daily_output": 45,        # pcs/day when factory has not reported (meeting example)
     "ontime_tolerance_days": 7,        # first lot ETD <= style ETD + 7 => on time
-    "qty_tolerance_pct": 5,            # Q14
+    "qty_tolerance_pct": 5,            # Q12
     "as_of_fallback": "2026-10-12",    # when a file carries no report date
 }
 
@@ -57,7 +57,7 @@ REQUIREMENT_COVERAGE = {
     14: ("PARTIAL", "Email + biên bản họp đã vào DW (nguồn cho kho tri thức)", "Trợ lý soạn trả lời có duyệt (A-04, A-05)"),
 }
 
-# Style codes that differ between files (open question Q3: not confirmed by KLMAS yet).
+# Style codes that differ between files (open question Q05: not confirmed by KLMAS yet).
 STYLE_ALIASES = {
     "CHFWWT6817": "CHF4WWT6817",   # typo in Shipment Status
     "CHF4WSK6851": "CHF4WHP6851",  # Shipment Status vs ORDER RECAP

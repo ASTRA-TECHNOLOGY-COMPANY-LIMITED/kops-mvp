@@ -26,7 +26,7 @@ SQL Server là lựa chọn tương đương nếu công ty đã chuẩn hoá tr
 
 ## Rủi ro chính
 - Template Excel thay đổi thường xuyên → parser gãy (giảm thiểu: kiểm dấu hiệu template, FAILED thay vì nạp sai).
-- Chưa chốt nguồn chính thức cho qty/shipped (Q1–Q4) → DB vẫn phản ánh mâu thuẫn.
+- Chưa chốt nguồn chính thức cho qty/shipped (Q01, Q04, Q05, Q09) → DB vẫn phản ánh mâu thuẫn.
 - Text milestone khó parse hoàn toàn → luôn giữ `raw_text`, chấp nhận một phần cần nhập lại.
 - Năm của ngày dạng `m/d` phải suy luận.
 

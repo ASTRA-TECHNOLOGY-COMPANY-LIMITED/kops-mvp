@@ -90,7 +90,7 @@ SELECT c.message_id, e.sent_at, e.subject, e.is_sample, c.style_no, o.season, o.
        CASE WHEN c.change_type = 'COLOR' THEN EXISTS (
               SELECT 1 FROM core.order_color oc WHERE oc.style_no = c.style_no AND oc.color = c.color_from)
        END AS color_from_exists,
-       -- The % change may already be in ORDER RECAP while other files still show the old qty (Q4)
+       -- The % change may already be in ORDER RECAP while other files still show the old qty (Q04)
        CASE WHEN c.change_type = 'QTY_PCT' THEN p.order_qty_reported END AS qty_in_other_file,
        (c.change_type = 'QTY_PCT' AND p.order_qty_reported IS NOT NULL
         AND abs(round(p.order_qty_reported * (1 + c.pct / 100.0)) - o.order_qty) <= 1) AS possibly_applied,

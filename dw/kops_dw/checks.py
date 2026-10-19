@@ -43,7 +43,7 @@ CHECKS = [
         WHERE style_no='CHF3MJK6301'""", "NATEXCO>HA HIEU>MTT"),
     ("Alert W33 CHF4MPT6444 projected ~49 days late", ("production_status", "26FW"),
      "SELECT days_late FROM mart.style_360 WHERE style_no='CHF4MPT6444'", 49),
-    # Prototype showed 79%; the DW also matches the 3 aliased style codes (Q3), giving 79.6%.
+    # Prototype showed 79%; the DW also matches the 3 aliased style codes (Q05), giving 79.6%.
     ("26FW on-time shipment rate (first lot <= ETD + 7)", ("shipment_status", "26FW"),
      "SELECT ontime_pct FROM mart.season_kpi WHERE season='26FW'", 79.6),
     # structural rules

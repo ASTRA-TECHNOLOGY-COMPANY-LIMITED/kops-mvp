@@ -42,4 +42,4 @@ Bạn thực hiện **KOPS MVP Phase 1**: mở rộng data warehouse trong `dw/`
 - Đường dẫn ảnh chụp dashboard.
 - Thời gian build trước và sau.
 - Golden number nào lệch và vì sao.
-- Danh sách câu hỏi cần KLMAS trả lời trước buổi demo.
+- Các câu Ưu tiên 1–2 trong `open_questions.md` KLMAS chưa trả lời, và số liệu nào đang chạy theo giả định của câu đó.

@@ -442,7 +442,7 @@ function viewQuality() {
       ${hbars(codes.map(([c, n]) => ({label: c, value: n, color: SEV[sevOf(c)]?.c})))}</div>
     <div class="card"><h3>Đối soát giữa các file</h3><p class="sub">Cùng một style, số lượng ghi khác nhau ở ORDER RECAP, Shipment Status và Production Status</p>
       ${hbars(Object.entries(TB.recon.reduce((a, r) => (a[r.mismatch] = (a[r.mismatch] || 0) + 1, a), {})).map(([k, v]) => ({label: k, value: v})))}
-      <p class="note" style="margin-top:10px">Lệch ORDER thường do đơn bị giảm/tăng ở ORDER RECAP nhưng file khác chưa cập nhật (open question Q4). Lệch SHIPPED thường do cách tính có/không gồm mẫu (Q2).</p></div>
+      <p class="note" style="margin-top:10px">Lệch ORDER thường do đơn bị giảm/tăng ở ORDER RECAP nhưng file khác chưa cập nhật (open question Q04). Lệch SHIPPED thường do cách tính có/không gồm mẫu (Q09).</p></div>
   </div>
   <h2 class="sec">Chi tiết đối soát</h2>
   ${table('t-recon', TB.recon, [{k: 'style_no', l: 'Style', r: styleLink}, {k: 'factory_code', l: 'Nhà máy'},

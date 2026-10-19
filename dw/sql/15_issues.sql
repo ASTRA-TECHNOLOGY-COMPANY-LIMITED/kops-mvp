@@ -9,7 +9,7 @@ FROM core.style_order WHERE is_active AND factory_raw IS NULL;
 
 INSERT INTO etl.data_issue
 SELECT DISTINCT s.file_id, 'WARN', 'STYLE_ALIAS_UNCONFIRMED', s.style_no_raw,
-       'Style code ' || s.style_no_raw || ' mapped to ' || s.style_no || ' (Q3, chờ KLMAS xác nhận)', s.sheet
+       'Style code ' || s.style_no_raw || ' mapped to ' || s.style_no || ' (Q05, chờ KLMAS xác nhận)', s.sheet
 FROM core.shipment_detail s WHERE s.style_no <> s.style_no_raw;
 
 INSERT INTO etl.data_issue

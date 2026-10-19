@@ -26,16 +26,16 @@ spec: analys-docs/mvp_phase1_spec.md
 
 | ID | Task | Vai trò | Phụ thuộc | Ước lượng |
 |---|---|---|---|---|
-| M1-01 | Quy ước thư mục nguồn + metadata file (brand, vendor, nhà máy, mùa) + `FILE_FOLDER_MISMATCH` | Data Engineer | — | 3h |
+| M1-01 | Metadata file (brand, vendor, nhà máy, mùa) từ nội dung/tên file, thư mục cục bộ chỉ là fallback + `FILE_FOLDER_MISMATCH` | Data Engineer | — | 3h |
 | M1-02 | Parser báo cáo sản xuất ngày (2 template) + giải quyết ngày báo cáo | Data Engineer | M1-01 | 8h |
-| M1-03 | Core: last-seen, chuỗi sản lượng ngày, alias style Q27, chiều brand, `style_external` | Data Engineer | M1-02 | 5h |
+| M1-03 | Core: last-seen, chuỗi sản lượng ngày, alias style Q06, chiều brand, `style_external` | Data Engineer | M1-02 | 5h |
 | M1-04 | Dự báo ngày xong (rolling rate, chọn nguồn, độ tin cậy) + cập nhật `health` | Data Engineer | M1-03 | 4h |
 | M1-05 | Độ tươi dữ liệu theo nhà máy và theo style | Data Engineer | M1-03 | 3h |
 | M1-06 | Parser bảng kiểm (SL đạt, lọc nhà máy, style bộ, số kiểm viên) + trích `REQUEST ETD` | Data Engineer | M1-01 | 6h |
 | M1-07 | Funnel style và màu × size + cờ số lượng | Data Engineer | M1-03, M1-06 | 4h |
 | M1-08 | Dashboard: chọn brand, thẻ và bảng độ tươi, funnel và biểu đồ ngày trong Style 360, nguồn dự báo | Frontend — Dashboard | M1-04, M1-05, M1-07 | 8h |
 | M1-09 | Golden test G1–G13 + cập nhật test cũ (W33) | QA | M1-04 → M1-07 | 3h |
-| M1-10 | Cập nhật tài liệu: `dw/README.md`, `GUIDELINES.md` §7, `open_questions.md` (trạng thái R5/R7) | Tech Writer | M1-08, M1-09 | 2h |
+| M1-10 | Cập nhật tài liệu: `dw/README.md`, `GUIDELINES.md` §7, `open_questions.md` (trạng thái D1/D2) | Tech Writer | M1-08, M1-09 | 2h |
 | M1-11 | Review tổng + chạy lại từ thư mục sạch + báo cáo cho PO | Code Reviewer + BA | tất cả | 2h |
 | M1-12 *(tuỳ chọn, chờ PO duyệt)* | Nạp dữ liệu kiểm hàng bên thứ ba (`INSPECTION/THIRD_PARTY/INPUT DATA.xlsx` + bảng mã lỗi) và tab "Chất lượng kiểm hàng" | Data Engineer + Frontend — Dashboard | M1-01 | 8h |
 
@@ -50,12 +50,13 @@ M1-01 ─┬─ M1-02 ── M1-03 ─┬─ M1-04 ─┐
 
 ## 3. Chi tiết và tiêu chí nghiệm thu
 
-### M1-01 — Quy ước thư mục và metadata file
-- **Làm:** `pipeline.discover()` quét đệ quy `raw-docs/PRODUCTION/**` và `raw-docs/INSPECTION/**`. `classify()` nhận thêm 2 parser `daily_production`, `inspection_tracker`. Hàm `file_meta(path, workbook)` trả brand, vendor, nhà máy, mùa theo spec §2. Thêm các cột `brand`, `vendor`, `factory` vào `etl.source_file`.
-- **Ghi chú:** `discover()` đã quét đệ quy và bỏ qua `_DUPLICATES/`, `_REORG/` (làm sẵn khi sắp xếp lại `raw-docs`, 19/10). Task này còn lại phần metadata từ đường dẫn và tên file.
+### M1-01 — Metadata file (không phụ thuộc thư mục)
+- **Làm:** `pipeline.discover()` quét đệ quy `raw-docs/PRODUCTION/**` và `raw-docs/INSPECTION/**`. `classify()` nhận thêm 2 parser `daily_production`, `inspection_tracker`. Hàm `file_meta(path, workbook)` trả brand, vendor, nhà máy, mùa theo spec §2. Thêm các cột `brand`, `vendor`, `factory` vào `etl.source_file`. Thứ tự nguồn theo spec §2: nội dung → tên file + `config.VENDOR_BRAND` → thư mục cục bộ. Lý do: bản gốc nằm trên Google Drive của KLMAS, cây `raw-docs/` chỉ là bản cục bộ do đội dự án tự sắp.
+- **Ghi chú:** `discover()` đã quét đệ quy và bỏ qua `_DUPLICATES/`, `_REORG/` (làm sẵn khi sắp xếp lại `raw-docs`, 19/10). Task này còn lại phần metadata.
 - **Nghiệm thu:**
   - Test với file fixture: đặt một báo cáo MTT trong thư mục `DONG MY/` → nhà máy MTT, có `FILE_FOLDER_MISMATCH`.
-  - File DHG → brand `8 SECONDS`, vendor `DHG(DAEHAN GROBAL)`, nhà máy `HAGACO`.
+  - File DHG → brand `8 SECONDS`, vendor `DHG`, nhà máy `HAGACO`.
+  - Cùng file DHG đặt thẳng ở gốc `raw-docs/` (không có thư mục con) vẫn ra đúng brand, vendor, nhà máy như trên.
   - G1 đúng.
 
 ### M1-02 — Parser báo cáo sản xuất ngày
@@ -69,7 +70,7 @@ M1-01 ─┬─ M1-02 ── M1-03 ─┬─ M1-04 ─┐
   - Thời gian build tăng thêm không quá 60 giây.
 
 ### M1-03 — Core cho báo cáo ngày
-- **Làm:** `core.daily_progress` (last-seen, spec §4.1), `core.daily_output_series` (§4.2), alias Q27 trong `config.STYLE_ALIASES`, cột `brand` cho `core.style_order` (= CHALLENGER), `core.style_external` cho style của 8 SECONDS. Áp quy tắc mã theo brand (§3.4).
+- **Làm:** `core.daily_progress` (last-seen, spec §4.1), `core.daily_output_series` (§4.2), alias Q06 trong `config.STYLE_ALIASES`, cột `brand` cho `core.style_order` (= CHALLENGER), `core.style_external` cho style của 8 SECONDS. Áp quy tắc mã theo brand (§3.4).
 - **Nghiệm thu:**
   - G4, G12 đúng.
   - `daily_progress` không lẫn hai brand.
@@ -114,7 +115,7 @@ M1-01 ─┬─ M1-02 ── M1-03 ─┬─ M1-04 ─┐
 - **Nghiệm thu:** `python -m kops_dw test` → ALL PASS. Thiếu nguồn thì SKIP, không FAIL.
 
 ### M1-10 — Tài liệu
-- **Làm:** cập nhật `dw/README.md` (nguồn mới, quy ước thư mục, bảng mới, giới hạn), `GUIDELINES.md` §7 (golden numbers mới), `open_questions.md` (R5 ✅ một phần, R7), `review_inspection_production.md` nếu có số liệu thay đổi.
+- **Làm:** cập nhật `dw/README.md` (nguồn mới, quy ước thư mục, bảng mới, giới hạn), `GUIDELINES.md` §7 (golden numbers mới), `open_questions.md` (D1 ✅ một phần, D2), `review_inspection_production.md` nếu có số liệu thay đổi.
 - **Nghiệm thu:** không còn chỗ nào trong tài liệu mâu thuẫn với code; link nội bộ đều mở được.
 
 ### M1-11 — Review và bàn giao
