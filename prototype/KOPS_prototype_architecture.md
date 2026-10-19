@@ -95,7 +95,7 @@ flowchart LR
 
 ## 5. Bước tiếp theo đề xuất
 
-1. Demo prototype cho KLMAS (TGĐ Kim, chị Lee Min Ji) và ghi nhận góp ý theo từng màn hình. Mục tiêu theo biên bản: prototype trước, rồi mới bàn sâu với dev.
+1. Demo prototype cho KLMAS (ban giám đốc và MR phụ trách CHALLENGER) và ghi nhận góp ý theo từng màn hình. Mục tiêu theo biên bản: prototype trước, rồi mới bàn sâu với dev.
 2. Xin dữ liệu để thay phần mô phỏng: 1–2 mùa đã kết thúc, 1 tuần báo cáo kiểm (Excel + ảnh), danh sách kiểm viên và khu vực nhà máy, 20–30 email/Kakao mẫu với buyer.
 3. Chốt phạm vi MVP-1: upload ORDER RECAP/minimap → master style → màn hình ORDER RECAP, tra cứu buyer, cảnh báo tiến độ, form kiểm hàng PWA.
 4. Dựng `core` + `dw` thật từ hai file SQL; viết parser cho 4 template Excel (đã có prototype parser).

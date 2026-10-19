@@ -1,51 +1,51 @@
-﻿id,phase,epic,task,owner_agent,support_agents,depends_on,agent_hours,human_hours_you,acceptance_criteria
-F-01,P0,Nền tảng,"Monorepo Next.js + FastAPI + docker-compose, cấu trúc thư mục, README chạy local",DevOps,Developer;Frontend Engineer,,6,0.5,`docker compose up` chạy web + api + postgres; README đủ để agent khác dựng lại
+id,phase,epic,task,owner_role,support_roles,depends_on,build_hours,po_hours,acceptance_criteria
+F-01,P0,Nền tảng,"Monorepo Next.js + FastAPI + docker-compose, cấu trúc thư mục, README chạy local",DevOps,Backend Engineer;Frontend Engineer - Dashboard & PWA,,6,0.5,`docker compose up` chạy web + api + postgres; README đủ để người khác dựng lại
 F-02,P0,Nền tảng,"CI: lint, type-check, unit test, Playwright e2e, build image; chặn merge khi đỏ",DevOps,QA,F-01,6,0.5,PR mẫu chạy đủ pipeline < 10 phút
 F-03,P0,Nền tảng,"Migration schema core từ analys-docs/schema.sql (Alembic), index, seed size/mode/status",Database Engineer,Data Engineer,F-01,8,0.5,48 bảng tạo được; chạy lại idempotent; test CHECK/EXCLUDE pass
-F-04,P0,Nền tảng,"Auth + RBAC (Admin, MR, QA nhà máy, Kiểm viên, Buyer) + audit log trigger + RLS theo brand",Developer,Security Gate;Database Engineer,F-03,12,1,Buyer A không đọc được dữ liệu brand B (test); mọi UPDATE có dòng audit
-F-05,P0,Nền tảng,"Seed master data: brand, season, collection, factory + alias, color alias, item type, milestone type",Domain Analyst,Database Engineer,F-03,6,1.5,Alias phủ 100% biến thể trong 6 file thật; KLMAS xác nhận danh sách nhà máy
-F-06,P0,Nền tảng,"Staging AWS ap-southeast-1: RDS Postgres, S3, VM/ECS, secrets, HTTPS, backup hằng ngày",DevOps,Security Gate,F-01,8,1.5,URL staging chạy; restore backup thử thành công
-F-07,P0,Nền tảng,"Design system & app shell từ prototype (token màu, typography, layout, i18n VI/KO/EN, dark mode)",Frontend Engineer,Domain Analyst,F-01,10,0.5,Storybook các component chính; Lighthouse a11y ≥ 90
+F-04,P0,Nền tảng,"Auth + RBAC (Admin, MR, QA nhà máy, Kiểm viên, Buyer) + audit log trigger + RLS theo brand",Backend Engineer,Security Reviewer;Database Engineer,F-03,12,1,Buyer A không đọc được dữ liệu brand B (test); mọi UPDATE có dòng audit
+F-05,P0,Nền tảng,"Seed master data: brand, season, collection, factory + alias, color alias, item type, milestone type",Business Analyst,Database Engineer,F-03,6,1.5,Alias phủ 100% biến thể trong 6 file thật; KLMAS xác nhận danh sách nhà máy
+F-06,P0,Nền tảng,"Staging AWS ap-southeast-1: RDS Postgres, S3, VM/ECS, secrets, HTTPS, backup hằng ngày",DevOps,Security Reviewer,F-01,8,1.5,URL staging chạy; restore backup thử thành công
+F-07,P0,Nền tảng,"Design system & app shell từ prototype (token màu, typography, layout, i18n VI/KO/EN, dark mode)",Frontend Engineer - App & Portal,UI/UX Designer;Frontend Engineer - Dashboard & PWA;Business Analyst,F-01,10,0.5,Storybook các component chính; Lighthouse a11y ≥ 90
 D-01,P1,Dữ liệu,"Khung ingest: registry file (sha256, phiên bản, tác giả), raw.cell (giá trị, công thức, màu nền), issue log",Data Engineer,Database Engineer,F-03,12,0.5,Nạp 6 file raw-docs; file trùng (1) bị phát hiện qua hash
-D-02,P1,Dữ liệu,"Parser ORDER RECAP xlsb/xlsx: block 4 dòng, màu, qty theo màu, ghi chú lịch sử, trạng thái từ màu ô",Data Engineer,Domain Analyst;QA,D-01,16,1,"26FW: 113 block, 110 active, 62.131 pcs; 27SS: 143/137/87.940 (golden test)"
+D-02,P1,Dữ liệu,"Parser ORDER RECAP xlsb/xlsx: block 4 dòng, màu, qty theo màu, ghi chú lịch sử, trạng thái từ màu ô",Data Engineer,Business Analyst;QA,D-01,16,1,"26FW: 113 block, 110 active, 62.131 pcs; 27SS: 143/137/87.940 (golden test)"
 D-03,P1,Dữ liệu,"Parser Shipment Status (lưới block, size, lô, mẫu) → order_qty_size, shipment, sample",Data Engineer,QA,D-01,10,0.5,103 block có dữ liệu; 144/144 block khớp tổng file
 D-04,P1,Dữ liệu,"Parser Production & Shipping Status → production_snapshot, production_plan, milestone",Data Engineer,QA,D-01,6,0.5,110 style; bỏ dòng subtotal; tổng tính lại 62.357
-D-05,P1,Dữ liệu,"Parser FAB sheet → style_fabric snapshot, fabric, supplier, lô tàu vải",Data Engineer,Domain Analyst,D-01,8,0.5,971 dòng FAB(0615); 2 snapshot có as_of_date
-D-06,P1,Dữ liệu,"Quy tắc validation + màn hình issue (lọc, gán người, đóng) với link về ô Excel gốc",Developer,Frontend Engineer;QA,D-02;D-03,10,1,Tất cả DQ-01…DQ-30 trong data_quality_report hiện thành issue
-D-07,P1,Dữ liệu,"AI nhận dạng minimap/order list (Excel, PDF, ảnh) → bản nháp style master + hàng chờ duyệt",AI Engineer,Domain Analyst;Frontend Engineer,D-02,24,4,Eval trên ≥ 3 định dạng: precision qty/màu ≥ 98%; dòng không chắc bị đánh dấu
-D-08,P1,Dữ liệu,"Màn hình ORDER RECAP: grid style × màu, sửa trực tiếp, lịch sử thay đổi, ảnh thiết kế, lọc theo vải/NCC",Frontend Engineer,Developer,D-02;F-07,30,2,MR thao tác 300 style không lag; mọi sửa có lịch sử ai/khi nào
-D-09,P1,Dashboard,"Season Control Tower: KPI, theo nhà máy/collection, top rủi ro, vật tư chưa về",Frontend Engineer,Data Engineer,D-08,16,1,Số trên dashboard = số tính từ chi tiết (test đối soát)
-D-10,P1,Dashboard,"Buyer portal: đăng nhập, tiến độ 8 bước, assortment màu×size, lô xuất, báo cáo kiểm",Frontend Engineer,Developer;Security Gate,D-09;F-04,16,1,Buyer chỉ thấy brand mình; drill-down từ SL xuất ra màu×size
-D-11,P1,Dashboard,"Export Excel/Google Sheets đúng mẫu cũ: ORDER RECAP, Shipment Status, Production Status",Developer,Domain Analyst;QA,D-02;D-03;D-04,12,2,KLMAS so file export với file gốc và chấp nhận
+D-05,P1,Dữ liệu,"Parser FAB sheet → style_fabric snapshot, fabric, supplier, lô tàu vải",Data Engineer,Business Analyst,D-01,8,0.5,971 dòng FAB(0615); 2 snapshot có as_of_date
+D-06,P1,Dữ liệu,"Quy tắc validation + màn hình issue (lọc, gán người, đóng) với link về ô Excel gốc",Backend Engineer,Frontend Engineer - Dashboard & PWA;QA,D-02;D-03,10,1,Tất cả DQ-01…DQ-30 trong data_quality_report hiện thành issue
+D-07,P1,Dữ liệu,"AI nhận dạng minimap/order list (Excel, PDF, ảnh) → bản nháp style master + hàng chờ duyệt",AI Engineer,Business Analyst;Frontend Engineer - Dashboard & PWA,D-02,24,4,Eval trên ≥ 3 định dạng: precision qty/màu ≥ 98%; dòng không chắc bị đánh dấu
+D-08,P1,Dữ liệu,"Màn hình ORDER RECAP: grid style × màu, sửa trực tiếp, lịch sử thay đổi, ảnh thiết kế, lọc theo vải/NCC",Frontend Engineer - App & Portal,Backend Engineer,D-02;F-07,30,2,MR thao tác 300 style không lag; mọi sửa có lịch sử ai/khi nào
+D-09,P1,Dashboard,"Season Control Tower: KPI, theo nhà máy/collection, top rủi ro, vật tư chưa về",Frontend Engineer - Dashboard & PWA,Data Engineer,D-08,16,1,Số trên dashboard = số tính từ chi tiết (test đối soát)
+D-10,P1,Dashboard,"Buyer portal: đăng nhập, tiến độ 8 bước, assortment màu×size, lô xuất, báo cáo kiểm",Frontend Engineer - Dashboard & PWA,Backend Engineer;Security Reviewer,D-09;F-04,16,1,Buyer chỉ thấy brand mình; drill-down từ SL xuất ra màu×size
+D-11,P1,Dashboard,"Export Excel/Google Sheets đúng mẫu cũ: ORDER RECAP, Shipment Status, Production Status",Backend Engineer,Business Analyst;QA,D-02;D-03;D-04,12,2,KLMAS so file export với file gốc và chấp nhận
 D-12,P1,Dữ liệu,Báo cáo đối soát reported vs computed sau mỗi lần import,Data Engineer,,D-02;D-03;D-04,6,0.5,Phát hiện đúng 4 style lệch qty và chênh lệch shipped đã biết
-P-01,P2,Sản xuất,"Lịch T&A: template mốc theo brand, tính ngược từ RDD (RDD−12 cấu hình được), mốc chốt vật tư",Developer,Domain Analyst,D-08,16,1.5,Tạo lịch cho 110 style 26FW; mốc trễ hiện đỏ
-P-02,P2,Sản xuất,Báo cáo sản xuất ngày: form web cho nhà máy + AI đọc ảnh/Excel gửi qua Zalo,Developer,AI Engineer;Frontend Engineer,P-01,20,2,Nhập cut/input/output theo màu×size; ảnh mẫu đọc đúng ≥ 95%
-P-03,P2,Sản xuất,"Engine cảnh báo (trễ mốc, dưới kế hoạch, dự kiến trễ ETD) + thông báo Zalo/email + hộp việc MR",Developer,DevOps,P-02,12,1,Cảnh báo W33 trễ ~49 ngày tái hiện đúng với dữ liệu 12/10
-P-04,P2,Sản xuất,"Checklist vật tư: định mức×SL, plan/actual về, thiếu/thừa, deadline chốt vật tư, cảnh báo sớm",Developer,Database Engineer;Domain Analyst,D-05;P-01,24,1.5,Style thiếu yard được báo trước ngày cắt ≥ 7 ngày
-P-05,P2,Sản xuất,"Hộp thay đổi từ buyer: Gmail/Kakao export → AI trích (qty, màu, ETD) → MR duyệt → cập nhật + lịch sử",AI Engineer,Developer;Security Gate,D-08;F-04,24,3,Email giảm 20% (3 style) được trích đúng; không có thay đổi nào bỏ qua bước duyệt
-P-06,P2,Sản xuất,"Phân/chuyển nhà máy có lý do bắt buộc, lịch sử SCD2",Developer,Database Engineer,D-08,6,0.5,21 style đã chuyển ở 26FW hiện đúng đường đi
-P-07,P2,Sản xuất,"Kế hoạch xuất: tối đa 4 lô, chuyển AIR có ghi chi phí, import packing list",Developer,Data Engineer,D-03,16,1,Lô xuất import từ packing list khớp shipment_line
-P-08,P2,Sản xuất,"Email booking tự soạn (SL, lịch) gửi hãng logistics, theo dõi phản hồi",AI Engineer,Developer,P-07,10,1,Booking gửi thử và trạng thái phản hồi cập nhật
-P-09,P2,Sản xuất,Sinh thẻ vật tư 3 bản (buyer/KLMAS/nhà máy) PDF từ dữ liệu FAB,Developer,Domain Analyst,D-05,8,1,KLMAS chấp nhận mẫu thẻ
-Q-01,P3,QC,"Mô hình dữ liệu QC: yêu cầu kiểm, lần kiểm, lỗi, ảnh, mẫu theo brand, khách bên thứ ba",Database Engineer,Domain Analyst,F-03,8,1,"Migration + seed 12 mã lỗi, mẫu 6 brand"
-Q-02,P3,QC,"PWA kiểm hàng: offline, camera, AQL ISO 2859-1 II, đếm lỗi, ảnh bắt buộc, đồng bộ khi có mạng",Frontend Engineer,Developer;QA,Q-01;F-07,36,2,"Kiểm offline 1 lô, đồng bộ không mất ảnh; AQL đúng bảng chuẩn"
-Q-03,P3,QC,"Mẫu báo cáo theo brand → PDF (Playwright), tài liệu kèm theo theo brand",Developer,Domain Analyst,Q-01,16,3,PDF giống mẫu gốc của từng brand (KLMAS duyệt)
-Q-04,P3,QC,Tiếp nhận yêu cầu kiểm: tự sinh từ output đơn KLMAS; khách ngoài gửi qua portal/email,Developer,AI Engineer,Q-01;P-02,12,1,Yêu cầu ngày mai sinh tự động khi output ≥ 90%
-Q-05,P3,QC,"Tối ưu phân công kiểm viên (OR-Tools: khu vực, chuyên trách, mặt hàng, tải) + giải thích bằng AI",AI Engineer,Researcher;Developer,Q-04,20,1.5,Phân 30 yêu cầu < 5 giây; điều phối viên đồng ý ≥ 80% gợi ý
-Q-06,P3,QC,"Phản hồi lỗi: bản tin ảnh lỗi hằng ngày cho nhà máy, CAPA, nối inline → kiểm cuối",Developer,Frontend Engineer,Q-02,12,1,Nhà máy nhận bản tin; CAPA có hạn và người phụ trách
-Q-07,P3,QC,Kiểm lại mẫu ngẫu nhiên + thống kê trách nhiệm kiểm viên,Developer,Domain Analyst,Q-02,8,0.5,Thống kê theo kiểm viên/tháng
-Q-08,P3,QC,"Dashboard QC: tỷ lệ đạt, DHU, return %, theo nhà máy/brand/kiểm viên",Frontend Engineer,Data Engineer,Q-02,12,1,Số khớp dữ liệu kiểm; lọc theo thời gian
-Q-09,P3,QC,"Portal khách kiểm hàng bên thứ ba: tải báo cáo, lịch sử, tách dữ liệu theo khách",Frontend Engineer,Security Gate,Q-03;F-04,12,1,Khách A không thấy dữ liệu khách B
+P-01,P2,Sản xuất,"Lịch T&A: template mốc theo brand, tính ngược từ RDD (RDD−12 cấu hình được), mốc chốt vật tư",Backend Engineer,Business Analyst,D-08,16,1.5,Tạo lịch cho 110 style 26FW; mốc trễ hiện đỏ
+P-02,P2,Sản xuất,Báo cáo sản xuất ngày: form web cho nhà máy + AI đọc ảnh/Excel gửi qua Zalo,Backend Engineer,AI Engineer;Frontend Engineer - Dashboard & PWA,P-01,20,2,Nhập cut/input/output theo màu×size; ảnh mẫu đọc đúng ≥ 95%
+P-03,P2,Sản xuất,"Engine cảnh báo (trễ mốc, dưới kế hoạch, dự kiến trễ ETD) + thông báo Zalo/email + hộp việc MR",Backend Engineer,DevOps,P-02,12,1,Cảnh báo W33 trễ ~49 ngày tái hiện đúng với dữ liệu 12/10
+P-04,P2,Sản xuất,"Checklist vật tư: định mức×SL, plan/actual về, thiếu/thừa, deadline chốt vật tư, cảnh báo sớm",Backend Engineer,Database Engineer;Business Analyst,D-05;P-01,24,1.5,Style thiếu yard được báo trước ngày cắt ≥ 7 ngày
+P-05,P2,Sản xuất,"Hộp thay đổi từ buyer: Gmail/Kakao export → AI trích (qty, màu, ETD) → MR duyệt → cập nhật + lịch sử",AI Engineer,Backend Engineer;Security Reviewer,D-08;F-04,24,3,Email giảm 20% (3 style) được trích đúng; không có thay đổi nào bỏ qua bước duyệt
+P-06,P2,Sản xuất,"Phân/chuyển nhà máy có lý do bắt buộc, lịch sử SCD2",Backend Engineer,Database Engineer,D-08,6,0.5,21 style đã chuyển ở 26FW hiện đúng đường đi
+P-07,P2,Sản xuất,"Kế hoạch xuất: tối đa 4 lô, chuyển AIR có ghi chi phí, import packing list",Backend Engineer,Data Engineer,D-03,16,1,Lô xuất import từ packing list khớp shipment_line
+P-08,P2,Sản xuất,"Email booking tự soạn (SL, lịch) gửi hãng logistics, theo dõi phản hồi",AI Engineer,Backend Engineer,P-07,10,1,Booking gửi thử và trạng thái phản hồi cập nhật
+P-09,P2,Sản xuất,Sinh thẻ vật tư 3 bản (buyer/KLMAS/nhà máy) PDF từ dữ liệu FAB,Backend Engineer,Business Analyst,D-05,8,1,KLMAS chấp nhận mẫu thẻ
+Q-01,P3,QC,"Mô hình dữ liệu QC: yêu cầu kiểm, lần kiểm, lỗi, ảnh, mẫu theo brand, khách bên thứ ba",Database Engineer,Business Analyst,F-03,8,1,"Migration + seed 12 mã lỗi, mẫu 6 brand"
+Q-02,P3,QC,"PWA kiểm hàng: offline, camera, AQL ISO 2859-1 II, đếm lỗi, ảnh bắt buộc, đồng bộ khi có mạng",Frontend Engineer - Dashboard & PWA,Backend Engineer;QA,Q-01;F-07,36,2,"Kiểm offline 1 lô, đồng bộ không mất ảnh; AQL đúng bảng chuẩn"
+Q-03,P3,QC,"Mẫu báo cáo theo brand → PDF (Playwright), tài liệu kèm theo theo brand",Backend Engineer,Business Analyst,Q-01,16,3,PDF giống mẫu gốc của từng brand (KLMAS duyệt)
+Q-04,P3,QC,Tiếp nhận yêu cầu kiểm: tự sinh từ output đơn KLMAS; khách ngoài gửi qua portal/email,Backend Engineer,AI Engineer,Q-01;P-02,12,1,Yêu cầu ngày mai sinh tự động khi output ≥ 90%
+Q-05,P3,QC,"Tối ưu phân công kiểm viên (OR-Tools: khu vực, chuyên trách, mặt hàng, tải) + giải thích bằng AI",AI Engineer,Architect / Tech Lead;Backend Engineer,Q-04,20,1.5,Phân 30 yêu cầu < 5 giây; điều phối viên đồng ý ≥ 80% gợi ý
+Q-06,P3,QC,"Phản hồi lỗi: bản tin ảnh lỗi hằng ngày cho nhà máy, CAPA, nối inline → kiểm cuối",Backend Engineer,Frontend Engineer - Dashboard & PWA,Q-02,12,1,Nhà máy nhận bản tin; CAPA có hạn và người phụ trách
+Q-07,P3,QC,Kiểm lại mẫu ngẫu nhiên + thống kê trách nhiệm kiểm viên,Backend Engineer,Business Analyst,Q-02,8,0.5,Thống kê theo kiểm viên/tháng
+Q-08,P3,QC,"Dashboard QC: tỷ lệ đạt, DHU, return %, theo nhà máy/brand/kiểm viên",Frontend Engineer - Dashboard & PWA,Data Engineer,Q-02,12,1,Số khớp dữ liệu kiểm; lọc theo thời gian
+Q-09,P3,QC,"Portal khách kiểm hàng bên thứ ba: tải báo cáo, lịch sử, tách dữ liệu theo khách",Frontend Engineer - App & Portal,Security Reviewer,Q-03;F-04,12,1,Khách A không thấy dữ liệu khách B
 A-01,P4,Kho dữ liệu,"Schema dw (dw_schema.sql) + dbt models + snapshot SCD2, chạy mỗi giờ",Data Engineer,Database Engineer,D-12,20,1,dbt test pass; v_factory_moves đúng với 26FW
-A-02,P4,Kho dữ liệu,"Scorecard đối tác: nhà máy, nhà cung cấp vải (đúng hạn, xuất đủ, return %, số lần chuyển)",Frontend Engineer,Data Engineer,A-01;Q-08,10,1,TGĐ duyệt định nghĩa chỉ số
+A-02,P4,Kho dữ liệu,"Scorecard đối tác: nhà máy, nhà cung cấp vải (đúng hạn, xuất đủ, return %, số lần chuyển)",Frontend Engineer - Dashboard & PWA,Data Engineer,A-01;Q-08,10,1,TGĐ duyệt định nghĩa chỉ số
 A-03,P4,Kho dữ liệu,"Nạp các mùa cũ (backfill) qua cùng pipeline, báo cáo chất lượng",Data Engineer,QA,A-01,10,2,"≥ 2 mùa cũ nạp được, issue có danh sách"
-A-04,P4,AI,"Kho tri thức: hồ sơ năng lực, SOP, Q&A từ email cũ → pgvector, có trích nguồn",AI Engineer,Domain Analyst,F-03,12,1,Eval 50 câu hỏi: ≥ 90% đúng và có nguồn
-A-05,P4,AI,"Trợ lý trả lời buyer (KO/VI): soạn từ dữ liệu thật, MR duyệt; chat ở landing với tool tra đơn",AI Engineer,Frontend Engineer;Security Gate,A-04;D-10,20,1.5,Không trả lời dữ liệu đơn khi chưa đăng nhập; mọi bản gửi đều qua duyệt
-A-06,P4,Quản lý,Báo cáo tuần tự động cho TGĐ (PDF + email),Developer,Data Engineer,A-01,8,0.5,TGĐ nhận và duyệt mẫu
-A-07,P4,Landing,"Trang công ty VI/KO/EN, form tư vấn → luồng tư vấn, SEO",Frontend Engineer,Domain Analyst,F-07,12,1,Lighthouse ≥ 90; form tạo lead
-H-01,P5,Go-live,"Security review: OWASP, RBAC/RLS test, secrets, dữ liệu cá nhân, prompt injection qua email",Security Gate,Developer,P-05;Q-09;A-05,12,1,Không còn lỗi High/Critical
+A-04,P4,AI,"Kho tri thức: hồ sơ năng lực, SOP, Q&A từ email cũ → pgvector, có trích nguồn",AI Engineer,Business Analyst,F-03,12,1,Eval 50 câu hỏi: ≥ 90% đúng và có nguồn
+A-05,P4,AI,"Trợ lý trả lời buyer (KO/VI): soạn từ dữ liệu thật, MR duyệt; chat ở landing với tool tra đơn",AI Engineer,Frontend Engineer - Dashboard & PWA;Security Reviewer,A-04;D-10,20,1.5,Không trả lời dữ liệu đơn khi chưa đăng nhập; mọi bản gửi đều qua duyệt
+A-06,P4,Quản lý,Báo cáo tuần tự động cho TGĐ (PDF + email),Backend Engineer,Data Engineer,A-01,8,0.5,TGĐ nhận và duyệt mẫu
+A-07,P4,Landing,"Trang công ty VI/KO/EN, form tư vấn → luồng tư vấn, SEO",Frontend Engineer - App & Portal,Business Analyst,F-07,12,1,Lighthouse ≥ 90; form tạo lead
+H-01,P5,Go-live,"Security review: OWASP, RBAC/RLS test, secrets, dữ liệu cá nhân, prompt injection qua email",Security Reviewer,Backend Engineer,P-05;Q-09;A-05,12,1,Không còn lỗi High/Critical
 H-02,P5,Go-live,"Hiệu năng và backup/restore drill, giám sát, cảnh báo hạ tầng",DevOps,Database Engineer,F-06,8,1,"RPO ≤ 24h, RTO ≤ 4h đã thử"
-H-03,P5,Go-live,Bộ e2e đầy đủ + kịch bản UAT tiếng Việt,QA,Domain Analyst,P-03;Q-02,16,2,Kịch bản UAT được KLMAS chạy
+H-03,P5,Go-live,Bộ e2e đầy đủ + kịch bản UAT tiếng Việt,QA,Business Analyst,P-03;Q-02,16,2,Kịch bản UAT được KLMAS chạy
 H-04,P5,Go-live,Chạy song song với Excel 2–4 tuần + đối soát hằng ngày,Data Engineer,QA,H-03,10,10,"Chênh lệch < 0,5% liên tục 2 tuần"
-H-05,P5,Go-live,"Tài liệu & đào tạo VI/KO: hướng dẫn theo vai trò, kịch bản video",Domain Analyst,Release Manager,H-03,10,1,Mỗi vai trò có 1 hướng dẫn
+H-05,P5,Go-live,"Tài liệu & đào tạo VI/KO: hướng dẫn theo vai trò, kịch bản video",Tech Writer,Business Analyst;Release Manager,H-03,10,1,Mỗi vai trò có 1 hướng dẫn
 H-06,P5,Go-live,"Release production, kế hoạch rollback, release notes song ngữ",Release Manager,DevOps,H-01;H-02;H-04,6,1,TGĐ ký go-live

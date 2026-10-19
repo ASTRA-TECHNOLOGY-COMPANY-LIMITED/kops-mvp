@@ -1,5 +1,7 @@
 # Open Questions, Assumptions & Decisions
 
+Câu hỏi chỉ do KLMAS hoặc PO trả lời. Khi gặp một câu ở đây trong lúc làm task: dùng giả định ghi trong bảng, ghi rõ trong PR là đang dựa trên giả định nào, và báo PO. Khi có câu trả lời, PO cập nhật cột "Giả định đang dùng" thành quyết định kèm ngày và nguồn.
+
 Mức ưu tiên: **P1** = chặn thiết kế/nạp dữ liệu đúng · **P2** = ảnh hưởng chất lượng báo cáo · **P3** = có thể quyết sau
 
 ## A. Quyết định cần nghiệp vụ trả lời
@@ -47,3 +49,16 @@ Mức ưu tiên: **P1** = chặn thiết kế/nạp dữ liệu đúng · **P2**
 - PDF: chỉ dùng text layer + xem ảnh trang ở độ phân giải thấp; chưa OCR toàn bộ (biểu đồ sản lượng, trang thông tin công ty).
 - Phân tích màu trạng thái: chỉ đọc được màu RGB; các ô dùng theme colour (ON PRODUCTION, nhiều màu nhà máy) chưa giải mã.
 - Tất cả thống kê về số dòng/số style là đếm đầy đủ (không lấy mẫu), riêng việc phân loại text milestone mới kiểm trên mẫu.
+
+## D. Dữ liệu cần xin KLMAS
+
+Gửi ngay tuần đầu của P0; PO là đầu mối. Đánh dấu ✅ khi đã nhận và ghi vị trí lưu.
+
+| # | Dữ liệu | Dùng cho | Trạng thái |
+|---|---|---|---|
+| R1 | 1–2 mùa CHALLENGER đã kết thúc: ORDER RECAP, Shipment Status, Production Status | Backfill, golden test, scorecard (A-03, A-02) | Chưa nhận |
+| R2 | Minimap/order list của ít nhất 2 brand khác | Eval AI nhận dạng minimap (D-07) | Chưa nhận |
+| R3 | 1 tuần báo cáo kiểm (Excel + ảnh) và mẫu báo cáo của 3–6 brand | Mô hình QC, PDF theo brand (Q-01, Q-03) | Chưa nhận |
+| R4 | Danh sách kiểm viên, khu vực, nhà máy chuyên trách; địa chỉ các nhà máy | Phân công kiểm viên (Q-05) | Chưa nhận |
+| R5 | 1 file báo cáo sản xuất ngày và 1 file kế hoạch sản xuất từ nhà máy | Báo cáo sản xuất ngày, cảnh báo (P-02, P-03) | Chưa nhận |
+| R6 | 20–30 email/Kakao mẫu với buyer (ẩn danh nếu cần) | Trích thay đổi, trợ lý trả lời buyer (P-05, A-05) | Chưa nhận |

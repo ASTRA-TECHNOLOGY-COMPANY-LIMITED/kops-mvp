@@ -1,6 +1,6 @@
-# Document Inventory — klmas-docs
+# Document Inventory — file nguồn KLMAS
 
-- Thư mục nguồn: `/Users/kai/ai/klmas-docs` (quét đệ quy, chỉ đọc)
+- Thư mục nguồn: `raw-docs/` (quét đệ quy, chỉ đọc; không có trong git, xin PO để lấy). Biên bản họp KOPS lần 1 (docx) chưa có trong manifest dưới đây; nội dung biên bản được dùng trực tiếp trong `roadmap.md` và `prototype/KOPS_prototype_architecture.md`.
 - Ngày phân tích: 2026-10-16
 - Tổng số file phát hiện: **6** (5 Excel, 1 PDF). Không có thư mục con.
 - Không file nào bị khoá mật khẩu, hỏng hay không đọc được.

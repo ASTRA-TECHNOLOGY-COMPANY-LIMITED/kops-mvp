@@ -1,6 +1,6 @@
-# Executive Summary — Phân tích tài liệu klmas-docs & đề xuất CSDL
+# Executive Summary — Phân tích tài liệu nguồn KLMAS & đề xuất CSDL
 
-**Phạm vi:** 6 file trong `klmas-docs` (5 Excel + 1 PDF; 1 file là bản sao trùng 100%). Phân tích chỉ đọc; không sửa file nguồn.
+**Phạm vi:** 6 file trong `raw-docs/` (5 Excel + 1 PDF; 1 file là bản sao trùng 100%). Phân tích chỉ đọc; không sửa file nguồn.
 
 ## Bức tranh nghiệp vụ
 KLMAS quản lý sản xuất và kiểm hàng tại Việt Nam cho brand Hàn Quốc **CHALLENGER**. Các file theo dõi vòng đời của từng **style**: chốt đơn → phân nhà máy gia công (8 nhà máy) → phát triển mẫu (REF/FPP/INLINE/TOP) → nguyên phụ liệu → cắt/may → kiểm → xuất hàng theo lô (SEA/AIR/hand-carry) sang Hàn. Mùa **26FW**: 110 style đang chạy, 62,131 pcs, phần lớn đã xuất. Mùa **27SS**: 137 style, 87,940 pcs, đang làm mẫu.
@@ -19,7 +19,10 @@ KLMAS quản lý sản xuất và kiểm hàng tại Việt Nam cho brand Hàn Q
 - `core`: 39 bảng (16 tham chiếu/alias) — style ↔ style_order (theo mùa) ↔ màu ↔ size; phân nhà máy theo thời gian; sự kiện milestone; snapshot sản xuất; lô xuất & dòng xuất; mẫu; BOM vải & lô vải; trim/logo; bảng alias cho nhà máy/màu/NCC/mã style.
 - `mart`: tổng đơn/xuất/mẫu/balance **được tính từ chi tiết**, không lưu số tổng nhập tay; view đối soát "số báo cáo vs số tính".
 
-SQL Server là lựa chọn tương đương nếu công ty đã chuẩn hoá trên Microsoft. Không cần data warehouse ở quy mô hiện tại (~5–10k dòng chi tiết/mùa). `schema.sql` đã chạy thử thành công trên PostgreSQL 16 (tạo 48 bảng + 2 view; đã thử insert và kiểm tra ràng buộc CHECK).
+SQL Server là lựa chọn tương đương nếu công ty đã chuẩn hoá trên Microsoft. Không cần data warehouse riêng ở quy mô hiện tại (~5–10k dòng chi tiết/mùa).
+
+> **Cập nhật sau bước prototype:** đã chốt thêm schema `dw` (star schema, dựng bằng dbt) trong **cùng cụm PostgreSQL**, phục vụ dashboard, scorecard và lịch sử nhiều mùa. Không dùng hệ DW riêng (BigQuery/ClickHouse) cho tới khi dữ liệu QC bên thứ ba tăng mạnh. Xem `prototype/KOPS_prototype_architecture.md` §3.
+ `schema.sql` đã chạy thử thành công trên PostgreSQL 16 (tạo 48 bảng + 2 view; đã thử insert và kiểm tra ràng buộc CHECK).
 
 ## Rủi ro chính
 - Template Excel thay đổi thường xuyên → parser gãy (giảm thiểu: kiểm dấu hiệu template, FAILED thay vì nạp sai).
