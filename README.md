@@ -71,6 +71,7 @@ kops-mvp/
 | `source_to_target_mapping.csv` | 98 dòng mapping ô Excel → cột DB | Viết parser |
 | `etl_pipeline.md` | Pipeline `raw → core`, kiểm template, xử lý lỗi | Viết ingest |
 | `open_questions.md` | Câu hỏi nghiệp vụ còn mở, giả định đang dùng, dữ liệu cần xin KLMAS | Trước khi tự quyết một quy tắc |
+| `review_inspection_production.md` | Rà soát báo cáo sản xuất ngày và bảng kiểm hàng: chất lượng dữ liệu, insight, đề xuất cho MVP | Mở rộng DW sang tiến độ may và QC |
 | `roadmap.md` | Ý tưởng, giai đoạn P0–P5, ước lượng, rủi ro | Lập kế hoạch |
 | `backlog.csv` | 50 task: vai trò phụ trách, phụ thuộc, giờ ước lượng, tiêu chí nghiệm thu | Nhận và giao việc |
 

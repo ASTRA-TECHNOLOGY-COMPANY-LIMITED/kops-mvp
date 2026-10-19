@@ -30,6 +30,13 @@ Mức ưu tiên: **P1** = chặn thiết kế/nạp dữ liệu đúng · **P2**
 | Q20 | P3 | `(BE: SAND)` trong ô màu nghĩa là "before: SAND" (màu cũ)? | Lịch sử đổi màu | Có |
 | Q21 | P3 | 해리감 (PART) là gì? | part_code | Lưu raw |
 | Q22 | P3 | Ảnh thiết kế nhúng trong ORDER RECAP có cần lưu (object storage) không? | Dung lượng | Không ở giai đoạn 1 |
+| Q23 | P1 | Báo cáo sản xuất ngày có phải nguồn chính thức cho SL cắt/vào chuyền/ra chuyền? Production Status lấy số từ đâu, cập nhật lúc nào? | Báo cáo ngày là nguồn chính; Production Status để đối soát (`review_inspection_production.md` §2.1) |
+| Q24 | P1 | Vì sao NATEXCO ngừng gửi báo cáo ngày sau 08/09 và HA HIEU chỉ có 2 ngày? | Thiếu file, xin bổ sung |
+| Q25 | P1 | "DEFECT QTY" trong bảng kiểm là số sản phẩm lỗi hay số điểm lỗi? Tỷ lệ lỗi tính trên SL kiểm hay SL đạt? | Số điểm lỗi; tỷ lệ = lỗi ÷ SL kiểm |
+| Q26 | P2 | Style bộ (VEST + JACKET, vd. CHF4WJK6801): SL đặt là theo bộ hay theo món? | 350 bộ = 350 mỗi món |
+| Q27 | P2 | Các style `CHE…` TBM đang may là reorder của mùa nào? | Reorder 25FW |
+| Q28 | P2 | Dữ liệu DHG / 8 SECONDS có trong phạm vi KOPS giai đoạn 1? Ai được xem? | Nạp vào DW, tách theo brand |
+| Q29 | P3 | Có SMV theo style/nhóm hàng để chuẩn hoá năng suất? | Chưa có |
 
 ## B. Câu hỏi kỹ thuật / triển khai
 
