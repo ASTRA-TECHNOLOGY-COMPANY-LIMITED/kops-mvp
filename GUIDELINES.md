@@ -99,9 +99,11 @@ Spec + AC (BA) → [Research / ADR nếu cần] → Migration (Database) → [Se
 |---|---|
 | ORDER RECAP 26FW | 113 block, 110 style đang chạy, 62.131 pcs |
 | ORDER RECAP 27SS | 143 block, 137 style đang chạy, 87.940 pcs |
-| Shipment Status 26FW | 144 block, 103 block có dữ liệu, 2.342 dòng màu × size, 144/144 block khớp tổng |
+| Shipment Status 26FW | 144 block, 104 block có dữ liệu, 104/104 block có tổng tính lại khớp ô tổng của file |
 | Production Status 26FW | 110 style, tổng tính lại 62.357 pcs (file hiển thị 106.681 do lỗi SUM) |
 | Đối chiếu chéo | 4 style lệch số lượng giữa các file; 21 style 26FW có đổi nhà máy (ví dụ CHF3MJK6301: NATEXCO → HA HIEU → MTT) |
+
+Các con số trên được kiểm tự động bằng `python -m kops_dw test` trong `dw/`. Bảng này từng ghi 103 block và 2.342 dòng (số của bước phân tích); MVP DW đọc thêm 1 block thiếu nhãn `ORDER Q'TY` và các dòng mẫu không ghi màu, nên số đúng là 104 block, tất cả đều khớp tổng.
 
 Tổng 26FW khác nhau giữa ORDER RECAP (62.131) và Production Status (62.357) là chênh lệch có thật giữa hai file. Test phải giữ đúng từng con số theo nguồn của nó, không ép về một số chung.
 

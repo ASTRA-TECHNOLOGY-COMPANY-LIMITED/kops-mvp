@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KOPS Data Warehouse</title>
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f4f3f0;--surface:#fcfcfb;--surface-2:#f0efec;--line:#e2e0da;--line-strong:#cfcdc6;
+  --text:#0b0b0b;--text-2:#52514e;--text-3:#7a7974;
+  --accent:#2a78d6;--accent-soft:#e3eefb;
+  --s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#eda100;
+  --good:#0ca30c;--warning:#fab219;--serious:#ec835a;--critical:#d03b3b;--neutral:#9a988f;
+  --seq:#3987e5;
+  --shadow:0 1px 2px rgba(0,0,0,.05),0 2px 8px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme:dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme:dark;
+    --bg:#121211;--surface:#1a1a19;--surface-2:#232321;--line:#2e2e2b;--line-strong:#3d3d39;
+    --text:#f0efec;--text-2:#c3c2b7;--text-3:#8f8e86;
+    --accent:#3987e5;--accent-soft:#1c2c42;
+    --s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;--neutral:#6f6e68;--seq:#3987e5;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#121211;--surface:#1a1a19;--surface-2:#232321;--line:#2e2e2b;--line-strong:#3d3d39;
+  --text:#f0efec;--text-2:#c3c2b7;--text-3:#8f8e86;
+  --accent:#3987e5;--accent-soft:#1c2c42;
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;--neutral:#6f6e68;--seq:#3987e5;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.num,td.n,th.n{font-variant-numeric:tabular-nums}
+a{color:var(--accent)}
+header.top{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.top-in{max-width:1320px;margin:0 auto;padding:12px 20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:10px;margin-right:auto}
+.brand b{font-size:17px;letter-spacing:.2px}
+.brand span{color:var(--text-3);font-size:12px}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--text-2);padding:6px 12px;font:inherit;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.icon-btn{border:1px solid var(--line-strong);background:transparent;color:var(--text-2);border-radius:8px;padding:6px 10px;cursor:pointer;font:inherit}
+nav.tabs{max-width:1320px;margin:0 auto;padding:0 20px;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav.tabs button{border:0;background:none;color:var(--text-2);padding:10px 12px;font:inherit;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+nav.tabs button[aria-selected="true"]{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
+main{max-width:1320px;margin:0 auto;padding:20px}
+section.tab{display:none}
+section.tab.on{display:block}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:16px}
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.g3{grid-template-columns:1fr 1fr}}
+@media (max-width:760px){.g2,.g3{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}main{padding:16px}.top-in{padding:10px 16px}nav.tabs{padding:0 16px}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:var(--shadow);min-width:0}
+.card h3{margin:0 0 4px;font-size:14px;font-weight:600}
+.card .sub{margin:0 0 12px;color:var(--text-3);font-size:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)}
+.kpi .l{color:var(--text-2);font-size:12px}
+.kpi .v{font-size:26px;font-weight:650;letter-spacing:-.5px;margin-top:2px}
+.kpi .d{color:var(--text-3);font-size:12px;margin-top:2px}
+.note{color:var(--text-3);font-size:12px}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:1px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line-strong);color:var(--text-2);white-space:nowrap;background:var(--surface)}
+.chip i{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+.chip.sample{border-color:var(--s4);color:var(--text)}
+.dot{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:6px;vertical-align:-1px}
+/* horizontal bars */
+.hbars{display:flex;flex-direction:column;gap:7px}
+.hb{display:grid;grid-template-columns:minmax(90px,170px) 1fr 74px;gap:10px;align-items:center;cursor:default}
+.hb .lb{color:var(--text-2);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hb .tr{height:14px;background:var(--surface-2);border-radius:0 4px 4px 0;position:relative}
+.hb .br{height:100%;border-radius:0 4px 4px 0;background:var(--seq);min-width:2px}
+.hb .vl{text-align:right;font-size:12.5px;font-variant-numeric:tabular-nums}
+.hb:hover .tr{outline:1px solid var(--line-strong)}
+/* tables */
+.tbl-tools{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.tbl-tools input,.tbl-tools select{background:var(--surface);color:var(--text);border:1px solid var(--line-strong);border-radius:8px;padding:6px 10px;font:inherit;min-width:0}
+.tbl-tools input{flex:1;max-width:280px}
+.tw{overflow:auto;max-height:520px;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{position:sticky;top:0;background:var(--surface-2);color:var(--text-2);font-weight:600;cursor:pointer;white-space:nowrap;z-index:1}
+td.n,th.n{text-align:right}
+tr:hover td{background:var(--accent-soft)}
+td .link{color:var(--accent);cursor:pointer;text-decoration:none;font-weight:550}
+td .link:hover{text-decoration:underline}
+.mini{display:inline-block;height:8px;border-radius:0 3px 3px 0;background:var(--seq);vertical-align:middle;margin-right:6px}
+/* svg chart */
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart .axis text{fill:var(--text-3);font-size:11px}
+.chart .grid line{stroke:var(--line);stroke-width:1}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin:0 0 8px;font-size:12px;color:var(--text-2)}
+#tip{position:fixed;pointer-events:none;z-index:50;background:var(--text);color:var(--surface);padding:7px 9px;border-radius:7px;font-size:12px;line-height:1.4;max-width:300px;opacity:0;transition:opacity .08s;white-space:pre-line}
+/* flow */
+.flow{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap}
+.flow .st{flex:1;min-width:150px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface-2)}
+.flow .st b{display:block;font-size:13px}
+.flow .st span{font-size:12px;color:var(--text-3)}
+.flow .ar{align-self:center;color:var(--text-3)}
+/* drawer */
+#drawer{position:fixed;inset:0;display:none;z-index:40}
+#drawer.on{display:block}
+#drawer .bk{position:absolute;inset:0;background:rgba(0,0,0,.35)}
+#drawer .pn{position:absolute;right:0;top:0;bottom:0;width:min(920px,100%);background:var(--bg);overflow:auto;padding:20px;border-left:1px solid var(--line)}
+.kv{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 16px}
+@media (max-width:760px){.kv{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kv div span{display:block;color:var(--text-3);font-size:11.5px}
+.mtx td,.mtx th{text-align:right}
+.mtx td:first-child,.mtx th:first-child{text-align:left}
+.prop{border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--surface)}
+.prop .h{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.prop .arrow{font-size:18px;font-weight:650}
+pre.body{white-space:pre-wrap;background:var(--surface-2);padding:10px;border-radius:8px;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;margin:6px 0 0;max-height:240px;overflow:auto}
+details summary{cursor:pointer;color:var(--text-2)}
+.banner{background:var(--accent-soft);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--text-2)}
+h2.sec{font-size:15px;margin:22px 0 10px}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div class="brand"><b>KOPS · Data Warehouse</b><span id="built"></span></div>
+    <div class="seg" id="seasonSeg" role="group" aria-label="Mùa"></div>
+    <button class="icon-btn" id="themeBtn" title="Đổi giao diện sáng/tối" aria-label="Đổi giao diện sáng/tối">☾</button>
+  </div>
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+</header>
+<main id="main"></main>
+<div id="tip" role="tooltip"></div>
+<div id="drawer" aria-hidden="true"><div class="bk"></div><div class="pn" id="drawerPn"></div></div>
+<script>
+const D = /*__KOPS_DATA__*/null;
+const T = n => (D[n]?.rows || []).map(r => Object.fromEntries(D[n].cols.map((c, i) => [c, r[i]])));
+const TB = {}; for (const k of Object.keys(D)) if (D[k] && D[k].cols) TB[k] = T(k);
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => s == null ? '' : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nf = new Intl.NumberFormat('vi-VN');
+const fmt = v => v == null || v === '' ? '–' : (typeof v === 'number' ? nf.format(v) : esc(v));
+const pct = v => v == null ? '–' : nf.format(v) + '%';
+const dshort = v => v ? v.slice(5).replace('-', '/') : '–';
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+const HEALTH = {
+  'SHIPPED':        {c:'--good', i:'✓', l:'Đã xuất'},
+  'IN PRODUCTION':  {c:'--s1', i:'▶', l:'Đang sản xuất'},
+  'AT RISK':        {c:'--serious', i:'!', l:'Nguy cơ trễ'},
+  'OVERDUE':        {c:'--critical', i:'✕', l:'Quá ETD'},
+  'PRE-PRODUCTION': {c:'--neutral', i:'○', l:'Trước sản xuất'},
+  'CANCELLED':      {c:'--line-strong', i:'–', l:'Huỷ'},
+};
+const COVER = {DONE:{c:'--good',l:'Đã có'}, PARTIAL:{c:'--s1',l:'Một phần'}, TODO:{c:'--neutral',l:'Chưa làm'}, OUT:{c:'--line-strong',l:'Ngoài phạm vi'}};
+const SEV = {ERROR:{c:'--critical',i:'✕'}, WARN:{c:'--serious',i:'!'}, INFO:{c:'--neutral',i:'i'}};
+const MODES = ['SEA','AIR','HC','UNKNOWN'];
+const MODE_C = {SEA:'--s1', AIR:'--s2', HC:'--s3', UNKNOWN:'--s4'};
+const chip = (o, txt) => `<span class="chip"><i style="background:var(${o.c})"></i>${o.i ? esc(o.i) + ' ' : ''}${esc(txt)}</span>`;
+const healthChip = h => chip(HEALTH[h] || {c:'--neutral'}, (HEALTH[h] || {}).l || h);
+
+let SEASON = (TB.season_kpi.find(s => s.season.endsWith('FW')) || TB.season_kpi[0] || {}).season;
+
+/* ---------- tooltip ---------- */
+const tip = $('#tip');
+document.addEventListener('mousemove', e => {
+  const t = e.target.closest('[data-tip]');
+  if (!t) { tip.style.opacity = 0; return; }
+  tip.textContent = t.dataset.tip; tip.style.opacity = 1;
+  const x = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8), y = Math.min(e.clientY + 14, innerHeight - tip.offsetHeight - 8);
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+});
+
+/* ---------- components ---------- */
+function hbars(items, {fmtV = fmt, max} = {}) {
+  const m = max ?? Math.max(1, ...items.map(d => d.value || 0));
+  return `<div class="hbars">${items.map(d => `<div class="hb" data-tip="${esc(d.tip || (d.label + ': ' + (d.value ?? '–')))}">
+    <div class="lb">${d.html || esc(d.label)}</div>
+    <div class="tr"><div class="br" style="width:${Math.max(0, (d.value || 0) / m * 100)}%;${d.color ? 'background:var(' + d.color + ')' : ''}"></div></div>
+    <div class="vl">${fmtV(d.value)}</div></div>`).join('')}</div>`;
+}
+
+const CHARTS = {}; let chartSeq = 0;
+function columns(xs, series, opts = {}) {
+  const id = 'ch' + (++chartSeq);
+  CHARTS[id] = () => columnsSvg(xs, series, {...opts, W: Math.max(280, document.getElementById(id)?.clientWidth || 700)});
+  return `<div class="chart" id="${id}"></div>`;
+}
+function drawCharts() { for (const [id, f] of Object.entries(CHARTS)) { const el = document.getElementById(id); if (el) el.innerHTML = f(); else delete CHARTS[id]; } }
+let rzT; addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(drawCharts, 120); });
+function columnsSvg(xs, series, {height = 220, stacked = true, yFmt = v => nf.format(v), xFmt = x => x, W = 700} = {}) {
+  const H = height, L = 48, R = 8, Tp = 8, B = 26;
+  const tot = xs.map((_, i) => stacked ? series.reduce((a, s) => a + (s.values[i] || 0), 0) : Math.max(...series.map(s => s.values[i] || 0)));
+  const max = niceMax(Math.max(1, ...tot));
+  const bw = (W - L - R) / Math.max(1, xs.length), gap = Math.min(8, bw * .25);
+  const y = v => Tp + (H - Tp - B) * (1 - v / max);
+  let g = '<g class="grid">';
+  const ticks = 4;
+  for (let k = 0; k <= ticks; k++) { const v = max * k / ticks; g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/>`; }
+  g += '</g><g class="axis">';
+  for (let k = 0; k <= ticks; k++) { const v = max * k / ticks; g += `<text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${yFmt(v)}</text>`; }
+  const every = Math.ceil(xs.length / Math.max(2, Math.floor(W / 64)));
+  xs.forEach((x, i) => { if (i % every === 0) g += `<text x="${L + bw * i + bw / 2}" y="${H - 8}" text-anchor="middle">${esc(xFmt(x))}</text>`; });
+  g += '</g>';
+  let bars = '';
+  xs.forEach((x, i) => {
+    let acc = 0;
+    const tipTxt = xFmt(x) + '\n' + series.map(s => `${s.name}: ${nf.format(s.values[i] || 0)}`).join('\n') + (series.length > 1 ? `\nTổng: ${nf.format(tot[i])}` : '');
+    series.forEach((s, si) => {
+      const v = s.values[i] || 0; if (!v) return;
+      const y0 = y(acc + v), h = y(acc) - y(acc + v);
+      const top = series.slice(si + 1).every(t => !(t.values[i]));
+      const hh = Math.max(1, h - (acc > 0 ? 2 : 0));
+      bars += `<path d="${roundTop(L + bw * i + gap / 2, y0, bw - gap, hh, top ? 4 : 0)}" fill="var(${s.color})"/>`;
+      acc += v;
+    });
+    bars += `<rect x="${L + bw * i}" y="${Tp}" width="${bw}" height="${H - Tp - B}" fill="transparent" data-tip="${esc(tipTxt)}"/>`;
+  });
+  const legend = series.length > 1 ? `<div class="legend">${series.map(s => `<span><span class="dot" style="background:var(${s.color})"></span>${esc(s.name)}</span>`).join('')}</div>` : '';
+  return `${legend}<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img">${g}<g class="axis"><line x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}" stroke="var(--line-strong)"/></g>${bars}</svg>`;
+}
+function roundTop(x, y, w, h, r) { r = Math.min(r, w / 2, h); return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`; }
+function niceMax(v) { const p = Math.pow(10, Math.floor(Math.log10(v))); const n = v / p; return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p; }
+
+const TABLES = {};
+function table(id, rows, cols, {search = true, limit = 400, filters = []} = {}) {
+  TABLES[id] = {rows, cols, sort: null, dir: 1, q: '', limit, filters, fv: {}};
+  const fl = filters.map(f => `<select data-f="${f.key}"><option value="">${esc(f.label)}: tất cả</option>${[...new Set(rows.map(r => r[f.key]).filter(v => v != null))].sort().map(v => `<option>${esc(v)}</option>`).join('')}</select>`).join('');
+  return `<div class="tbl" id="${id}"><div class="tbl-tools">${search ? '<input type="search" placeholder="Tìm…" aria-label="Tìm">' : ''}${fl}<span class="note cnt"></span></div><div class="tw"><table><thead></thead><tbody></tbody></table></div></div>`;
+}
+function drawTable(id) {
+  const t = TABLES[id], el = document.getElementById(id); if (!el) return;
+  let rows = t.rows.filter(r => (!t.q || Object.values(r).some(v => v != null && String(v).toLowerCase().includes(t.q)))
+    && Object.entries(t.fv).every(([k, v]) => !v || String(r[k]) === v));
+  if (t.sort) rows = [...rows].sort((a, b) => { const x = a[t.sort], y = b[t.sort]; return (x == null) - (y == null) || (x > y ? 1 : x < y ? -1 : 0) * t.dir; });
+  $('thead', el).innerHTML = '<tr>' + t.cols.map(c => `<th class="${c.n ? 'n' : ''}" data-k="${c.k}">${esc(c.l)}${t.sort === c.k ? (t.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('') + '</tr>';
+  $('tbody', el).innerHTML = rows.slice(0, t.limit).map(r => '<tr>' + t.cols.map(c => `<td class="${c.n ? 'n' : ''}">${c.r ? c.r(r[c.k], r) : fmt(r[c.k])}</td>`).join('') + '</tr>').join('')
+    || `<tr><td colspan="${t.cols.length}" class="note">Không có dữ liệu</td></tr>`;
+  $('.cnt', el).textContent = `${nf.format(rows.length)} dòng${rows.length > t.limit ? ` (hiện ${t.limit})` : ''}`;
+}
+document.addEventListener('click', e => {
+  const th = e.target.closest('th[data-k]');
+  if (th) { const id = th.closest('.tbl').id, t = TABLES[id]; t.dir = t.sort === th.dataset.k ? -t.dir : 1; t.sort = th.dataset.k; drawTable(id); }
+  const lk = e.target.closest('[data-style]');
+  if (lk) openStyle(lk.dataset.season, lk.dataset.style);
+  const tb = e.target.closest('nav.tabs button');
+  if (tb) showTab(tb.dataset.t);
+});
+document.addEventListener('input', e => {
+  const tb = e.target.closest('.tbl'); if (!tb) return;
+  const t = TABLES[tb.id];
+  if (e.target.matches('input')) t.q = e.target.value.trim().toLowerCase();
+  if (e.target.matches('select')) t.fv[e.target.dataset.f] = e.target.value;
+  drawTable(tb.id);
+});
+const styleLink = (v, r) => v ? `<a class="link" data-style="${esc(v)}" data-season="${esc(r.season || '')}">${esc(v)}</a>` : '–';
+
+/* ---------- tabs ---------- */
+const TABS = [
+  ['overview', 'Tổng quan'], ['tower', 'Control Tower'], ['ship', 'Xuất hàng'], ['partner', 'Nhà máy & NCC'],
+  ['change', 'Thay đổi & Email'], ['quality', 'Đối soát & chất lượng'], ['meeting', 'Cuộc họp & yêu cầu'], ['source', 'Nguồn & lineage'],
+];
+let TAB = (() => { try { return localStorage.getItem('kops.tab') || 'overview'; } catch { return 'overview'; } })();
+function showTab(t) {
+  TAB = t; try { localStorage.setItem('kops.tab', t); } catch {}
+  document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.t === t));
+  document.querySelectorAll('section.tab').forEach(s => s.classList.toggle('on', s.id === 'tab-' + t));
+  drawCharts();
+}
+
+function render() {
+  const S = TB.styles.filter(s => s.season === SEASON);
+  const K = TB.season_kpi.find(s => s.season === SEASON) || {};
+  const html = {
+    overview: viewOverview(S, K), tower: viewTower(S, K), ship: viewShip(S), partner: viewPartner(),
+    change: viewChange(), quality: viewQuality(), meeting: viewMeeting(), source: viewSource(),
+  };
+  $('#main').innerHTML = TABS.map(([k]) => `<section class="tab" id="tab-${k}" role="tabpanel">${html[k]}</section>`).join('');
+  Object.keys(TABLES).forEach(drawTable);
+  showTab(TAB);
+}
+
+function kpi(l, v, d = '') { return `<div class="kpi"><div class="l">${esc(l)}</div><div class="v num">${v}</div><div class="d">${d}</div></div>`; }
+
+function viewOverview(S, K) {
+  const src = TB.sources;
+  const by = t => src.filter(s => s.source_type === t);
+  const loaded = s => s.filter(x => x.status === 'LOADED');
+  const ex = by('excel'), em = by('email'), mt = by('meeting_note'), rf = by('reference');
+  const iss = sev => TB.issues.filter(i => i.severity === sev).length;
+  const cov = Object.fromEntries(Object.keys(COVER).map(k => [k, TB.requirements.filter(r => r.mvp_status === k).length]));
+  const rows = s => nf.format(s.reduce((a, x) => a + (x.rows_loaded || 0), 0));
+  return `
+  <div class="banner">Mọi con số trên trang này được tính từ <b>một kho dữ liệu duy nhất</b> (DuckDB), nạp lại từ file gốc mỗi lần build. Tổng luôn tính từ dòng chi tiết, không lấy ô tổng trong Excel. Bấm vào mã style bất kỳ để xem toàn bộ dữ liệu và nguồn của style đó.</div>
+  <div class="kpis">
+    ${kpi('Style đang chạy', fmt(K.styles_active), `${fmt(K.styles_cancelled)} style huỷ`)}
+    ${kpi('Số lượng đặt (pcs)', fmt(K.order_qty), `${fmt(K.factories)} nhà máy`)}
+    ${kpi('Đã xuất (pcs)', fmt(K.shipped_qty), K.order_qty ? pct(Math.round(1000 * K.shipped_qty / K.order_qty) / 10) + ' đơn hàng' : '')}
+    ${kpi('Đã may xong (pcs)', fmt(K.output_qty), K.as_of ? 'tính đến ' + esc(K.as_of) : 'chưa có báo cáo sản xuất')}
+    ${kpi('Xuất đúng hạn', pct(K.ontime_pct), 'lô đầu ≤ ETD + 7 ngày')}
+    ${kpi('Style cần chú ý', fmt(K.styles_at_risk), 'nguy cơ trễ hoặc quá ETD')}
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <h3>Một nguồn sự thật: dữ liệu đi từ đâu tới đâu</h3>
+    <p class="sub">Excel, email và biên bản họp cùng đi qua 4 lớp; mỗi dòng ở lớp sau đều trỏ ngược về file và ô gốc.</p>
+    <div class="flow">
+      <div class="st"><b>Nguồn</b><span>${loaded(ex).length} Excel · ${loaded(em).length} email${em.some(e => e.is_sample) ? ' (SAMPLE)' : ''} · ${loaded(mt).length} biên bản · ${rf.length} PDF tham khảo</span></div><div class="ar">→</div>
+      <div class="st"><b>etl / raw</b><span>${rows(src)} dòng nguyên văn, ${nf.format(TB.issues.length)} vấn đề dữ liệu được ghi lại</span></div><div class="ar">→</div>
+      <div class="st"><b>core</b><span>style, màu, size, lô xuất, sản xuất, thay đổi, email, yêu cầu</span></div><div class="ar">→</div>
+      <div class="st"><b>mart → dashboard</b><span>Control Tower, xuất hàng, đối tác, đối soát</span></div>
+    </div>
+  </div>
+  <div class="grid g3">
+    <div class="card"><h3>Nguồn đã nạp</h3><p class="sub">Theo loại tài liệu</p>
+      ${hbars([
+        {label: 'Excel', value: loaded(ex).length, tip: ex.map(e => e.file_name + ' — ' + e.status).join('\n')},
+        {label: 'Email', value: loaded(em).length, tip: em.map(e => e.file_name).join('\n')},
+        {label: 'Biên bản họp', value: loaded(mt).length, tip: mt.map(e => e.file_name).join('\n')},
+        {label: 'PDF tham khảo (chưa parse)', value: rf.length, color: '--neutral', tip: rf.map(e => e.file_name).join('\n')},
+      ])}</div>
+    <div class="card"><h3>Chất lượng dữ liệu</h3><p class="sub">Vấn đề phát hiện khi nạp; chi tiết ở tab Đối soát</p>
+      ${hbars(['ERROR', 'WARN', 'INFO'].map(s => ({label: s, html: chip(SEV[s], s), value: iss(s), color: SEV[s].c})))}</div>
+    <div class="card"><h3>14 yêu cầu từ buổi họp KOPS</h3><p class="sub">MVP data warehouse đáp ứng tới đâu</p>
+      ${hbars(Object.keys(COVER).map(k => ({label: COVER[k].l, html: chip(COVER[k], COVER[k].l), value: cov[k], color: COVER[k].c})))}</div>
+  </div>`;
+}
+
+function weekKey(d) { if (!d) return null; const x = new Date(d + 'T00:00:00'); const day = (x.getDay() + 6) % 7; x.setDate(x.getDate() - day); return x.toISOString().slice(0, 10); }
+
+function viewTower(S, K) {
+  const act = S.filter(s => s.is_active);
+  const hk = Object.keys(HEALTH).filter(h => h !== 'CANCELLED');
+  const mix = hk.map(h => ({label: HEALTH[h].l, html: healthChip(h), value: act.filter(s => s.health === h).length, color: HEALTH[h].c,
+    tip: `${HEALTH[h].l}: ${act.filter(s => s.health === h).length} style, ${nf.format(act.filter(s => s.health === h).reduce((a, s) => a + s.order_qty, 0))} pcs`}));
+  const weeks = [...new Set(act.map(s => weekKey(s.etd_vn)).filter(Boolean))].sort();
+  const etdSeries = hk.map(h => ({name: HEALTH[h].l, color: HEALTH[h].c, values: weeks.map(w => act.filter(s => weekKey(s.etd_vn) === w && s.health === h).reduce((a, s) => a + s.order_qty, 0))})).filter(s => s.values.some(v => v));
+  const fk = TB.factory_kpi.filter(f => f.season === SEASON);
+  const hasShip = fk.some(f => f.shipped_qty > 0);
+  const risk = act.filter(s => ['AT RISK', 'OVERDUE'].includes(s.health)).sort((a, b) => (b.days_late ?? -1) - (a.days_late ?? -1));
+  return `
+  <div class="grid g2">
+    <div class="card"><h3>Tình trạng style</h3><p class="sub">${fmt(act.length)} style đang chạy · mùa ${esc(SEASON)}${K.as_of ? ' · sản xuất tính đến ' + esc(K.as_of) : ''}</p>${hbars(mix)}
+      <p class="note" style="margin-top:10px">Nguy cơ trễ = ngày dự kiến xong (SL còn lại ÷ SL/ngày, bỏ Chủ nhật, + 5 ngày) muộn hơn ETD. Quá ETD = đã qua ETD mà chưa xuất đủ.</p></div>
+    <div class="card"><h3>${hasShip ? 'Tỷ lệ đã xuất theo nhà máy' : 'Số lượng đặt theo nhà máy'}</h3><p class="sub">${hasShip ? '% số lượng đã xuất trên số lượng đặt' : 'pcs, mùa chưa có lô xuất'}</p>
+      ${hasShip ? hbars(fk.map(f => ({label: f.factory_code, value: f.ship_pct, tip: `${f.factory_code}\n${f.styles} style · đặt ${nf.format(f.order_qty)} · xuất ${nf.format(f.shipped_qty)}\nĐúng hạn: ${f.ontime_pct ?? '–'}%`})), {fmtV: pct, max: 100})
+        : hbars(fk.map(f => ({label: f.factory_code, value: f.order_qty, tip: `${f.factory_code}: ${f.styles} style, ${nf.format(f.order_qty)} pcs`})))}</div>
+  </div>
+  <div class="card" style="margin-top:16px"><h3>Số lượng theo tuần ETD</h3><p class="sub">pcs, tô màu theo tình trạng style</p>
+    ${weeks.length ? columns(weeks, etdSeries, {xFmt: dshort}) : '<p class="note">Chưa có ETD</p>'}</div>
+  <h2 class="sec">Style cần chú ý (${risk.length})</h2>
+  ${table('t-risk', risk, [
+    {k: 'style_no', l: 'Style', r: styleLink}, {k: 'factory_code', l: 'Nhà máy'}, {k: 'etd_vn', l: 'ETD'},
+    {k: 'order_qty', l: 'Đặt', n: 1}, {k: 'output_qty', l: 'Đã may', n: 1}, {k: 'daily_output', l: 'SL/ngày', n: 1},
+    {k: 'shipped_qty', l: 'Đã xuất', n: 1}, {k: 'projected_ready', l: 'Dự kiến xong'}, {k: 'days_late', l: 'Trễ (ngày)', n: 1},
+    {k: 'health', l: 'Tình trạng', r: healthChip}])}
+  <h2 class="sec">Tất cả style</h2>
+  ${table('t-all', S, [
+    {k: 'style_no', l: 'Style', r: styleLink}, {k: 'order_no', l: 'Mã'}, {k: 'description_en', l: 'Mô tả'},
+    {k: 'factory_code', l: 'Nhà máy'}, {k: 'status', l: 'Trạng thái file'}, {k: 'etd_vn', l: 'ETD'},
+    {k: 'order_qty', l: 'Đặt', n: 1}, {k: 'shipped_qty', l: 'Đã xuất', n: 1}, {k: 'ship_pct', l: '% xuất', n: 1, r: v => v == null ? '–' : `<span class="mini" style="width:${Math.min(60, v * .6)}px"></span>${pct(v)}`},
+    {k: 'health', l: 'Tình trạng', r: healthChip}], {filters: [{key: 'factory_code', label: 'Nhà máy'}, {key: 'health', label: 'Tình trạng'}]})}`;
+}
+
+function viewShip(S) {
+  const wk = TB.ship_weekly.filter(w => w.season === SEASON);
+  const lots = TB.lots.filter(l => l.season === SEASON);
+  if (!wk.length && !lots.length) return `<div class="card"><h3>Xuất hàng</h3><p class="note">Mùa ${esc(SEASON)} chưa có dữ liệu Shipment Status. Khi file được thả vào raw-docs và build lại, tab này tự có số.</p></div>`;
+  const weeks = [...new Set(wk.map(w => w.week_start))].sort();
+  const series = MODES.map(m => ({name: m === 'UNKNOWN' ? 'Không rõ' : m, color: MODE_C[m], values: weeks.map(w => wk.filter(x => x.week_start === w && x.ship_mode === m).reduce((a, x) => a + x.qty, 0))})).filter(s => s.values.some(v => v));
+  const byMode = MODES.map(m => ({label: m, value: lots.filter(l => l.ship_mode === m).reduce((a, l) => a + l.qty, 0), color: MODE_C[m]})).filter(x => x.value);
+  return `
+  <div class="grid g2">
+    <div class="card"><h3>Số lượng xuất theo tuần ETD</h3><p class="sub">pcs, theo phương thức vận chuyển (không gồm mẫu)</p>${columns(weeks, series, {xFmt: dshort})}</div>
+    <div class="card"><h3>Theo phương thức</h3><p class="sub">Tổng pcs đã xuất. Chuyển AIR thường phát sinh chi phí</p>${hbars(byMode)}
+      <p class="note" style="margin-top:12px">Bấm vào một style ở bảng dưới (hoặc bất kỳ đâu) để xem assortment màu × size và từng lô.</p></div>
+  </div>
+  <h2 class="sec">Các lô xuất</h2>
+  ${table('t-lots', lots, [{k: 'lot_label', l: 'Lô'}, {k: 'lot_etd', l: 'ETD'}, {k: 'lot_eta', l: 'ETA'}, {k: 'ship_mode', l: 'PT'},
+    {k: 'factory_code', l: 'Nhà máy'}, {k: 'styles', l: 'Style', n: 1}, {k: 'qty', l: 'pcs', n: 1}], {filters: [{key: 'ship_mode', label: 'PT'}, {key: 'factory_code', label: 'Nhà máy'}]})}
+  <h2 class="sec">Đã xuất theo style</h2>
+  ${table('t-shipstyle', S.filter(s => s.is_active), [{k: 'style_no', l: 'Style', r: styleLink}, {k: 'factory_code', l: 'Nhà máy'},
+    {k: 'etd_vn', l: 'ETD'}, {k: 'first_lot_etd', l: 'Lô đầu'}, {k: 'n_lots', l: 'Số lô', n: 1}, {k: 'order_qty', l: 'Đặt', n: 1},
+    {k: 'shipped_qty', l: 'Đã xuất', n: 1}, {k: 'sample_qty', l: 'Mẫu', n: 1}, {k: 'balance_qty', l: 'Còn lại', n: 1},
+    {k: 'shipped_on_time', l: 'Đúng hạn', r: v => v == null ? '–' : v ? chip({c: '--good', i: '✓'}, 'Có') : chip({c: '--critical', i: '✕'}, 'Không')}])}`;
+}
+
+function viewPartner() {
+  const fk = TB.factory_kpi.filter(f => f.season === SEASON);
+  const sp = TB.supplier.filter(s => s.season === SEASON);
+  const bar = v => v == null ? '–' : `<span class="mini" style="width:${Math.min(60, v * .6)}px"></span>${pct(v)}`;
+  return `
+  <div class="grid g2">
+    <div class="card"><h3>Số style theo nhà máy</h3><p class="sub">Mùa ${esc(SEASON)}</p>${hbars(fk.map(f => ({label: f.factory_code, value: f.styles, tip: `${f.factory_code}: ${f.styles} style, ${nf.format(f.order_qty)} pcs`})))}</div>
+    <div class="card"><h3>Style theo nhà cung cấp vải</h3><p class="sub">Top 12, lấy từ ô vải chính trong ORDER RECAP</p>${hbars(sp.slice(0, 12).map(s => ({label: s.fabric_supplier, value: s.styles, tip: `${s.fabric_supplier}: ${s.styles} style\nNhà máy: ${s.factories || '–'}`})))}</div>
+  </div>
+  <h2 class="sec">Scorecard nhà máy</h2>
+  ${table('t-fac', fk, [{k: 'factory_code', l: 'Nhà máy'}, {k: 'styles', l: 'Style', n: 1}, {k: 'order_qty', l: 'Đặt', n: 1},
+    {k: 'output_qty', l: 'Đã may', n: 1}, {k: 'inspected_qty', l: 'Đã kiểm', n: 1}, {k: 'shipped_qty', l: 'Đã xuất', n: 1},
+    {k: 'ship_pct', l: '% xuất', r: bar}, {k: 'ontime_pct', l: '% đúng hạn', r: bar}, {k: 'styles_at_risk', l: 'Cần chú ý', n: 1},
+    {k: 'styles_moved_in', l: 'Style chuyển tới', n: 1}, {k: 'daily_output', l: 'SL/ngày', n: 1}], {search: false})}
+  <p class="note">Return % và claim chưa có nguồn dữ liệu (cần báo cáo kiểm). "Style chuyển tới" đếm style có ghi chú MOVED FACT trong ORDER RECAP.</p>
+  <h2 class="sec">Gom style theo nhà cung cấp vải (yêu cầu #4)</h2>
+  ${table('t-sup', sp, [{k: 'fabric_supplier', l: 'Nhà cung cấp'}, {k: 'styles', l: 'Style', n: 1}, {k: 'order_qty', l: 'pcs', n: 1},
+    {k: 'factories', l: 'Nhà máy'}, {k: 'style_list', l: 'Danh sách style', r: (v, r) => (v || '').split(', ').map(s => styleLink(s, r)).join(', ')}])}`;
+}
+
+function viewChange() {
+  const P = TB.proposals, E = TB.emails;
+  const card = p => `<div class="prop">
+    <div class="h">${p.is_sample ? '<span class="chip sample">SAMPLE</span>' : ''}${chip({c: '--warning', i: '⏳'}, 'Chờ MR duyệt')}
+      <b>${styleLink(p.style_no, p)}</b><span class="chip">${esc(p.change_type)}</span><span class="note">${esc(p.sent_at)} · độ tin cậy ${esc(p.confidence)}</span></div>
+    <div><span class="num">${p.change_type.startsWith('QTY') ? fmt(p.current_qty) : p.change_type === 'ETD' ? esc(p.current_etd) : esc(p.color_from)}</span>
+      <span class="arrow"> → </span><b class="num">${p.change_type.startsWith('QTY') ? fmt(p.proposed_qty) : p.change_type === 'ETD' ? esc(p.proposed_etd) : esc(p.color_to)}</b>
+      <span class="note"> (${esc(p.value_text)})</span></div>
+    ${p.change_type === 'COLOR' && p.color_from_exists === false ? `<div class="note">⚠ Màu ${esc(p.color_from)} không có trong ORDER RECAP của style này, cần MR kiểm tra.</div>` : ''}
+    ${!p.style_known ? '<div class="note">⚠ Mã style không có trong ORDER RECAP.</div>' : ''}
+    ${p.possibly_applied ? `<div class="note">⚠ Có vẻ đã áp dụng: ORDER RECAP đang là ${fmt(p.current_qty)} = ${fmt(p.qty_in_other_file)} ${esc(p.value_text)}, nhưng Production/Shipment Status vẫn ghi ${fmt(p.qty_in_other_file)}. Cần cập nhật file kia, không giảm thêm lần nữa.</div>` : ''}
+    ${p.style_status === 'CANCEL' ? '<div class="note">⚠ Style này đã huỷ trong ORDER RECAP.</div>' : ''}
+    <div class="note">“${esc(p.evidence)}” — ${esc(p.subject)}</div></div>`;
+  return `
+  <div class="banner">Email được lưu nguyên văn. Bộ trích xuất (hiện là rule-based) chỉ <b>đề xuất</b> thay đổi; không có thay đổi nào tự áp vào dữ liệu khi chưa có người duyệt. Email gắn nhãn SAMPLE là dữ liệu mẫu cho demo.</div>
+  <h2 class="sec" style="margin-top:0">Đề xuất thay đổi từ email (${P.length})</h2>
+  <div class="grid g2">${P.map(card).join('') || '<p class="note">Chưa có đề xuất</p>'}</div>
+  <h2 class="sec">Lịch sử thay đổi số lượng, nhà máy (yêu cầu #5)</h2>
+  ${table('t-chg', TB.changes, [{k: 'event_date', l: 'Ngày'}, {k: 'style_no', l: 'Style', r: styleLink}, {k: 'change_type', l: 'Loại'},
+    {k: 'detail', l: 'Chi tiết'}, {k: 'before_value', l: 'Trước', n: 1}, {k: 'after_value', l: 'Sau', n: 1}, {k: 'source', l: 'Nguồn'},
+    {k: 'status', l: 'Trạng thái'}, {k: 'location', l: 'Vị trí gốc'}], {filters: [{key: 'change_type', label: 'Loại'}, {key: 'season', label: 'Mùa'}]})}
+  <h2 class="sec">Hộp thư (${E.length})</h2>
+  ${E.map(m => `<details class="card" style="margin-bottom:8px"><summary>${m.is_sample ? '<span class="chip sample">SAMPLE</span> ' : ''}<b>${esc(m.subject)}</b> <span class="note">· ${esc(m.sender)} · ${esc(m.sent_at)}</span></summary><pre class="body">${esc(m.body)}</pre></details>`).join('')}`;
+}
+
+function viewQuality() {
+  const I = TB.issues;
+  const codes = Object.entries(I.reduce((a, i) => (a[i.code] = (a[i.code] || 0) + 1, a), {})).sort((a, b) => b[1] - a[1]);
+  const sevOf = c => (I.find(i => i.code === c) || {}).severity;
+  return `
+  <div class="grid g2">
+    <div class="card"><h3>Vấn đề theo loại</h3><p class="sub">${nf.format(I.length)} vấn đề, phát hiện tự động mỗi lần build</p>
+      ${hbars(codes.map(([c, n]) => ({label: c, value: n, color: SEV[sevOf(c)]?.c})))}</div>
+    <div class="card"><h3>Đối soát giữa các file</h3><p class="sub">Cùng một style, số lượng ghi khác nhau ở ORDER RECAP, Shipment Status và Production Status</p>
+      ${hbars(Object.entries(TB.recon.reduce((a, r) => (a[r.mismatch] = (a[r.mismatch] || 0) + 1, a), {})).map(([k, v]) => ({label: k, value: v})))}
+      <p class="note" style="margin-top:10px">Lệch ORDER thường do đơn bị giảm/tăng ở ORDER RECAP nhưng file khác chưa cập nhật (open question Q4). Lệch SHIPPED thường do cách tính có/không gồm mẫu (Q2).</p></div>
+  </div>
+  <h2 class="sec">Chi tiết đối soát</h2>
+  ${table('t-recon', TB.recon, [{k: 'style_no', l: 'Style', r: styleLink}, {k: 'factory_code', l: 'Nhà máy'},
+    {k: 'order_recap_qty', l: 'Đặt (Recap)', n: 1}, {k: 'shipment_file_qty', l: 'Đặt (Shipment)', n: 1}, {k: 'production_file_qty', l: 'Đặt (Production)', n: 1},
+    {k: 'shipped_shipment_file', l: 'Xuất (Shipment)', n: 1}, {k: 'shipped_production_file', l: 'Xuất (Production)', n: 1}, {k: 'mismatch', l: 'Lệch'}],
+    {filters: [{key: 'mismatch', label: 'Loại lệch'}]})}
+  <h2 class="sec">Danh sách vấn đề dữ liệu</h2>
+  ${table('t-iss', I, [{k: 'severity', l: 'Mức', r: v => chip(SEV[v] || {c: '--neutral'}, v)}, {k: 'code', l: 'Mã'}, {k: 'entity', l: 'Đối tượng'},
+    {k: 'message', l: 'Mô tả'}, {k: 'location', l: 'Vị trí'}, {k: 'file_name', l: 'File'}], {filters: [{key: 'severity', label: 'Mức'}, {key: 'code', label: 'Mã'}]})}`;
+}
+
+function viewMeeting() {
+  const M = TB.meeting[0] || {};
+  return `
+  <div class="card" style="margin-bottom:16px"><h3>${esc(M.title || 'Biên bản họp')}</h3><p class="sub">${esc(M.meeting_date || '')} · ${esc(M.location || '')}</p>
+    <p class="note" style="margin:0">Biên bản được nạp vào kho: ${TB.requirements.length} yêu cầu chức năng, ${TB.actions.length} việc cần làm, ${TB.decisions.length} nội dung thống nhất. Cột "MVP đáp ứng" do đội dự án cập nhật trong <code>config.py</code>.</p></div>
+  <h2 class="sec" style="margin-top:0">Yêu cầu chức năng và mức đáp ứng của MVP</h2>
+  ${table('t-req', TB.requirements, [{k: 'req_no', l: '#', n: 1}, {k: 'req_group', l: 'Nhóm'}, {k: 'text_vi', l: 'Yêu cầu'},
+    {k: 'raised_by', l: 'Nêu bởi'}, {k: 'mvp_status', l: 'MVP đáp ứng', r: v => chip(COVER[v] || {c: '--neutral'}, (COVER[v] || {}).l || v)},
+    {k: 'where_in_mvp', l: 'Ở đâu trong MVP'}, {k: 'next_step', l: 'Bước tiếp theo'}], {filters: [{key: 'mvp_status', label: 'Đáp ứng'}]})}
+  <h2 class="sec">Việc cần làm sau họp</h2>
+  ${table('t-act', TB.actions, [{k: 'owner', l: 'Phụ trách'}, {k: 'item_vi', l: 'Nội dung'}, {k: 'due', l: 'Hạn'}], {search: false})}
+  <h2 class="sec">Nội dung thống nhất</h2>
+  ${table('t-dec', TB.decisions, [{k: 'no', l: '#', n: 1}, {k: 'topic', l: 'Chủ đề'}, {k: 'text', l: 'Nội dung'}, {k: 'raised_by', l: 'Người nêu'}], {search: true})}`;
+}
+
+function viewSource() {
+  return `
+  <div class="banner">Build là full rebuild: xoá kho cũ và nạp lại toàn bộ file trong <code>raw-docs/</code> và thư mục inbox. Nhiều phiên bản cùng một báo cáo thì bản mới nhất (theo ngày báo cáo) là bản hiện hành; bản cũ vẫn nằm trong lớp raw.</div>
+  ${table('t-src', TB.sources, [{k: 'file_id', l: '#', n: 1}, {k: 'file_name', l: 'File'}, {k: 'source_type', l: 'Loại'}, {k: 'parser', l: 'Parser'},
+    {k: 'season', l: 'Mùa'}, {k: 'report_date', l: 'Ngày báo cáo'}, {k: 'status', l: 'Trạng thái'}, {k: 'is_current', l: 'Hiện hành', r: v => v ? '✓' : ''},
+    {k: 'is_sample', l: 'Mẫu', r: v => v ? '<span class="chip sample">SAMPLE</span>' : ''}, {k: 'rows_loaded', l: 'Dòng', n: 1}, {k: 'issues', l: 'Vấn đề', n: 1}, {k: 'message', l: 'Ghi chú'}], {search: false})}
+  <h2 class="sec">Quy tắc nghiệp vụ đang dùng (cấu hình được, chờ KLMAS xác nhận)</h2>
+  ${table('t-rules', TB.rules, [{k: 'rule_key', l: 'Quy tắc'}, {k: 'rule_value', l: 'Giá trị'}], {search: false})}`;
+}
+
+/* ---------- style 360 drawer ---------- */
+function openStyle(season, style) {
+  const s = TB.styles.find(x => x.style_no === style && (!season || x.season === season)) || TB.styles.find(x => x.style_no === style);
+  if (!s) return;
+  const A = TB.assortment.filter(a => a.style_no === style && a.season === s.season);
+  const sizes = [...new Set(A.map(a => a.size_code))].sort((a, b) => sizeRank(a) - sizeRank(b));
+  const colors = [...new Set(A.map(a => a.color))];
+  const cell = (c, z, k) => A.filter(a => a.color === c && a.size_code === z).reduce((t, a) => t + (a[k] || 0), 0);
+  const mtx = (k, title) => !A.some(a => a[k]) ? '' : `<h4 style="margin:14px 0 6px">${title}</h4><div class="tw"><table class="mtx"><thead><tr><th>Màu</th>${sizes.map(z => `<th>${esc(z)}</th>`).join('')}<th>Tổng</th></tr></thead><tbody>
+    ${colors.map(c => `<tr><td>${esc(c || '(không ghi màu)')}</td>${sizes.map(z => `<td>${fmt(cell(c, z, k) || null)}</td>`).join('')}<td><b>${fmt(sizes.reduce((t, z) => t + cell(c, z, k), 0))}</b></td></tr>`).join('')}</tbody></table></div>`;
+  const L = TB.lot_detail.filter(l => l.style_no === style && l.season === s.season);
+  const lots = [...new Set(L.map(l => l.lot_label))];
+  const C = TB.changes.filter(c => c.style_no === style);
+  const I = TB.issues.filter(i => i.entity === style);
+  const src = TB.sources.find(x => x.file_id === s.file_id) || {};
+  const kv = (l, v) => `<div><span>${esc(l)}</span>${v}</div>`;
+  $('#drawerPn').innerHTML = `
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:start">
+      <div><div class="note">${esc(s.season)} · ${esc(s.order_no)} · ${esc(s.collection || '')}</div><h2 style="margin:2px 0 4px">${esc(s.style_no)}</h2>
+      <div>${esc(s.description_en || '')}</div><div class="note">${esc(s.name_kr || '')}</div></div>
+      <button class="icon-btn" id="closeDr" aria-label="Đóng">✕</button></div>
+    <div style="margin:10px 0">${healthChip(s.health)} <span class="chip">Trạng thái file: ${esc(s.status)}</span></div>
+    <div class="card"><div class="kv">
+      ${kv('Nhà máy', esc(s.factory_code || '–'))}${kv('NCC vải', esc(s.fabric_supplier || '–'))}${kv('ETD VN', esc(s.etd_vn || '–'))}${kv('RDD', esc(s.rdd_kr || '–'))}
+      ${kv('Đặt (pcs)', fmt(s.order_qty))}${kv('Đã may', fmt(s.output_qty))}${kv('Đã kiểm', fmt(s.inspected_qty))}${kv('Đã xuất', fmt(s.shipped_qty) + (s.sample_qty ? ` <span class="note">+${s.sample_qty} mẫu</span>` : ''))}
+      ${kv('SL/ngày', fmt(s.daily_output))}${kv('Dự kiến xong', esc(s.projected_ready || '–'))}${kv('Trễ so với ETD', s.days_late == null ? '–' : fmt(s.days_late) + ' ngày')}${kv('Lô đầu', esc(s.first_lot_etd || '–'))}
+      ${kv('FPP CFM', esc(s.fpp_cfmd || '–'))}${kv('Cắt / vào chuyền', esc(s.cutting_plan || '–') + ' / ' + esc(s.input_plan || '–'))}${kv('May xong (KH)', esc(s.sewing_finish_plan || '–'))}${kv('Lịch sử nhà máy', esc(s.factory_history || '–'))}
+    </div></div>
+    ${mtx('ordered', 'Assortment đặt hàng (màu × size)')}${mtx('shipped', 'Đã xuất (màu × size)')}${mtx('sample', 'Mẫu đã gửi')}
+    ${lots.length ? `<h4 style="margin:14px 0 6px">Từng lô</h4><div class="tw"><table><thead><tr><th>Lô</th><th>ETD</th><th>PT</th><th class="n">pcs</th><th>Vị trí gốc</th></tr></thead><tbody>
+      ${lots.map(lb => { const r = L.filter(l => l.lot_label === lb); return `<tr><td>${esc(lb)}</td><td>${esc(r[0].lot_etd || '')}</td><td>${esc(r[0].ship_mode || 'mẫu')}</td><td class="n">${fmt(r.reduce((t, x) => t + x.qty, 0))}</td><td class="note">${esc(r[0].location)}</td></tr>`; }).join('')}</tbody></table></div>` : ''}
+    ${C.length ? `<h4 style="margin:14px 0 6px">Thay đổi</h4><div class="tw"><table><tbody>${C.map(c => `<tr><td>${esc(c.event_date || '')}</td><td>${esc(c.change_type)}</td><td>${esc(c.detail || '')}</td><td class="n">${esc(c.before_value || '')} → ${esc(c.after_value || '')}</td><td>${esc(c.source)}</td><td>${esc(c.status)}</td></tr>`).join('')}</tbody></table></div>` : ''}
+    ${I.length ? `<h4 style="margin:14px 0 6px">Vấn đề dữ liệu</h4><div class="tw"><table><tbody>${I.map(i => `<tr><td>${chip(SEV[i.severity] || {c: '--neutral'}, i.severity)}</td><td>${esc(i.code)}</td><td>${esc(i.message)}</td><td class="note">${esc(i.location || '')}</td></tr>`).join('')}</tbody></table></div>` : ''}
+    <p class="note" style="margin-top:14px">Nguồn: ${esc(src.file_name || '')} · ORDER RECAP dòng ${esc(s.row_no)}</p>`;
+  $('#drawer').classList.add('on'); $('#drawer').setAttribute('aria-hidden', 'false');
+}
+function sizeRank(z) { const o = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', 'F']; const i = o.indexOf(z); return i < 0 ? 50 + (parseInt(z) || 0) : i; }
+function closeDr() { $('#drawer').classList.remove('on'); $('#drawer').setAttribute('aria-hidden', 'true'); }
+document.addEventListener('click', e => { if (e.target.matches('#drawer .bk') || e.target.closest('#closeDr')) closeDr(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDr(); });
+
+/* ---------- shell ---------- */
+$('#built').textContent = 'build ' + D.built_at;
+$('#tabs').innerHTML = TABS.map(([k, l]) => `<button role="tab" data-t="${k}">${l}</button>`).join('');
+function drawSeasons() {
+  $('#seasonSeg').innerHTML = TB.season_kpi.map(s => `<button aria-pressed="${s.season === SEASON}" data-s="${s.season}">${s.season}</button>`).join('');
+}
+$('#seasonSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; SEASON = b.dataset.s; drawSeasons(); render(); });
+$('#themeBtn').addEventListener('click', () => {
+  const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  r.dataset.theme = dark ? 'light' : 'dark'; try { localStorage.setItem('kops.theme', r.dataset.theme); } catch {}
+});
+try { const t = localStorage.getItem('kops.theme'); if (t) document.documentElement.dataset.theme = t; } catch {}
+drawSeasons(); render();
+</script>
+</body>
+</html>

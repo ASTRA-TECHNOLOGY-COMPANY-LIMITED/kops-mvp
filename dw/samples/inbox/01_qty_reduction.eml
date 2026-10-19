@@ -1,0 +1,20 @@
+From: "Buyer MD team (SAMPLE)" <buyer-md@example.com>
+To: "KLMAS MR (SAMPLE)" <mr@example.com>
+Subject: [SAMPLE] 26FW pants/skirt quantity revision
+Date: Mon, 20 Jul 2026 09:12:00 +0900
+Message-ID: <sample-0001@kops.example>
+X-KOPS-Sample: true
+X-KOPS-Season: 26FW
+Content-Type: text/plain; charset=utf-8
+
+SAMPLE EMAIL - generated for the KOPS DW MVP demo, not a real message.
+
+Hello,
+
+Due to the sell-through forecast we need to reduce the order quantity by 20% for the styles below:
+- CHF3MPT6334
+- CHF3WPT6745
+- CHF3WSK6751
+
+Please keep the same colour ratio and update the production plan with the factory.
+Thank you.

@@ -3,3 +3,9 @@
 
 # Raw customer source files (large binaries, confidential) - keep local only
 raw-docs/
+
+# Data warehouse MVP build output (contains KLMAS data) and local env
+dw/build/
+dw/.venv/
+__pycache__/
+*.pyc

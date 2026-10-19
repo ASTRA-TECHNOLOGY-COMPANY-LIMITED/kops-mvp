@@ -1,0 +1,191 @@
+"""Build the DW from scratch: discover sources -> register -> parse -> load raw/stg -> run SQL models.
+
+The build is a full rebuild (idempotent): delete build/kops.duckdb and recreate it from the files.
+"""
+from __future__ import annotations
+
+import datetime as dt
+import re
+import time
+import traceback
+from pathlib import Path
+
+import duckdb
+
+from . import config
+from .excel import open_workbook
+from .ingest import emails, meeting_notes, order_recap, production_status, shipment_status
+from .util import norm_key, sha256
+
+SQL_DIR = config.DW_DIR / "sql"
+
+
+class Ctx:
+    """Collects data issues for the file being parsed."""
+
+    def __init__(self):
+        self.issues = []
+        self.file_id = None
+
+    def issue(self, severity, code, entity, message, location=None):
+        self.issues.append(dict(file_id=self.file_id, severity=severity, code=code, entity=str(entity),
+                                message=message, location=location))
+
+
+def classify(path: Path):
+    """Return (source_type, parser, season) from the file name, or (type, None, None) if not parsed."""
+    name = path.name.upper()
+    season = (m.group(0) if (m := re.search(r"\b2\d(SS|FW)\b", name)) else None)
+    ext = path.suffix.lower()
+    if ext in (".xlsx", ".xlsb", ".xlsm"):
+        if "ORDER RECAP" in name:
+            return "excel", "order_recap", season
+        if "SHIPMENT STATUS" in name:
+            return "excel", "shipment_status", season
+        if "PRODUCTION AND SHIPPING STATUS" in name:
+            return "excel", "production_status", season
+        return "excel", None, season
+    if ext == ".docx":
+        return "meeting_note", "meeting_notes", season
+    if ext == ".eml":
+        return "email", "emails", season
+    if ext == ".pdf":
+        return "reference", None, None
+    return "other", None, None
+
+
+def file_date(name: str):
+    m = re.match(r"^(\d{6})", name)
+    try:
+        return dt.datetime.strptime(m.group(1), "%y%m%d").date() if m else None
+    except ValueError:
+        return None
+
+
+def discover():
+    files = []
+    if config.RAW_DOCS_DIR.exists():
+        files += [p for p in sorted(config.RAW_DOCS_DIR.iterdir()) if p.is_file() and not p.name.startswith((".", "~$"))]
+    for d in config.INBOX_DIRS:
+        if d.exists():
+            files += sorted(p for p in d.glob("*.eml"))
+    return files
+
+
+def build(verbose=True) -> Path:
+    t0 = time.time()
+    config.BUILD_DIR.mkdir(parents=True, exist_ok=True)
+    if config.DB_PATH.exists():
+        config.DB_PATH.unlink()
+    con = duckdb.connect(str(config.DB_PATH))
+    con.execute((SQL_DIR / "00_raw.sql").read_text())
+    _load_reference(con)
+
+    seen, registry = {}, []
+    for i, path in enumerate(discover(), start=1):
+        stype, parser, season = classify(path)
+        digest = sha256(path)
+        ctx = Ctx()
+        ctx.file_id = i
+        rec = dict(file_id=i, file_name=path.name, rel_path=_rel(path), source_type=stype, parser=parser,
+                   season=season, file_date=file_date(path.name), report_date=None, sha256=digest,
+                   size_bytes=path.stat().st_size, is_sample=config.DW_DIR in path.parents,
+                   status="LOADED", is_current=False, rows_loaded=0, message=None, loaded_at=dt.datetime.now())
+        if digest in seen:
+            rec.update(status="DUPLICATE", message=f"Same content as file_id {seen[digest]}")
+            ctx.issue("INFO", "DUPLICATE_FILE", path.name, rec["message"], path.name)
+        elif parser is None:
+            rec.update(status="SKIPPED", message="Reference document - not parsed" if stype == "reference"
+                       else "Unknown template")
+            if stype == "excel":
+                ctx.issue("WARN", "UNKNOWN_TEMPLATE", path.name, "Excel file not matched to a parser", path.name)
+        else:
+            seen[digest] = i
+            try:
+                tables, report_date = _parse(path, parser, season, digest, ctx)
+                rec["report_date"] = report_date
+                rec["rows_loaded"] = _insert_all(con, tables, i)
+            except Exception as e:  # keep going: one bad file must not stop the build
+                rec.update(status="FAILED", message=f"{type(e).__name__}: {e}")
+                ctx.issue("ERROR", "PARSE_FAILED", path.name, rec["message"], path.name)
+                if verbose:
+                    traceback.print_exc()
+        registry.append(rec)
+        _insert(con, "etl.data_issue", ctx.issues)
+        if verbose:
+            print(f"  [{rec['status']:9}] {path.name}  rows={rec['rows_loaded']}  issues={len(ctx.issues)}")
+    # Several versions of the same report may sit in raw-docs: the newest per (template, season) is current.
+    latest = {}
+    for r in registry:
+        if r["status"] != "LOADED":
+            continue
+        if r["parser"] in ("emails", "meeting_notes"):
+            r["is_current"] = True
+            continue
+        key = (r["parser"], r["season"])
+        rank = (r["report_date"] or r["file_date"] or dt.date.min, r["file_id"])
+        if key not in latest or rank > latest[key][0]:
+            latest[key] = (rank, r)
+    for _, r in latest.values():
+        r["is_current"] = True
+    _insert(con, "etl.source_file", registry)
+    for f in sorted(SQL_DIR.glob("[1-9]*.sql")):
+        con.execute(f.read_text())
+    con.close()
+    if verbose:
+        print(f"Built {config.DB_PATH} in {time.time() - t0:.1f}s")
+    return config.DB_PATH
+
+
+def _parse(path, parser, season, digest, ctx):
+    if parser in ("order_recap", "shipment_status", "production_status"):
+        if not season:
+            raise ValueError("Season code (e.g. 26FW) not found in file name")
+        wb = open_workbook(path, digest)
+        mod = {"order_recap": order_recap, "shipment_status": shipment_status,
+               "production_status": production_status}[parser]
+        tables, report_date = mod.parse(wb, season, ctx)
+        return tables, report_date or file_date(path.name)
+    if parser == "meeting_notes":
+        tables, d = meeting_notes.parse(path, ctx)
+        return tables, (dt.date.fromisoformat(d) if d else None)
+    if parser == "emails":
+        return emails.parse(path, ctx)
+    raise ValueError(parser)
+
+
+def _insert_all(con, tables: dict, file_id: int) -> int:
+    n = 0
+    for name, rows in tables.items():
+        schema = "stg" if name.startswith("stg_") else "raw"
+        table = f"{schema}.{name[4:] if name.startswith('stg_') else name}"
+        for r in rows:
+            r["file_id"] = file_id
+        _insert(con, table, rows)
+        n += len(rows)
+    return n
+
+
+def _insert(con, table: str, rows: list[dict]):
+    if not rows:
+        return
+    cols = [c[0] for c in con.execute(f"DESCRIBE {table}").fetchall()]
+    data = [[r.get(c) for c in cols] for r in rows]
+    con.executemany(f"INSERT INTO {table} VALUES ({', '.join('?' * len(cols))})", data)
+
+
+def _load_reference(con):
+    _insert(con, "stg.factory_alias", [dict(alias_key=norm_key(k), factory_code=v)
+                                       for k, v in config.FACTORY_ALIASES.items()])
+    _insert(con, "stg.style_alias", [dict(alias_style=k, style_no=v, confirmed=False)
+                                     for k, v in config.STYLE_ALIASES.items()])
+    _insert(con, "stg.rule", [dict(rule_key=k, rule_value=str(v)) for k, v in config.RULES.items()])
+    _insert(con, "stg.requirement_coverage", [dict(req_no=k, mvp_status=s, where_in_mvp=w, next_step=n)
+                                              for k, (s, w, n) in config.REQUIREMENT_COVERAGE.items()])
+
+
+def _rel(path: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(config.REPO_DIR))
+    except ValueError:
+        return str(path)

@@ -5,7 +5,7 @@ KOPS thay bộ file Excel rời mà KLMAS đang dùng để quản lý sản xu�
 - **Khách hàng:** KLMAS, công ty FDI tại Việt Nam (Hà Nội, TP.HCM). Không có nhà máy riêng, làm việc với khoảng 10 nhà máy gia công; ngoài ra kiểm hàng bên thứ ba cho khoảng 50 khách.
 - **Bên phát triển:** ASTRA TECHNOLOGY.
 - **Người dùng:** MR (merchandiser), QA nhà máy, kiểm viên, buyer, ban giám đốc KLMAS.
-- **Trạng thái repo:** giai đoạn phân tích và prototype. Chưa có code ứng dụng production.
+- **Trạng thái repo:** đã có phân tích, prototype UI và **MVP data warehouse** (`dw/`). Chưa có ứng dụng production.
 
 Mọi người tham gia dự án, dù là người hay AI agent, đọc [`GUIDELINES.md`](GUIDELINES.md) trước khi bắt đầu việc.
 
@@ -55,6 +55,7 @@ kops-mvp/
 ├── GUIDELINES.md          # quy tắc làm việc chung: vai trò, quy trình, quy tắc dữ liệu, định nghĩa xong
 ├── analys-docs/           # phân tích nghiệp vụ, dữ liệu, thiết kế DB/ETL, roadmap, backlog
 ├── prototype/             # prototype HTML (chuẩn UI và luồng màn hình), kiến trúc, dw_schema.sql
+├── dw/                    # MVP data warehouse: nạp Excel + email + biên bản họp → DuckDB → dashboard
 └── raw-docs/              # file gốc của KLMAS — KHÔNG commit (đã .gitignore), xin PO để lấy
 ```
 
@@ -72,6 +73,15 @@ kops-mvp/
 | `open_questions.md` | Câu hỏi nghiệp vụ còn mở, giả định đang dùng, dữ liệu cần xin KLMAS | Trước khi tự quyết một quy tắc |
 | `roadmap.md` | Ý tưởng, giai đoạn P0–P5, ước lượng, rủi ro | Lập kế hoạch |
 | `backlog.csv` | 50 task: vai trò phụ trách, phụ thuộc, giờ ước lượng, tiêu chí nghiệm thu | Nhận và giao việc |
+
+### MVP data warehouse
+
+`dw/` gom mọi nguồn (Excel, email, biên bản họp) về một kho duy nhất, rồi sinh dashboard offline gồm Control Tower, xuất hàng, nhà máy & NCC, thay đổi, đối soát và lineage. Cách chạy, các lớp dữ liệu và giới hạn hiện tại: [`dw/README.md`](dw/README.md).
+
+```bash
+cd dw && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+.venv/bin/python -m kops_dw && open build/dashboard.html
+```
 
 ### Prototype
 
