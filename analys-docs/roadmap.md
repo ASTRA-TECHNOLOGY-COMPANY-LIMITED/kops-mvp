@@ -40,6 +40,8 @@ Danh sách task chi tiết (vai trò phụ trách, phụ thuộc, giờ, tiêu c
 
 ## 2. Giai đoạn
 
+> **Phase 1 hiện tại = MVP data warehouse** (`dw/`): một kho dữ liệu chung từ Excel, báo cáo sản xuất ngày, bảng kiểm, email và biên bản họp, kèm dashboard. Đặc tả ở `mvp_phase1_spec.md`, kế hoạch ở `plans/MVP_PHASE1_PLAN.md`, câu hỏi cần trả lời ở `open_questions.md` mục 1. Các giai đoạn P0–P5 dưới đây là lộ trình ứng dụng đầy đủ, bắt đầu sau khi KLMAS duyệt MVP.
+
 | Giai đoạn | Mục tiêu | Task | Cổng nghiệm thu |
 |---|---|---|---|
 | **P0 Nền tảng** | Repo, CI, schema `core`, auth/RBAC, master data, staging | F-01…F-07 | Staging chạy; master data được KLMAS xác nhận |

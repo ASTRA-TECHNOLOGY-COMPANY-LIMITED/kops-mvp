@@ -1,71 +1,92 @@
 # Open Questions, Assumptions & Decisions
 
-Câu hỏi chỉ do KLMAS hoặc PO trả lời. Khi gặp một câu ở đây trong lúc làm task: dùng giả định ghi trong bảng, ghi rõ trong PR là đang dựa trên giả định nào, và báo PO. Khi có câu trả lời, PO cập nhật cột "Giả định đang dùng" thành quyết định kèm ngày và nguồn.
+Câu hỏi chỉ KLMAS hoặc PO trả lời. Khi gặp một câu ở đây trong lúc làm task: dùng giả định ghi trong bảng, ghi rõ trong PR là đang dựa trên giả định nào, và báo PO. Khi có câu trả lời, PO cập nhật cột "Giả định đang dùng" thành quyết định, kèm ngày và nguồn.
 
-Mức ưu tiên: **P1** = chặn thiết kế/nạp dữ liệu đúng · **P2** = ảnh hưởng chất lượng báo cáo · **P3** = có thể quyết sau
+**Phase 1 = MVP data warehouse** (`dw/`, kế hoạch ở `plans/MVP_PHASE1_PLAN.md`): nạp Excel, báo cáo sản xuất ngày, bảng kiểm, email, biên bản họp vào một kho; dashboard tiến độ, xuất hàng, đối soát, độ tươi dữ liệu. Phase 1 **chỉ cần giải quyết các câu ở mục 1**. Câu ở mục 2 để nguyên giả định, hỏi khi tới giai đoạn cần.
 
-## A. Quyết định cần nghiệp vụ trả lời
+Mức độ trong Phase 1:
+- **Chặn**: sai thì số liệu chính trên dashboard sai. Cần câu trả lời trước buổi demo MVP.
+- **Xác nhận**: MVP chạy được bằng giả định (đã để cấu hình được). KLMAS xác nhận hoặc sửa trong buổi demo.
 
-| # | Ưu tiên | Câu hỏi | Vì sao quan trọng | Giả định đang dùng |
+## 1. Cần cho Phase 1 (MVP data warehouse)
+
+### 1.1 Nghiệp vụ
+
+| # | Mức | Câu hỏi | Ảnh hưởng tới MVP | Giả định đang dùng |
 |---|---|---|---|---|
-| Q1 | P1 | File nào là **nguồn chính thức** cho order qty, shipped qty, nhà máy hiện tại? | 3 file cho 3 con số khác nhau (business_analysis §5.3–5.4) | ORDER RECAP = style/màu/qty/factory; SHIPMENT STATUS = size & lô xuất; PRODUCTION STATUS = output/inspection |
-| Q2 | P1 | "SHIPPED Q'TY" có bao gồm mẫu (shipping/photo sample) không? Ở từng file? | Quyết định công thức balance & báo cáo xuất thiếu/dư | DB lưu tách hàng và mẫu; mart hiển thị cả 2 cách |
-| Q3 | P1 | CHF4WHP6851 ↔ CHF4WSK6851, CHF4WHP6852 ↔ CHF4WSK6852: mã nào đúng? Có phải đổi mã không? | Khoá chính sản phẩm | Ghi vào `style_alias` với `confirmed=false` |
-| Q4 | P1 | 3 style CHF3MPT6334/CHF3WPT6745/CHF3WSK6751 giảm 20% ở ORDER RECAP (288/320/296) nhưng production & shipment vẫn 360/400/370 — số nào là đơn hiện hành? | Qty sai → balance sai | Theo ORDER RECAP (mới nhất), log XSRC_MISMATCH |
-| Q5 | P1 | Một **lô xuất** (vd. `8/12ETD-8/18ETA SEA`) là một booking/container chung cho mọi nhà máy hay riêng từng nhà máy? Có số invoice/BL không? | Khoá của bảng shipment | Chung theo (ETD, ETA, mode); factory ở dòng shipment_line |
-| Q6 | P1 | Bảng màu trạng thái (fill colour) có còn là cách chính thức để ghi trạng thái? Khi màu ô B và D khác nhau thì ưu tiên ô nào? | Trạng thái style | Ưu tiên ô D (mã style) |
-| Q7 | P2 | Quy tắc RDD: ETD + 12 (công thức) hay RDD − 14 (header DETAIL) hay RDD − 10 (BUYER DEL)? | Kiểm tra ngày | ETD + 12 |
-| Q8 | P2 | Đơn vị tiền tệ của 원단단가 (đơn giá vải) và CMPH? KR ~2,400 (KRW?), CN ~4.19 & VN ~0.85 (USD?) | Không thể tổng hợp chi phí | Để NULL + issue cho tới khi có quy tắc |
-| Q9 | P2 | Ý nghĩa ký hiệu trong ghi chú vật tư: `G`, `C`, `C1`, `L`, `P`, `OK`, `SNAP`, `SBM`, `L+P+W` | Parse milestone vật tư | Lưu nguyên văn ở `detail` |
-| Q10 | P2 | Ý nghĩa `RE` trong `7/16 SENT - 7/20 RE` (returned? rejected?), `CMMT` (comment?), `HC` (hand carry?) | Kiểu sự kiện | RE=RETURN, CMMT=comment received, HC=hand carry |
-| Q11 | P2 | Bảng mã nhóm hàng: ST, IT, MK, HC, GW, CP, WI, OP, HP nghĩa là gì? | item_type master | Suy theo mô tả (business_analysis §4) |
-| Q12 | P2 | Mã năm/mùa trong style (`F3`, `G2`, `E4`) có đúng E=2025, F=2026, G=2027 và 1–4 = Spring/Summer/Fall/Winter? Chữ số 5 (`CHF5UGW6070`)? | Tách mã | Giả thuyết như trên, không dùng làm khoá |
-| Q13 | P2 | Danh sách nhà máy chính thức + mã viết tắt; quan hệ FG VINA / FG BAC GIANG / TBM; TIEN THANH; TRUONG PHUC TV | Master factory & alias | Theo bảng alias đề xuất |
-| Q14 | P2 | Tiêu chuẩn chấp nhận xuất dư/thiếu (tolerance %) | Quy tắc QTY_RANGE | ±5% |
-| Q15 | P2 | XXL và 2XL có tương đương? | Master size | Có |
-| Q16 | P2 | 5 style 27SS có ETD đầu năm 2026 (CHG1WJK7504 2026-01-17, CHG2WJK7604, CHG2MST7238, CHG2WST7651, CHFG2WIT7957): sai năm (2027)? | Lịch sản xuất | Đánh dấu ETD_OUT_OF_SEASON, không tự sửa |
-| Q17 | P2 | 7 style trong FAB nhưng không có trong ORDER RECAP (CHF3MPT6332, CHF3UCP6382, CHF3WPT6743, CHF4MCP6482, CHF4UCP6484, CHF4WCP6876, CHF4WSK6851) — đã huỷ hay đổi mã? | Vải đã đặt cho style không còn đơn | INFO issue |
-| Q18 | P2 | Các style mùa trước `CHE4…` trong sheet TP/NATEXCO (block rỗng) có cần theo dõi không? | Phạm vi dữ liệu | Bỏ qua block rỗng |
-| Q19 | P3 | Cột pricing/payment/PO/CO trong ORDER RECAP đang trống — dữ liệu này nằm ở hệ thống/file khác? Có đưa vào DB không? | Phạm vi Option B giai đoạn 1 | Tạo bảng (P), chưa nạp |
-| Q20 | P3 | `(BE: SAND)` trong ô màu nghĩa là "before: SAND" (màu cũ)? | Lịch sử đổi màu | Có |
-| Q21 | P3 | 해리감 (PART) là gì? | part_code | Lưu raw |
-| Q22 | P3 | Ảnh thiết kế nhúng trong ORDER RECAP có cần lưu (object storage) không? | Dung lượng | Không ở giai đoạn 1 |
-| Q23 | P1 | Báo cáo sản xuất ngày có phải nguồn chính thức cho SL cắt/vào chuyền/ra chuyền? Production Status lấy số từ đâu, cập nhật lúc nào? | Báo cáo ngày là nguồn chính; Production Status để đối soát (`review_inspection_production.md` §2.1) |
-| Q24 | P1 | Vì sao NATEXCO ngừng gửi báo cáo ngày sau 08/09 và HA HIEU chỉ có 2 ngày? | Thiếu file, xin bổ sung |
-| Q25 | P1 | "DEFECT QTY" trong bảng kiểm là số sản phẩm lỗi hay số điểm lỗi? Tỷ lệ lỗi tính trên SL kiểm hay SL đạt? | Số điểm lỗi; tỷ lệ = lỗi ÷ SL kiểm |
-| Q26 | P2 | Style bộ (VEST + JACKET, vd. CHF4WJK6801): SL đặt là theo bộ hay theo món? | 350 bộ = 350 mỗi món |
-| Q27 | P2 | Các style `CHE…` TBM đang may là reorder của mùa nào? | Reorder 25FW |
-| Q28 | P2 | Dữ liệu DHG / 8 SECONDS có trong phạm vi KOPS giai đoạn 1? Ai được xem? | Nạp vào DW, tách theo brand |
-| Q29 | P3 | Có SMV theo style/nhóm hàng để chuẩn hoá năng suất? | Chưa có |
+| Q1 | Chặn | File nào là **nguồn chính thức** cho SL đặt, SL đã xuất, nhà máy hiện tại? | Mọi KPI trên Control Tower | ORDER RECAP = style/màu/SL/nhà máy; Shipment Status = size và lô xuất; báo cáo ngày = cắt/vào chuyền/ra chuyền (xem Q23) |
+| Q23 | Chặn | Báo cáo sản xuất ngày có phải nguồn chính thức cho SL cắt / vào chuyền / ra chuyền không? Production Status lấy số từ đâu, cập nhật lúc nào? | Dự báo ngày xong và cảnh báo trễ (`review_inspection_production.md` §2.1) | Báo cáo ngày là nguồn chính; Production Status chỉ dùng để đối soát |
+| Q24 | Chặn | NATEXCO không có báo cáo ngày sau 08/09, HA HIEU chỉ có 2 ngày, 9 style đang chạy không có báo cáo nào. Còn file nào chưa gửi không? | Độ phủ dữ liệu tiến độ | Thiếu file, đã xin bổ sung (R7) |
+| Q4 | Chặn | 3 style CHF3MPT6334 / CHF3WPT6745 / CHF3WSK6751 giảm 20% ở ORDER RECAP (288/320/296) nhưng Production và Shipment Status vẫn 360/400/370. Số nào là đơn hiện hành? | SL còn lại, % xuất | Theo ORDER RECAP (mới nhất), ghi `XSRC_MISMATCH` |
+| Q3 | Chặn | Mã style lệch giữa các file: `CHF4WHP6851`↔`CHF4WSK6851`, `CHF4WHP6852`↔`CHF4WSK6852`, `CHFWWT6817`↔`CHF4WWT6817`. Mã nào đúng? | Ghép dữ liệu giữa các file | Map tạm, đánh dấu `STYLE_ALIAS_UNCONFIRMED`. Báo cáo ngày của TBM cũng dùng `WSK6851`, nên 2/3 nguồn dùng `WSK` |
+| Q27 | Chặn | Báo cáo ngày của TBM ghi `CHE3WPT6986`, `CHE3WSK6754`, `CHE4MPT6441`, `CHE4WPT6842`, trong khi ORDER RECAP có `CHF…` cùng số. Đây là gõ sai chữ mùa (E thay F) phải không? | 4 style TBM đang mất tiến độ | Gõ sai: map sang `CHF…`, đánh dấu chưa xác nhận như Q3 |
+| Q2 | Xác nhận | "SHIPPED Q'TY" có tính cả mẫu (shipping/photo sample) không? Ở từng file? | Đối soát SL xuất giữa các file | Lưu tách hàng và mẫu; % xuất chỉ tính hàng |
+| Q6 | Xác nhận | Màu nền ô có còn là cách chính thức ghi trạng thái style? Ô B và D khác màu thì ưu tiên ô nào? | Cột trạng thái style | Ưu tiên ô D, rồi ô B |
+| Q13 | Xác nhận | Danh sách nhà máy chính thức và mã viết tắt; quan hệ FG VINA / FG BAC GIANG / TBM; SON HA, JM (27SS) là nhà máy nào? | Scorecard theo nhà máy | Theo bảng alias trong `dw/kops_dw/config.py` |
+| Q14 | Xác nhận | Dung sai xuất dư/thiếu bao nhiêu %? | Style được tính là "đã xuất" | ±5% |
+| Q15 | Xác nhận | XXL và 2XL có phải một size? | Ma trận màu × size | Có |
+| Q16 | Xác nhận | 5 style 27SS có ETD đầu năm 2026 (vd. CHG1WJK7504 17/01/2026): có phải sai năm (2027)? | Biểu đồ ETD mùa 27SS | Đánh dấu `ETD_OUT_OF_SEASON`, không tự sửa |
+| Q26 | Xác nhận | Style bộ (VEST + JACKET, vd. CHF4WJK6801): SL đặt 350 là 350 bộ hay 350 mỗi món? | SL đạt kiểm so với SL đặt | 350 bộ = 350 mỗi món; đạt kiểm tính theo món thấp hơn |
+| Q28 | Xác nhận | Dữ liệu Daehan Global / 8 SECONDS (nhà máy HAGACO) có thuộc phạm vi Phase 1 không? Ai được xem? | Chiều khách/brand, quyền xem dashboard | Nạp vào kho, tách theo brand; dashboard mặc định chỉ hiện CHALLENGER |
 
-## B. Câu hỏi kỹ thuật / triển khai
+### 1.2 Kỹ thuật / vận hành
 
-| # | Ưu tiên | Câu hỏi | Giả định |
-|---|---|---|---|
-| T1 | P1 | DB dùng cho **vận hành** (app nhập liệu) hay chỉ **báo cáo** từ Excel? | Giai đoạn 1: báo cáo + đối soát từ Excel; giai đoạn 2: app |
-| T2 | P1 | Hạ tầng: on-prem, cloud (AWS/GCP/Azure/Supabase), hay chuẩn Microsoft (SQL Server)? | PostgreSQL managed |
-| T3 | P2 | Công cụ BI: Power BI, Metabase, Looker Studio? | Bất kỳ (mart views) |
-| T4 | P2 | Tần suất cập nhật mong muốn (hằng ngày? theo giờ?) và nơi đặt file (Google Drive, SharePoint, thư mục mạng)? | Hằng ngày, thư mục drop |
-| T5 | P2 | Số người dùng & phân quyền (MR, QC, quản lý, buyer?) | < 30 người, quyền theo vai trò |
-| T6 | P3 | Có mở rộng sang brand khác (PDF liệt kê ~30 brand) & dữ liệu QC/inspection (báo cáo lỗi, kiểm hàng) không? Nếu có, cần mẫu file | Thiết kế đã có brand_id; QC chưa mô hình hoá |
-| T7 | P3 | Thời gian lưu trữ raw (retention) | 2 năm |
+| # | Mức | Câu hỏi | Ảnh hưởng tới MVP | Giả định đang dùng |
+|---|---|---|---|---|
+| T1 | Đã quyết | Kho dùng cho vận hành (app nhập liệu) hay chỉ báo cáo? | Kiến trúc Phase 1 | Phase 1: báo cáo + đối soát từ file. App nhập liệu ở giai đoạn sau |
+| T4 | Xác nhận | Tần suất cập nhật mong muốn và nơi đặt file (Google Drive, SharePoint, thư mục mạng)? | Cách thả file và chạy build | Hằng ngày; thư mục theo quy ước `PRODUCTION/<KHÁCH>/<BRAND>/<MÙA>/<NHÀ MÁY>/` |
+| T5 | Xác nhận | Ai cần xem dashboard ở Phase 1 (MR, QC, quản lý, buyer)? | Có cần tách bản dashboard theo brand không | Chỉ nội bộ KLMAS và ASTRA; buyer chưa xem ở Phase 1 |
 
-## C. Giả định kỹ thuật đã áp dụng trong phân tích
-- Giá trị số/ngày lấy từ cache của Excel (không tính lại công thức); nếu file chưa được recalculation trước khi lưu, giá trị có thể cũ.
-- `.xlsb` được đọc bằng `pyxlsb` và bằng bản sao chuyển đổi qua LibreOffice để đọc màu/merge; không giả định chuyển đổi giữ đủ mọi tính năng (ảnh, định dạng có điều kiện chưa được đối chiếu đầy đủ).
-- PDF: chỉ dùng text layer + xem ảnh trang ở độ phân giải thấp; chưa OCR toàn bộ (biểu đồ sản lượng, trang thông tin công ty).
-- Phân tích màu trạng thái: chỉ đọc được màu RGB; các ô dùng theme colour (ON PRODUCTION, nhiều màu nhà máy) chưa giải mã.
-- Tất cả thống kê về số dòng/số style là đếm đầy đủ (không lấy mẫu), riêng việc phân loại text milestone mới kiểm trên mẫu.
+### 1.3 Dữ liệu cần xin KLMAS cho Phase 1
 
-## D. Dữ liệu cần xin KLMAS
-
-Gửi ngay tuần đầu của P0; PO là đầu mối. Đánh dấu ✅ khi đã nhận và ghi vị trí lưu.
+PO là đầu mối. Đánh dấu ✅ khi đã nhận và ghi vị trí lưu.
 
 | # | Dữ liệu | Dùng cho | Trạng thái |
 |---|---|---|---|
-| R1 | 1–2 mùa CHALLENGER đã kết thúc: ORDER RECAP, Shipment Status, Production Status | Backfill, golden test, scorecard (A-03, A-02) | Chưa nhận |
-| R2 | Minimap/order list của ít nhất 2 brand khác | Eval AI nhận dạng minimap (D-07) | Chưa nhận |
-| R3 | 1 tuần báo cáo kiểm (Excel + ảnh) và mẫu báo cáo của 3–6 brand | Mô hình QC, PDF theo brand (Q-01, Q-03) | Chưa nhận |
-| R4 | Danh sách kiểm viên, khu vực, nhà máy chuyên trách; địa chỉ các nhà máy | Phân công kiểm viên (Q-05) | Chưa nhận |
-| R5 | 1 file báo cáo sản xuất ngày và 1 file kế hoạch sản xuất từ nhà máy | Báo cáo sản xuất ngày, cảnh báo (P-02, P-03) | Chưa nhận |
-| R6 | 20–30 email/Kakao mẫu với buyer (ẩn danh nếu cần) | Trích thay đổi, trợ lý trả lời buyer (P-05, A-05) | Chưa nhận |
+| R5 | Báo cáo sản xuất ngày và kế hoạch sản xuất từ nhà máy | Tiến độ may, dự báo | ✅ Đã nhận báo cáo ngày của 6 nhà máy CHALLENGER + HAGACO (`raw-docs/PRODUCTION/`). Kế hoạch sản xuất: chưa |
+| R7 | Báo cáo ngày còn thiếu: NATEXCO sau 08/09, HA HIEU trước 26/09, DONG MY sau 28/09, MTT sau 02/10, và của TIEN THANH, FG VINA | Độ phủ tiến độ (Q24) | Chưa nhận |
+| R8 | Bảng kiểm hàng của các nhà máy còn lại (DONG MY, TBM) nếu có | Funnel đến bước kiểm đạt | Chưa nhận |
+
+## 2. Không cần cho Phase 1 (để giai đoạn sau)
+
+Giả định giữ nguyên. Không ai chặn task Phase 1 vì các câu này.
+
+| # | Ưu tiên | Câu hỏi | Cần khi | Giả định đang dùng |
+|---|---|---|---|---|
+| Q25 | P1 | "DEFECT QTY" trong bảng kiểm là số sản phẩm lỗi hay số điểm lỗi? Tỷ lệ lỗi tính trên SL kiểm hay SL đạt? | Dashboard QC, scorecard kiểm viên (P3) | Số điểm lỗi; tỷ lệ = lỗi ÷ SL kiểm. Phase 1 không tính tỷ lệ lỗi |
+| Q5 | P1 | Một lô xuất (vd. `8/12ETD-8/18ETA SEA`) là booking/container chung hay riêng từng nhà máy? Có số invoice/BL không? | Kế hoạch xuất, packing list, booking (P2) | Chung theo (ETD, ETA, phương thức) |
+| Q7 | P2 | Quy tắc RDD: ETD + 12, RDD − 14 hay RDD − 10? | Lịch T&A tính ngược từ RDD (P2) | ETD + 12 (Phase 1 chỉ hiển thị) |
+| Q8 | P2 | Đơn vị tiền tệ của đơn giá vải và CMPH? | Chi phí (ngoài phạm vi hiện tại) | NULL + issue |
+| Q9 | P2 | Ý nghĩa ký hiệu vật tư: `G`, `C`, `C1`, `L`, `P`, `OK`, `SNAP`, `SBM`, `L+P+W` | Checklist vật tư (P2) | Lưu nguyên văn |
+| Q10 | P2 | `RE`, `CMMT`, `HC` trong ghi chú mốc mẫu nghĩa là gì? | Mốc mẫu, T&A (P2) | RE = return, CMMT = comment, HC = hand carry |
+| Q11 | P2 | Bảng mã nhóm hàng: ST, IT, MK, HC, GW, CP, WI, OP, HP | Chuẩn hoá năng suất, báo cáo theo nhóm hàng | Suy theo mô tả |
+| Q12 | P2 | Mã năm/mùa trong style (`F3`, `G2`, `E4`) và chữ số 5 (`CHF5UGW6070`)? | Tách mã tự động | Không dùng làm khoá |
+| Q17 | P2 | 7 style có trong FAB nhưng không có trong ORDER RECAP: đã huỷ hay đổi mã? | Nạp FAB, cảnh báo vật tư (P2) | INFO issue |
+| Q18 | P2 | Block `CHE4…` mùa trước trong Shipment Status có cần theo dõi không? | Backfill mùa cũ (P4) | Bỏ qua block rỗng |
+| Q29 | P3 | Có SMV theo style/nhóm hàng để chuẩn hoá năng suất không? | Scorecard năng suất | Chưa có; Phase 1 không xếp hạng năng suất |
+| Q19 | P3 | Cột giá / thanh toán / PO / C/O trong ORDER RECAP nằm ở hệ thống nào? | Tài chính (ngoài phạm vi) | Chưa nạp |
+| Q20 | P3 | `(BE: SAND)` trong ô màu là "before: SAND"? | Lịch sử đổi màu chi tiết | Có |
+| Q21 | P3 | 해리감 (PART) là gì? | Nạp FAB | Lưu nguyên văn |
+| Q22 | P3 | Ảnh thiết kế trong ORDER RECAP có cần lưu không? | Màn ORDER RECAP trong app | Không |
+| T2 | P1 | Hạ tầng production: on-prem, cloud hay Microsoft? | App vận hành (P0 của app) | PostgreSQL managed; Phase 1 dùng DuckDB cục bộ |
+| T3 | P2 | Công cụ BI có sẵn (Power BI, Metabase…)? | Khi cần BI ngoài dashboard HTML | Dashboard HTML của DW |
+| T6 | P3 | Mở rộng sang brand khác và dữ liệu QC chi tiết? | Sau Phase 1 | Thiết kế đã có chiều brand |
+| T7 | P3 | Thời gian lưu dữ liệu raw | Vận hành lâu dài | 2 năm |
+
+### Dữ liệu xin sau Phase 1
+
+| # | Dữ liệu | Dùng cho | Trạng thái |
+|---|---|---|---|
+| R1 | 1–2 mùa CHALLENGER đã kết thúc: ORDER RECAP, Shipment Status, Production Status | Backfill, scorecard (A-03, A-02) | Chưa nhận |
+| R2 | Minimap/order list của ít nhất 2 brand khác | AI nhận dạng minimap (D-07) | Chưa nhận |
+| R3 | 1 tuần báo cáo kiểm chi tiết (Excel + ảnh, có mã lỗi) và mẫu báo cáo của 3–6 brand | Mô hình QC, PDF theo brand (Q-01, Q-03) | Chưa nhận |
+| R4 | Danh sách kiểm viên, khu vực, nhà máy chuyên trách; địa chỉ nhà máy | Phân công kiểm viên (Q-05) | Chưa nhận |
+| R6 | 20–30 email/Kakao mẫu với buyer (ẩn danh nếu cần) | Trích thay đổi bằng AI, trợ lý trả lời (P-05, A-05) | Chưa nhận; Phase 1 dùng 4 email SAMPLE |
+
+## 3. Giả định kỹ thuật đã áp dụng trong phân tích
+
+- Giá trị số và ngày lấy từ cache của Excel (không tính lại công thức). Nếu file chưa được tính lại trước khi lưu, giá trị có thể cũ.
+- `.xlsb` được đọc qua bản chuyển đổi bằng LibreOffice để lấy màu ô; ảnh và định dạng có điều kiện chưa được đối chiếu đầy đủ.
+- PDF chỉ dùng text layer; chưa OCR các trang ảnh.
+- Màu trạng thái đọc theo legend dòng 1–2 của ORDER RECAP; màu theme được so theo mã theme + tint.
+- Mọi thống kê số dòng và số style là đếm đầy đủ, không lấy mẫu.

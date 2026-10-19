@@ -35,7 +35,7 @@ Phạm vi: 10 file `.xlsx` mới trong `raw-docs/INSPECTION/` và `raw-docs/PROD
 | NATEXCO | 13/08 | **08/09** | 22 ngày |
 
 - **[Q]** Báo cáo cuối của NATEXCO là 08/09, lúc đó CHF4WVT6813 mới cắt 200/700 và chưa ra chuyền. Production Status ngày 12/10 lại ghi style này đã xong. Phần sản xuất sau 08/09 không có báo cáo ngày nào.
-- **[Q]** 14 / 110 style đang chạy **không có trong bất kỳ báo cáo ngày nào**: TBM 6, NATEXCO 4, HA HIEU 2, TIEN THANH 1, FG VINA 1.
+- **[Q]** 14 / 110 style đang chạy **không khớp được với báo cáo ngày nào**. Sau khi map 4 mã TBM gõ sai chữ mùa (§2.9), còn **9 style thật sự không có báo cáo**: NATEXCO 4, HA HIEU 2, TBM 1, TIEN THANH 1, FG VINA 1.
 - **[R]** Thêm chỉ số **độ tươi dữ liệu** cho từng nhà máy (số ngày kể từ báo cáo gần nhất) lên Control Tower, cảnh báo khi quá 2 ngày làm việc. Đây là cách sớm nhất để biết tiến độ đang "mù".
 
 ### 2.3 Ngày tháng trong báo cáo ngày không đáng tin
@@ -82,7 +82,7 @@ Phạm vi: 10 file `.xlsx` mới trong `raw-docs/INSPECTION/` và `raw-docs/PROD
 ### 2.9 Bằng chứng mới cho câu hỏi Q3 (mã style)
 
 - **[Q]** TBM báo cáo sản xuất dưới mã `CHF4WSK6851`, giống Shipment Status. Chỉ ORDER RECAP dùng `CHF4WHP6851`, nên 2/3 nguồn đang dùng `WSK`.
-- **[Q]** TBM còn sản xuất 4 style mùa trước (`CHE3WPT6986`, `CHE3WSK6754`, `CHE4MPT6441`, `CHE4WPT6842`), không có trong ORDER RECAP 26FW (có thể là reorder).
+- **[Q]** Báo cáo ngày của TBM ghi `CHE3WPT6986`, `CHE3WSK6754`, `CHE4MPT6441`, `CHE4WPT6842`. ORDER RECAP 26FW có đúng 4 style `CHF…` cùng số, giao cho TBM, và 4 style này không có báo cáo ngày nào dưới mã `CHF`. **[S]** Gần như chắc chắn là gõ sai chữ mùa (E thay F), không phải reorder. Cần KLMAS xác nhận (Q27).
 
 ## 3. Đề xuất bổ sung cho MVP (theo thứ tự ưu tiên)
 
@@ -107,6 +107,6 @@ Không nên làm ngay: tỷ lệ lỗi và scorecard chất lượng kiểm viê
 | Q24 | P1 | Vì sao NATEXCO ngừng gửi báo cáo ngày sau 08/09 và HA HIEU chỉ có 2 ngày? Còn file nào chưa gửi không? | Thiếu file, xin bổ sung |
 | Q25 | P1 | "DEFECT QTY" trong bảng kiểm là số sản phẩm lỗi hay số điểm lỗi? Tỷ lệ lỗi chính thức tính trên SL kiểm hay SL đạt? | Số điểm lỗi; tỷ lệ = lỗi ÷ SL kiểm |
 | Q26 | P2 | Style bộ (VEST + JACKET như CHF4WJK6801): SL đặt 350 là 350 bộ hay 350 mỗi món? Xuất hàng tính theo bộ hay theo món? | 350 bộ = 350 mỗi món |
-| Q27 | P2 | Các style `CHE…` TBM đang may là reorder của mùa nào, quản lý ở ORDER RECAP nào? | Reorder 25FW, cần file tương ứng |
+| Q27 | P1 | 4 mã `CHE…` trong báo cáo ngày TBM có phải gõ sai của `CHF…` cùng số trong ORDER RECAP? | Gõ sai; map sang `CHF…`, đánh dấu chưa xác nhận |
 | Q28 | P2 | Dữ liệu DHG / 8 SECONDS có nằm trong phạm vi KOPS giai đoạn 1 không? Buyer DHG có được xem dashboard không? | Có nạp vào DW, ẩn khỏi buyer CHALLENGER |
 | Q29 | P3 | Có số SMV (standard minute value) theo style hoặc theo nhóm hàng để chuẩn hoá năng suất không? | Chưa có |
