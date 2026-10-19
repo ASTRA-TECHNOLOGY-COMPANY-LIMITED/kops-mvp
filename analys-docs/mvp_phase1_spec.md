@@ -4,7 +4,7 @@ Tài liệu này là **đặc tả** cho các đề xuất trong `review_inspect
 
 - Nền tảng hiện có: `dw/` (DuckDB, các lớp `etl → raw → stg → core → mart`, dashboard HTML, 19 golden test). Xem `dw/README.md`.
 - Quy tắc chung: `GUIDELINES.md`. Đặc biệt: file nguồn chỉ đọc; tổng luôn tính từ chi tiết; mọi bất thường ghi vào `etl.data_issue` kèm vị trí; không tự quyết câu hỏi nghiệp vụ.
-- Câu hỏi còn mở liên quan: Q1, Q3, Q23, Q24, Q26, Q27, Q28 (`open_questions.md` mục 1). Code theo giả định ghi ở đó, để cấu hình được.
+- Câu hỏi còn mở liên quan: Q1, Q3, Q23, Q24, Q26, Q27, Q28 (`open_questions.md` Phần 1). Code theo giả định ghi ở đó, để cấu hình được.
 
 ## 1. Mục tiêu và phạm vi
 

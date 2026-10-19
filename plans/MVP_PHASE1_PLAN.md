@@ -9,7 +9,7 @@ spec: analys-docs/mvp_phase1_spec.md
 
 **Mục tiêu:** mở rộng `dw/` để dashboard cho biết đúng tiến độ từng style, dự báo ngày xong bằng báo cáo sản xuất ngày, và chỉ ra nhà máy nào đang thiếu dữ liệu. Toàn bộ đặc tả nằm ở `analys-docs/mvp_phase1_spec.md`; tài liệu này chỉ chia việc, thứ tự và cách nghiệm thu.
 
-**Đọc trước khi bắt đầu:** `GUIDELINES.md` → `dw/README.md` → `analys-docs/review_inspection_production.md` → `analys-docs/mvp_phase1_spec.md` → `analys-docs/open_questions.md` mục 1.
+**Đọc trước khi bắt đầu:** `GUIDELINES.md` → `dw/README.md` → `analys-docs/review_inspection_production.md` → `analys-docs/mvp_phase1_spec.md` → `analys-docs/open_questions.md` Phần 1.
 
 ## 1. Nguyên tắc làm việc
 
@@ -137,5 +137,5 @@ Mỗi task kết thúc bằng một báo cáo trong PR hoặc thread:
 
 - Số đo được khác golden number trong spec §8.
 - Gặp template báo cáo mới (nhà máy, brand hoặc bố cục khác hai template đã mô tả).
-- Cần đổi một quy tắc đã ghi trong spec, hoặc cần trả lời một câu trong `open_questions.md` mục 1.
+- Cần đổi một quy tắc đã ghi trong spec, hoặc cần trả lời một câu trong `open_questions.md` Phần 1.
 - Sắp xoá dữ liệu, đổi cấu trúc thư mục `raw-docs/`, hoặc push lên `main`.

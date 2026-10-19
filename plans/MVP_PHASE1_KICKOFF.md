@@ -18,7 +18,7 @@ Bạn thực hiện **KOPS MVP Phase 1**: mở rộng data warehouse trong `dw/`
 3. `analys-docs/review_inspection_production.md`: vì sao làm việc này.
 4. `analys-docs/mvp_phase1_spec.md`: đặc tả. **Đây là nguồn sự thật cho quy tắc và golden numbers.**
 5. `plans/MVP_PHASE1_PLAN.md`: danh sách task M1-01 → M1-11, phụ thuộc, tiêu chí nghiệm thu, mẫu báo cáo.
-6. `analys-docs/open_questions.md` mục 1: các giả định đang dùng.
+6. `analys-docs/open_questions.md` Phần 1: các giả định đang dùng.
 
 **Phạm vi:** chỉ các task trong plan. Không làm tỷ lệ lỗi, năng suất theo công nhân, app nhập liệu, đăng nhập. Không sửa `raw-docs/`.
 
