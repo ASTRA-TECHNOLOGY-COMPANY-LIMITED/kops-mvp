@@ -1,0 +1,151 @@
+<div class="switcher" role="navigation" aria-label="Prototype modules">
+  <span class="lbl">KOPS prototype</span>
+  <a href="#/site" data-mod="site">① Trang công ty + AI + tra cứu đơn</a>
+  <a href="#/dw/overview" data-mod="dw">② Kho dữ liệu sản xuất</a>
+  <a href="#/qc/flow" data-mod="qc">③ Tư vấn &amp; QC</a>
+  <span class="sp"></span>
+  <button id="themeBtn" type="button" aria-label="Đổi giao diện sáng/tối">◐ Giao diện</button>
+</div>
+
+<!-- ======================= ① LANDING ======================= -->
+<section class="view site" id="v-site">
+  <header class="wrap site-nav">
+    <div class="logo">KLMAS<small>We go the extra mile</small></div>
+    <nav aria-label="Trang công ty">
+      <a href="#svc" data-i18n="nav_svc">Dịch vụ</a>
+      <a href="#proc" data-i18n="nav_proc">Quy trình</a>
+      <a href="#cap" data-i18n="nav_cap">Năng lực</a>
+      <a href="#contact" data-i18n="nav_contact">Liên hệ</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Ngôn ngữ">
+      <button type="button" data-lang="vi" aria-pressed="true">VI</button>
+      <button type="button" data-lang="ko" aria-pressed="false">한국어</button>
+    </div>
+  </header>
+
+  <div class="wrap hero">
+    <div>
+      <h1 data-i18n="hero_h">Quản lý sản xuất và kiểm hàng may mặc tại Việt Nam</h1>
+      <p class="lead" data-i18n="hero_p">KLMAS thay mặt thương hiệu làm việc với nhà máy: chọn xưởng, duyệt mẫu, giám sát chuyền may, kiểm hàng và đưa hàng lên tàu kịp ngày về kho.</p>
+      <div class="facts">
+        <div><b class="num">1998</b><span data-i18n="f1">bắt đầu hoạt động tại Việt Nam</span></div>
+        <div><b class="num">84</b><span data-i18n="f2">nhân sự: 14 MR, 65 QA/QC, 5 quản lý</span></div>
+        <div><b class="num">3 triệu+</b><span data-i18n="f3">sản phẩm đã quản lý sản xuất</span></div>
+      </div>
+    </div>
+    <div class="hangtag" id="tag">
+      <h2 data-i18n="tr_h">Đơn hàng của bạn đang ở đâu?</h2>
+      <p data-i18n="tr_p">Nhập mã style trên nhãn hoặc số đơn trong mùa.</p>
+      <form class="track-form" id="trackForm" autocomplete="off">
+        <label class="sr" for="trackIn" style="position:absolute;left:-9999px">Mã đơn</label>
+        <input id="trackIn" placeholder="CHF3MWT6306" aria-describedby="trackHint">
+        <button class="btn" type="submit" data-i18n="tr_btn">Xem tiến độ</button>
+      </form>
+      <div class="chips" id="demoChips"></div>
+      <div class="tag-foot" id="trackHint" data-i18n="tr_note">Bản chính thức: buyer đăng nhập và chỉ thấy đơn của thương hiệu mình. Dữ liệu demo: CHALLENGER 26FW, cập nhật 12/10/2026.</div>
+    </div>
+  </div>
+
+  <div class="wrap track-result" id="trackResult" aria-live="polite"></div>
+
+  <section class="section wrap" id="svc">
+    <h2 data-i18n="svc_h">Một đầu mối cho cả mùa hàng</h2>
+    <p class="intro" data-i18n="svc_p">Thương hiệu cấp nguyên phụ liệu và thiết kế; KLMAS lo phần còn lại tại Việt Nam, theo hợp đồng dịch vụ quản lý sản xuất.</p>
+    <div class="services">
+      <article><h3 data-i18n="s1h">Quản lý sản xuất</h3><p data-i18n="s1p">Chọn và phân style cho nhà máy, theo dõi từ mẫu FPP đến khi hàng xuất.</p>
+        <ul><li data-i18n="s1a">Đàm phán giá gia công, số lượng, ngày giao</li><li data-i18n="s1b">Matching chart vật tư 3 bên</li><li data-i18n="s1c">Báo cáo sản lượng hằng ngày</li></ul></article>
+      <article><h3 data-i18n="s2h">Kiểm hàng (QC)</h3><p data-i18n="s2p">Kiểm inline và kiểm thành phẩm cho đơn của KLMAS và cho khoảng 50 đối tác bên thứ ba.</p>
+        <ul><li data-i18n="s2a">Kiểm viên chuyên trách theo nhà máy/mặt hàng</li><li data-i18n="s2b">Lấy mẫu theo AQL</li><li data-i18n="s2c">Ảnh lỗi và báo cáo trong ngày</li></ul></article>
+      <article><h3 data-i18n="s3h">Đào tạo kiểm hàng viên</h3><p data-i18n="s3p">Chương trình 5 phần cho kiểm viên mới, họp đào tạo hằng tháng theo khu vực.</p>
+        <ul><li data-i18n="s3a">Tiêu chuẩn chất lượng theo thương hiệu</li><li data-i18n="s3b">Đo thông số, phương pháp kiểm</li><li data-i18n="s3c">Thống kê lỗi do kiểm viên</li></ul></article>
+      <article><h3 data-i18n="s4h">Tư vấn sản xuất</h3><p data-i18n="s4p">Cho thương hiệu mới vào Việt Nam: chọn nhà máy, chuẩn bị mẫu, lập lịch theo RDD.</p>
+        <ul><li data-i18n="s4a">Đánh giá năng lực nhà máy</li><li data-i18n="s4b">Lịch ngược từ RDD</li><li data-i18n="s4c">Thủ tục xuất khẩu, C/O</li></ul></article>
+    </div>
+  </section>
+
+  <section class="section wrap" id="proc">
+    <h2 data-i18n="proc_h">Mười bước từ đơn hàng đến container</h2>
+    <p class="intro" data-i18n="proc_p">Mỗi bước có ngày kế hoạch và ngày thực tế trong hệ thống; buyer xem được bước hiện tại của từng style.</p>
+    <ol class="process" id="procList"></ol>
+  </section>
+
+  <section class="section wrap" id="cap">
+    <h2 data-i18n="cap_h">Có mặt ở cả miền Bắc và miền Nam</h2>
+    <p class="intro" data-i18n="cap_p">Khoảng 10 nhà máy đối tác, cơ cấu sản lượng 2022: áo khoác 25%, áo thun/sơ mi 30%, quần/váy 30%, phụ kiện 15%.</p>
+    <div class="cap">
+      <div><h3>Hà Nội</h3><p data-i18n="c1">Kinh doanh hải ngoại, kiểm hàng, kinh doanh nội địa Hàn Quốc, phân tích dữ liệu.</p></div>
+      <div><h3>TP. Hồ Chí Minh</h3><p data-i18n="c2">Quản lý, kế toán, văn bản, nhân sự.</p></div>
+      <div><h3>Thanh Hóa</h3><p data-i18n="c3">Cụm nhà máy đối tác và kiểm hàng hiện trường.</p></div>
+    </div>
+    <h3 style="margin:44px 0 14px;font-size:15px;color:var(--ink-3);font-family:var(--font);font-weight:500" data-i18n="br_h">Thương hiệu đã quản lý sản xuất hoặc kiểm hàng</h3>
+    <div class="brands" id="brands"></div>
+  </section>
+
+  <section class="section wrap" id="contact">
+    <div class="contact">
+      <div>
+        <h2 data-i18n="ct_h">Bắt đầu một mùa hàng mới</h2>
+        <p class="intro" data-i18n="ct_p">Gửi danh sách style hoặc minimap của mùa. Yêu cầu sẽ vào luồng tư vấn và một MR liên hệ lại trong ngày làm việc.</p>
+        <p class="muted" style="font-size:13px">Prototype: form này tạo một thẻ mới trong module ③ › Luồng tư vấn.</p>
+      </div>
+      <form class="form" id="leadForm">
+        <label><span data-i18n="l1">Thương hiệu</span><input name="brand" required></label>
+        <label><span data-i18n="l2">Mặt hàng chính</span>
+          <select name="item"><option value="JK">Áo khoác (JK)</option><option value="PT">Quần (PT)</option><option value="LT">Áo thun dài tay (LT)</option><option value="WT">Áo dệt thoi (WT)</option><option value="SK">Váy (SK)</option></select></label>
+        <label><span data-i18n="l3">Số lượng dự kiến / mùa</span><input name="qty" type="number" min="0" step="100" value="20000"></label>
+        <label><span data-i18n="l4">Ghi chú</span><textarea name="note" rows="3"></textarea></label>
+        <button class="btn" type="submit" data-i18n="l5">Gửi yêu cầu tư vấn</button>
+      </form>
+    </div>
+  </section>
+  <footer class="wrap site-foot">KLMAS Co., Ltd · Prototype KOPS do ASTRA TECHNOLOGY dựng để thảo luận, không phải trang công khai.</footer>
+
+  <button class="fab" id="fab" type="button" aria-expanded="false" aria-controls="chat"><span class="dot"></span><span data-i18n="ai_btn">Hỏi trợ lý KLMAS</span></button>
+  <div class="chat" id="chat" role="dialog" aria-label="Trợ lý KLMAS">
+    <header><span class="dot" style="width:10px;height:10px;border-radius:50%;background:var(--tag)"></span><b data-i18n="ai_title">Trợ lý KLMAS</b><button type="button" id="chatX" aria-label="Đóng">×</button></header>
+    <div class="msgs" id="msgs"></div>
+    <div class="suggest" id="suggest"></div>
+    <form id="chatForm"><input id="chatIn" autocomplete="off" placeholder="Hỏi về dịch vụ hoặc nhập mã style…" aria-label="Câu hỏi"><button class="btn small" type="submit">Gửi</button></form>
+  </div>
+</section>
+
+<!-- ======================= ② DATA WAREHOUSE ======================= -->
+<section class="view" id="v-dw">
+  <div class="app">
+    <aside class="side">
+      <div class="mod">Kho dữ liệu</div>
+      <div class="modsub">Sản xuất · nội bộ KLMAS</div>
+      <a href="#/dw/overview" data-page="overview">Tổng quan mùa</a>
+      <a href="#/dw/styles" data-page="styles">Lưu trữ style &amp; đơn</a>
+      <a href="#/dw/partners" data-page="partners">Đối tác &amp; tỷ lệ return</a>
+      <a href="#/dw/moves" data-page="moves">Lịch sử đổi nhà máy</a>
+      <a href="#/dw/progress" data-page="progress">Tiến độ &amp; cảnh báo</a>
+      <div class="grp">Kỹ thuật</div>
+      <a href="#/dw/model" data-page="model">Mô hình dữ liệu</a>
+      <div class="who">Đăng nhập: MR · Lee Min Ji<br>Dữ liệu thật: 26FW, 27SS (CHALLENGER)<br><span class="sim">mô phỏng</span> = chưa có dữ liệu nguồn</div>
+    </aside>
+    <main class="main" id="dwMain"></main>
+  </div>
+</section>
+
+<!-- ======================= ③ CONSULTING & QC ======================= -->
+<section class="view" id="v-qc">
+  <div class="app">
+    <aside class="side">
+      <div class="mod">Tư vấn &amp; QC</div>
+      <div class="modsub">Hỗ trợ MR và kiểm hàng</div>
+      <div class="grp">Tư vấn</div>
+      <a href="#/qc/flow" data-page="flow">Luồng tư vấn</a>
+      <a href="#/qc/inbox" data-page="inbox">Hộp thư buyer (AI)</a>
+      <div class="grp">Kiểm hàng</div>
+      <a href="#/qc/plan" data-page="plan">Lịch &amp; phân công kiểm</a>
+      <a href="#/qc/report" data-page="report">Báo cáo kiểm (mobile)</a>
+      <a href="#/qc/analytics" data-page="analytics">Phân tích lỗi</a>
+      <div class="who">Vai trò: MR, QA nhà máy, kiểm viên, buyer<br>Kiểm hàng tách menu: đơn KLMAS / thương hiệu ngoài</div>
+    </aside>
+    <main class="main" id="qcMain"></main>
+  </div>
+</section>
+
+<aside class="drawer" id="drawer" aria-hidden="true"><button class="x" id="drawerX" aria-label="Đóng">×</button><div id="drawerBody"></div></aside>
+<div class="toast" id="toast" role="status"></div>

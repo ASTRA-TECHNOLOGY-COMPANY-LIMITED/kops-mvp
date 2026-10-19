@@ -1,0 +1,5 @@
+# macOS
+.DS_Store
+
+# Raw customer source files (large binaries, confidential) - keep local only
+raw-docs/
