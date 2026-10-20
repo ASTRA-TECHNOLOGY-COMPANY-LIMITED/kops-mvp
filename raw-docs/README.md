@@ -12,8 +12,10 @@ Kho dữ liệu (`dw/`) quét toàn bộ thư mục này mỗi lần build và n
 raw-docs/
 ├── COMPANY/                       Hồ sơ năng lực, giới thiệu công ty KLMAS
 ├── MEETINGS/                      Biên bản họp (.docx)
-├── ORDER/<BRAND>/<MÙA>/           ORDER RECAP: master đơn hàng theo mùa (MR lập)
+├── ORDER/<KHÁCH>/<MÙA>/           ORDER RECAP: master đơn hàng theo mùa (MR lập). KHÁCH = đơn vị đặt hàng với KLMAS:
+│                                  CHALLENGER, DHG(DAEHAN GROBAL), JBEE, KOFA, DKM(다경물산). Brand đọc trong file
 ├── TRACKING/<BRAND>/<MÙA>/        Bảng theo dõi KLMAS tổng hợp: Production & Shipping Status, Shipment Status
+├── PRODUCTION PLAN/<KHÁCH>/<MÙA>/  Kế hoạch sản xuất (KLMAS tạo sẵn thư mục; ngày 20/10/2026 chưa có file)
 ├── PRODUCTION/                    Báo cáo sản xuất ngày do nhà máy gửi
 │   ├── <BRAND>/<MÙA>/<NHÀ MÁY>/              brand làm trực tiếp với KLMAS (vd. CHALLENGER)
 │   └── <VENDOR>/<BRAND>/<MÙA>/<NHÀ MÁY>/     brand qua vendor (vd. DHG(DAEHAN GROBAL)/8 SECONDS)
@@ -33,7 +35,7 @@ Thư mục bắt đầu bằng `_` bị kho dữ liệu bỏ qua.
 
 | Loại | Đặt ở | Tên file nên có |
 |---|---|---|
-| ORDER RECAP | `ORDER/<BRAND>/<MÙA>/` | `YYMMDD`, mùa (`26FW`), `ORDER RECAP` |
+| ORDER RECAP | `ORDER/<KHÁCH>/<MÙA>/` | `YYMMDD`, mùa (`26FW`), `ORDER RECAP` |
 | Production & Shipping Status, Shipment Status | `TRACKING/<BRAND>/<MÙA>/` | `YYMMDD`, mùa, `PRODUCTION AND SHIPPING STATUS` / `SHIPMENT STATUS` |
 | Báo cáo sản xuất ngày | `PRODUCTION/…/<MÙA>/<NHÀ MÁY>/` | `YYMMDD`, mùa, tên nhà máy, `DAILY PRODUCTION REPORT` |
 | Bảng theo dõi kiểm (đơn KLMAS) | `INSPECTION/ORDER_TRACKING/<BRAND>/<MÙA>/` | `INSPECTION REPORT` |
@@ -47,3 +49,4 @@ Thư mục bắt đầu bằng `_` bị kho dữ liệu bỏ qua.
 ## Lịch sử sắp xếp
 
 - **2026-10-19:** chuyển 15 file từ cấu trúc phẳng sang cấu trúc trên. Nội dung không đổi (đã kiểm md5). Danh sách và cách hoàn tác: `_REORG/2026-10-19_moves.tsv`, `_REORG/undo_2026-10-19.sh`.
+- **2026-10-20:** chuyển 12 file ORDER RECAP (thư mục mới `ORDER RECAP/` của KLMAS) vào `ORDER/<KHÁCH>/<MÙA>/`. Không có file trùng nội dung. Danh sách và cách hoàn tác: `_REORG/2026-10-20_moves.tsv`, `_REORG/undo_2026-10-20.sh`. Phân tích: `analys-docs/review_order_recap_multicustomer.md`.
