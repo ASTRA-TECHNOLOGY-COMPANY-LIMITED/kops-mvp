@@ -74,7 +74,7 @@ kops-mvp/
 | `open_questions.md` | Câu hỏi nghiệp vụ còn mở, giả định đang dùng, dữ liệu cần xin KLMAS | Trước khi tự quyết một quy tắc |
 | `review_inspection_production.md` | Rà soát báo cáo sản xuất ngày và bảng kiểm hàng: chất lượng dữ liệu, insight, đề xuất cho MVP | Mở rộng DW sang tiến độ may và QC |
 | `roadmap.md` | Ý tưởng, giai đoạn P0–P5, ước lượng, rủi ro | Lập kế hoạch |
-| `review_order_recap_multicustomer.md` | Rà soát ORDER RECAP của 5 khách (CHALLENGER, DHG, JBEE, KOFA, DKM) và các phiên bản CHALLENGER: template, quy tắc RDD, nhà máy dùng chung, thay đổi giữa các bản | Mở rộng sang nhiều khách, báo cáo thay đổi |
+| `review_order_recap_multicustomer.md` | Rà soát ORDER RECAP của 5 khách (CHALLENGER, DHG, JBEE, KOFA, DKM), kế hoạch sản xuất theo nhà máy, và thay đổi/lỗi giữa các phiên bản | Mở rộng sang nhiều khách, dự báo theo kế hoạch, báo cáo thay đổi |
 | `review_qc_third_party.md` | Rà soát quy trình và dữ liệu kiểm hàng bên thứ ba: phiếu giấy → INPUT DATA → báo cáo PDF; Pareto lỗi, chất lượng dữ liệu | Dashboard chất lượng, app kiểm hàng |
 | `mvp_phase1_spec.md` | Đặc tả Phase 1: báo cáo ngày, bảng kiểm, dự báo, độ tươi dữ liệu, funnel, golden numbers mới | Làm task Phase 1 |
 | `backlog.csv` | 50 task: vai trò phụ trách, phụ thuộc, giờ ước lượng, tiêu chí nghiệm thu | Nhận và giao việc |

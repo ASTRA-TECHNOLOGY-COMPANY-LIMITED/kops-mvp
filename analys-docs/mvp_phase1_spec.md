@@ -12,8 +12,8 @@ Tài liệu này là **đặc tả** cho các đề xuất trong `review_inspect
 
 | Trong Phase 1 | Ngoài Phase 1 |
 |---|---|
-| Nạp báo cáo sản xuất ngày (template CHALLENGER và HAGACO) | Tỷ lệ lỗi, scorecard kiểm viên (chờ Q22) |
-| Nạp SL kiểm đạt theo ngày từ bảng kiểm | Năng suất theo công nhân / xếp hạng nhà máy theo năng suất (chờ Q31) |
+| Nạp báo cáo sản xuất ngày (template CHALLENGER và HAGACO) | Tỷ lệ lỗi, scorecard kiểm viên (chờ Q23) |
+| Nạp SL kiểm đạt theo ngày từ bảng kiểm | Năng suất theo công nhân / xếp hạng nhà máy theo năng suất (chờ Q32) |
 | Dự báo ngày xong bằng sản lượng các ngày gần nhất | Lịch T&A, cảnh báo qua Zalo/email |
 | Độ tươi dữ liệu theo nhà máy và theo style | Nạp sheet FAB, checklist vật tư |
 | Funnel đặt → cắt → vào chuyền → ra chuyền → kiểm đạt → xuất | App nhập liệu, đăng nhập, RLS thật |
@@ -99,7 +99,7 @@ Thuật toán:
 | `core.inspection_day` | (nhà máy, ngày) → SL kiểm (dòng C), số kiểm viên (dòng F) | **Không nạp tên kiểm viên** (dữ liệu cá nhân, chưa cần ở Phase 1) |
 | `stg.inspection_remark` | `REQUEST ETD m/d` → đề xuất đổi ETD | Đưa vào `core.change_proposal`, nguồn `INSPECTION`, trạng thái `PENDING_REVIEW` |
 
-**Không nạp** dòng D (SL lỗi) và E (tỷ lệ lỗi) vào core/mart cho tới khi có câu trả lời Q22; chỉ giữ ở raw.
+**Không nạp** dòng D (SL lỗi) và E (tỷ lệ lỗi) vào core/mart cho tới khi có câu trả lời Q23; chỉ giữ ở raw.
 
 Style bộ (Q10): SL đạt của style = **min** theo món (một bộ chỉ đủ khi có cả 2 món); vẫn hiển thị từng món trong Style 360.
 

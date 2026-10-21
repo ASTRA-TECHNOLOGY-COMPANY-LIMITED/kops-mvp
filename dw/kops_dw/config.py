@@ -19,7 +19,7 @@ DASHBOARD_PATH = BUILD_DIR / "dashboard.html"
 
 # --- Business rules (configurable, pending KLMAS confirmation; see analys-docs/open_questions.md) ---
 RULES = {
-    "rdd_offset_days": 12,             # RDD = ETD VN + 12 (Q16)
+    "rdd_offset_days": 12,             # RDD = ETD VN + 12 (Q17)
     "ready_buffer_days": 5,            # finishing + inspection after sewing
     "default_daily_output": 45,        # pcs/day when factory has not reported (meeting example)
     "ontime_tolerance_days": 7,        # first lot ETD <= style ETD + 7 => on time

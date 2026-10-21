@@ -38,6 +38,8 @@ PENDING = [
     ("KLMAS INSPECTION REPORT (FORM)", "inspection_form", "Blank inspection form (template, not data)"),
     ("INSPECTION REPORT", "inspection_tracker", "Parser planned in Phase 1 (M1-06)"),
     ("INPUT DATA", "qc_third_party", "Third-party QC database; parser proposed (M1-12)"),
+    ("PRODUCTION PLAN", "production_plan", "Factory production plan (one sheet per factory, plan dates and "
+                                           "daily target per style); parser proposed (backlog D-16)"),
     ("ORDER RECAP", "order_recap_other", "ORDER RECAP of a non-CHALLENGER customer; same template family, "
                                          "different columns - needs a header-driven parser"),
 ]
@@ -47,7 +49,7 @@ CHALLENGER_KEYS = ("CHALLENGER", "CLGR")
 
 def classify(path: Path):
     """Return (source_type, parser, season) from the file name, or (type, None, None) if not parsed."""
-    name = path.name.upper()
+    name = path.name.upper().replace("_", " ")   # '…_27SS_PRODUCTION_PLAN' -> '… 27SS PRODUCTION PLAN'
     season = (m.group(0) if (m := re.search(r"\b2\d(SS|FW)\b", name)) else None)
     ext = path.suffix.lower()
     if ext in (".xlsx", ".xlsb", ".xlsm"):

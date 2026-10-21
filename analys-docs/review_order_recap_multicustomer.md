@@ -1,4 +1,4 @@
-# Rà soát nguồn mới: ORDER RECAP nhiều khách và các phiên bản CHALLENGER (20/10/2026)
+# Rà soát nguồn mới: ORDER RECAP nhiều khách, kế hoạch sản xuất và các phiên bản (20–21/10/2026)
 
 Phạm vi: 2 thư mục mới trong `raw-docs/`: `ORDER RECAP` (12 file) và `PRODUCTION PLAN`. Chỉ đọc. Số liệu đếm bằng script trên toàn bộ file. Các phiên bản CHALLENGER được so sánh bằng chính parser của `dw/`.
 
@@ -60,22 +60,22 @@ Số style và tổng SL của khách khác lấy theo ô tổng của chính fi
 
 | Khách / brand | Nhãn cột ETD trong file | Ghi chú |
 |---|---|---|
-| CHALLENGER | `RDD (-12DAY)` ở trang đầu, `RDD (-14DAY)` từ trang 4 | Đã hỏi ở Q16 |
+| CHALLENGER | `RDD (-12DAY)` ở trang đầu, `RDD (-14DAY)` từ trang 4 | Đã hỏi ở Q17 |
 | DHG 8 SECONDS | `RDD (-20DAY)`; DETAIL ghi `ETD VN (RDD-20 DAYS)` | |
-| DHG BEANPOLE KIDS | `RDD (-14DAY)`, có thêm cột `실제납기` (ngày giao thực tế) | |
+| DHG BEANPOLE KIDS | `RDD (-14DAY)`, có thêm cột `실제납기` (ngày giao thực tế) | Sheet DETAIL lại ghi `ETD VN (RDD-20 DAYS)`: mâu thuẫn ngay trong một file |
 | DHG XEXYMIX | `RDD (-10DAY)` | |
 | JBEE, KOFA | `RDD-14 DAYS` | |
 | MIZUNO | `ETA KOREA (etd +10)` | Tính xuôi từ ETD, không tính ngược từ RDD |
 
 - **[Q]** Mọi file đều có cột `BUYER DEL (RDD-10)`, kể cả CHALLENGER.
 - **[S]** Không có một quy tắc RDD chung. Cấu hình `rdd_offset_days = 12` hiện đang dùng chung cho mọi khách là sai khi mở rộng sang khách khác.
-- **[R]** Chuyển quy tắc này thành cấu hình theo khách (và brand nếu cần). Bổ sung bằng chứng này vào Q16 khi hoàn thiện bộ câu hỏi.
+- **[R]** Chuyển quy tắc này thành cấu hình theo khách (và brand nếu cần). Bổ sung bằng chứng này vào Q17 khi hoàn thiện bộ câu hỏi.
 
 ## 4. Lỗi gõ năm và mùa là lỗi lặp lại, không phải trường hợp lẻ
 
 - **[Q]** CHALLENGER 27SS bản `261005`: **97 style** có ETD và RDD ghi năm 2026. Bản `261015` đã sửa thành 2027.
-  - 5 style trong Q36 là phần còn sót lại, đều đã huỷ.
-  - **[S]** KLMAS đã tự sửa đúng hướng, nên Q36 gần như đã có câu trả lời là "2027".
+  - 5 style trong Q37 là phần còn sót lại, đều đã huỷ.
+  - **[S]** KLMAS đã tự sửa đúng hướng, nên Q37 gần như đã có câu trả lời là "2027".
 - **[Q]** Các file 27SS khác cũng có ETD năm 2026, có thể cùng lỗi:
   - JBEE 27SS: ETD sớm nhất 17/01/2026.
   - KOFA 27SS: ETD 30/01 đến 05/02/2026.
@@ -113,7 +113,7 @@ So sánh bằng parser của DW, theo các trường: trạng thái màu, nhà m
 - **`261005 → 261015`:**
   - 27 style được gán nhà máy hoặc đổi nhà máy, vd. TAN BINH MINH → JM (3 style), MTT → DONG MY (3 style), TRUONG PHUC PLAN → SON HA.
   - Năm ETD/RDD của 97 style được sửa từ 2026 thành 2027.
-  - CHG2WSK6979 được thay bằng **CHF2WSK6979**: chữ mùa đổi từ G sang F trong một file 27SS.
+  - Dòng 638 (mã O25): CHG2WSK6979 đổi thành **CHG2WSK7970** (nhà máy TAN BINH MINH). Đồng thời có thêm dòng 685 (mã O35) **CHF2WSK6979**, chữ mùa là F trong một file 27SS. *(Sửa 21/10: bản 20/10 của tài liệu này ghi nhầm là CHG2WSK6979 đổi thành CHF2WSK6979.)*
   - Thêm style CHG2WSK7970.
   - CHFG2WIT7957 bị huỷ (600 → 0).
 - **`261015 → 261020`:** chỉ CHG1MPT7131 lùi ETD từ 10/01/2027 sang 05/02/2027.
@@ -134,12 +134,90 @@ So sánh bằng parser của DW, theo các trường: trạng thái màu, nhà m
 | 5 | Mùa lấy từ tiêu đề trong file; kiểm tra năm ETD theo mùa cho mọi khách | Tránh lỗi XEXYMIX (25FW/26FW) và lỗi năm 2026/2027 | Thuộc M1-01 |
 | 6 | Danh mục nhà máy chung cho mọi khách | Scorecard nhà máy đúng | Thuộc Q08 |
 
-## 8. Câu hỏi bổ sung (đưa vào bộ câu hỏi khi hoàn thiện)
+## 8. Câu hỏi bổ sung
+
+*Ngày 21/10 đã đưa vào `open_questions.md`: ý 1 → Q08; ý 2 và 7 → Q14; ý 3 → Q17; ý 4 → Q37; ý 5 → Q05; ý 6 → Q15.*
+
 
 1. **B85** trong cột nhà máy của các file DHG, JBEE là nhà máy nào? Là mã nội bộ hay tên một xưởng?
 2. **Vai trò của DHG, JBEE, KOFA, DKM:** đây là khách đặt hàng với KLMAS (vendor của brand Hàn), còn 8 SECONDS, NEPA, MIZUNO… là brand, đúng không? Vì sao NEPA có ở cả JBEE và KOFA?
-3. **RDD theo khách:** khoảng cách ETD → RDD ghi trong file (−20, −14, −10, ETA = ETD + 10) có đúng là quy tắc riêng của từng khách không? Cột `BUYER DEL (RDD-10)` là mốc gì? (Bổ sung vào Q16.)
-4. **Năm ETD của JBEE và KOFA 27SS** (01–02/2026): đáng lẽ là 2027, đúng không? (Gộp với Q36.)
-5. **CHG2WSK6979 → CHF2WSK6979:** là đổi mã thật hay gõ nhầm?
+3. **RDD theo khách:** khoảng cách ETD → RDD ghi trong file (−20, −14, −10, ETA = ETD + 10) có đúng là quy tắc riêng của từng khách không? Cột `BUYER DEL (RDD-10)` là mốc gì? (Bổ sung vào Q17.)
+4. **Năm ETD của JBEE và KOFA 27SS** (01–02/2026): đáng lẽ là 2027, đúng không? (Gộp với Q37.)
+5. **CHG2WSK6979 → CHG2WSK7970, và CHF2WSK6979 mới:** là gõ nhầm hay đổi mã thật?
 6. **Thư mục `PRODUCTION PLAN` trên Drive** đã có file kế hoạch sản xuất chưa, hay mới tạo thư mục? (Liên quan yêu cầu D1: kế hoạch sản xuất chưa nhận.)
-7. **Phạm vi giai đoạn 1:** ngoài CHALLENGER, KLMAS muốn theo dõi khách nào trước? (Mở rộng Q14 và Q37.)
+7. **Phạm vi giai đoạn 1:** ngoài CHALLENGER, KLMAS muốn theo dõi khách nào trước? (Mở rộng Q14 và Q39.)
+
+---
+
+# Cập nhật 21/10/2026: lần quét thứ hai
+
+## 9. Kết quả quét
+
+| Hạng mục | Kết quả |
+|---|---|
+| `ORDER RECAP/` | Có lại 13 file. **12 file trùng byte (MD5)** với file đã xếp vào `ORDER/` hôm 20/10, nên được chuyển vào `_DUPLICATES/ORDER RECAP/…`. **1 file mới:** `261021 DHG) BPK 27SS ORDER RECAP.xlsx`, chuyển vào `ORDER/DHG(DAEHAN GROBAL)/27SS/` |
+| `PRODUCTION PLAN/` | **2 file mới** (lần đầu nhận kế hoạch sản xuất): `261016 MJ_DHG BPK -ALL 27SS PRODUCTION PLAN.xlsx` và `261020_NEPA - GIA NGUYEN _27SS_PRODUCTION_PLAN.xlsx`. Mỗi file có một bản trùng nằm trong `PRODUCTION/<KHÁCH>/<BRAND>/27SS/`; bản đó chuyển vào `_DUPLICATES/`. Bản chính đặt ở `PRODUCTION PLAN/<KHÁCH>/<MÙA>/` |
+| `PRODUCTION/` | Có thêm thư mục rỗng theo cấu trúc Drive của KLMAS (vd. `FG`, `TIEN THANH`, `DKM (다경물산)/27SS/DONG MY`, `JBEE/NEPA/27SS/B85`). Giữ nguyên |
+| Nhật ký | 17 lần chuyển: `raw-docs/_REORG/2026-10-21_moves.tsv`, hoàn tác bằng `undo_2026-10-21.sh` |
+| Kho dữ liệu | Thêm loại nguồn `production_plan` (trạng thái SKIPPED, chờ parser). Tên file có `_` (vd. `_27SS_PRODUCTION_PLAN`) giờ được nhận đúng mùa và loại. Build lại: 19/19 check pass |
+
+**[S] Vì sao file trùng quay lại:** thư mục `raw-docs/` không phải thư mục đồng bộ (không phải symlink, không có dấu vết Drive). Có vẻ mỗi lần tải lại, cả thư mục `ORDER RECAP` từ Drive được copy vào. Cây thư mục của ta khác cây Drive, nên mỗi lần copy lại sinh ra bản trùng.
+
+**[R]** Chọn một trong hai cách:
+1. Chỉ copy file mới (so tên file và ngày ở đầu tên) vào cây hiện tại.
+2. **(Khuyến nghị)** Đổi `raw-docs/` thành bản sao y nguyên cây Drive của KLMAS (`ORDER RECAP/`, `PRODUCTION PLAN/`, `PRODUCTION/` đúng như trên Drive) và không sắp xếp lại nữa. Copy lại sẽ chỉ ghi đè đúng file cũ, không sinh bản trùng. Pipeline đã lấy metadata từ nội dung và tên file nên không phụ thuộc thư mục. Đây cũng là cấu trúc mà việc đồng bộ tự động sau này (backlog D-13) sẽ dùng.
+
+## 10. Kế hoạch sản xuất (PRODUCTION PLAN): nguồn mới, giá trị cao cho dự báo
+
+**Bố cục [Q]:**
+- Mỗi sheet là kế hoạch của một nhà máy. File BPK có 4 sheet: `HGC` = HAGACO, `SH` = SON HA, `XT` = XUAN THANH, `B85`. File NEPA có 1 sheet `PLAN`.
+- Header ở dòng 4–6, song ngữ Anh/Hàn/Việt. Từ dòng 7 mỗi dòng là một style.
+- Template giống nhau giữa 2 file, dù do 2 người lập ở 2 khách khác nhau.
+
+| Nhóm cột | Cột | Ý nghĩa |
+|---|---|---|
+| Nhận diện | C, D, E, G | FILE NO, STYLE, ITEM, Q'TY |
+| Năng lực | B `LINE / WORKER`, K `DAILY & TARGET`, L `Number of working day` | vd. `4 / 13`, 45 cái/ngày, 27,4 ngày (= SL ÷ mục tiêu/ngày) |
+| Nguyên phụ liệu | H, I, J | ngày xuất vải, ngày xuất phụ liệu, ngày phụ liệu về nhà máy |
+| Kế hoạch may | M, N, O | ngày cắt, vào chuyền, may xong |
+| Kế hoạch xuất | P, Q, R | ngày xuất xưởng, ETD Hải Phòng, ETA Incheon |
+| Hạn của buyer | S, T, U | `DUE ETD / RDD-14 DAYS`, ETA, RDD |
+| Dư địa | V `BAL` | **[Q]** = RDD − (ETA Incheon + 2). Kiểm tra: LBV-27002: 01/12 − (04/12 + 2) = −5; LBV-27001: 01/12 − (28/11 + 2) = +1 |
+| Thực tế | W, X, Y | EXF, ETD, ETA thực tế: hiện còn trống |
+| Mẫu | Z–AD | FPP, TOP (theo dõi duyệt mẫu) |
+
+**Insight:**
+- **[Q]** Kế hoạch BPK (16/10) đã thấy rủi ro: **LBV-27002 (HAGACO, 1.100 cái)** may xong 23/11 và xuất xưởng 26/11, trễ 9 ngày so với hạn xuất 17/11; BAL = −5. Ba style khác có BAL 1–2 ngày (LBV-27001, LBV-27005, LBV-27006), gần như không còn dư địa.
+- **[Q]** Mục tiêu/ngày theo style dao động **30–147 cái**. Kho dữ liệu đang dùng mặc định **45 cái/ngày** cho style chưa có báo cáo ngày.
+  - **[R]** Khi có kế hoạch, dùng cột K thay cho số mặc định.
+  - **[R]** So kế hoạch (cột M–O) với thực tế (báo cáo ngày) để ra cảnh báo "chậm so với kế hoạch". Đây là tính năng đã có trong backlog (P-03) nhưng trước đây chưa có nguồn.
+- **[Q]** Tiêu đề cột T khác nhau ngay trong một file: sheet `HGC` ghi `ETA / ETD +7DAYS`, các sheet khác ghi `ETA / RDD-3 DAYS`. Cột V ghi `ETA+2` ở BPK nhưng `ETA+1` ở NEPA.
+- **[Q]** File NEPA lặp lại lỗi năm: dòng 8 có ngày cắt 05/01/2026 trong khi dòng 7 là 21/12/2026; các ngày xuất (cột P–U) ghi tháng 02/**2026**, đáng lẽ là 2027.
+- **[Q]** Tổng SL kế hoạch BPK = 9.270, khác cả bản ORDER RECAP 03/10 (9.250) lẫn bản 21/10 (10.380). Kế hoạch có LBV-27016 = 1.020 (khớp bản 21/10) nhưng LBV-27014 = 900 (khớp bản 03/10), và chưa có 2 style mới. Các file được cập nhật lệch nhịp với nhau.
+- **[Q]** B85 có sheet kế hoạch riêng (`27SS [DHG BPK-B85] PRODUCTION PLAN`), tức KLMAS coi B85 là một nhà máy. Vẫn cần tên chính thức (Q08).
+
+## 11. Beanpole Kids: bản 03/10 → bản 21/10
+
+| Loại | Chi tiết |
+|---|---|
+| Thay đổi có vẻ là thật | LBV-27005 và LBV-27006 chuyển SON HA → **XUAN THANH**. LBV-27006 và LBV-27015 ghi `CANCLE` (sheet DETAIL). Thêm **LBV-27016-1** (600) và **LBV-26017-1** (500, mã mùa 26). LBV-27014 900 → 910; LBV-27016 1.000 → 1.020. Tổng (ô F2) 9.250 → 10.380 |
+| Đổi quy tắc ngày | Tiêu đề cột ETD (ô M4) từ `RDD (-14DAY)` sang `RDD (-8DAY)`; ETD các style dời theo (vd. LBV-27001 từ 10/11 sang 23/11) |
+| Lỗi nhập | ETD LBV-27010 và LBV-27011 = 11/01/**2026**; LBV-27014 = 28/12/**2025**; LBV-27017 = 08/02/**2026**; RDD LBV-27015 là chữ `12//1`; ngày UP DATE (ô D2) lùi về 07/09/2026 |
+| Sheet DETAIL hỏng | Ngày hiện năm 1900–1904, dòng `#N/A`, tổng `G.TTL` = `#N/A` (công thức tham chiếu lệch sau khi chèn dòng) |
+
+- **[S]** Bản mới nhất chưa chắc là bản đúng nhất. Nếu kho dữ liệu chỉ lấy "bản mới nhất" mà không kiểm tra, dashboard sẽ hiện ETD năm 2025 cho đơn 27SS.
+- **[R]**
+  - Parser của khách khác (D-14) đọc sheet RECAP, không đọc DETAIL.
+  - Khi bản mới có lỗi nghiêm trọng (ngày ngoài mùa, ô tổng `#N/A`), giữ giá trị của bản trước cho ô đó và ghi issue, thay vì ghi đè bằng lỗi.
+  - Báo cáo "thay đổi so với bản trước" (D-15) cần tách 2 loại: thay đổi nghiệp vụ và lỗi nhập.
+
+## 12. Đề xuất bổ sung cho MVP
+
+| # | Đề xuất | Gợi ý |
+|---|---|---|
+| 7 | Parser kế hoạch sản xuất (đọc theo nhãn header; mỗi sheet một nhà máy) → `core.production_plan` (ngày cắt/vào chuyền/may xong, mục tiêu/ngày, BAL) | Backlog D-16, khoảng 6 giờ. Chờ Q15 |
+| 8 | Dự báo: style chưa có báo cáo ngày dùng mục tiêu/ngày của kế hoạch thay cho 45 cái/ngày; có báo cáo ngày thì so với kế hoạch | Làm sau D-16 |
+| 9 | Kiểm tra bản mới trước khi thay bản cũ: ngày ngoài mùa, ô tổng lỗi, ngày UP DATE lùi | Gộp vào D-14 và D-15 |
+| 10 | Thống nhất cách đưa file từ Drive về (mục 9) | PO quyết |
+
+Câu hỏi mới đã thêm vào `open_questions.md`: **Q15** (kế hoạch sản xuất, ưu tiên 2) và **Q38** (Beanpole Kids bản 21/10, ưu tiên 3). Bằng chứng mới cũng được bổ sung vào Q05, Q08, Q14, Q17 và Q37.
