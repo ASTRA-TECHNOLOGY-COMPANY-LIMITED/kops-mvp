@@ -2,6 +2,7 @@ duckdb==1.5.6
 openpyxl==3.1.5
 python-docx==1.2.0
 pypdf==5.1.0
+pyarrow==25.0.1
 # optional:
 #   extract-msg   -> read Outlook .msg emails
 #   anthropic     -> LLM email extractor (KOPS_EMAIL_LLM=1, only after PO decision P2)

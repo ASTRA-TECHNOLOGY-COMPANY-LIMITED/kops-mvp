@@ -14,6 +14,17 @@ CREATE TABLE etl.source_file (
   status VARCHAR, is_current BOOLEAN, rows_loaded INTEGER, message VARCHAR, loaded_at TIMESTAMP,
   family VARCHAR);   -- version family, e.g. 'DHG|8 SECONDS' (NULL = one family per parser + season)
 
+-- Every file under the source roots (H-01). change: NEW | CHANGED | UNCHANGED | REMOVED vs the previous build.
+CREATE TABLE etl.manifest (
+  path VARCHAR, rel VARCHAR, size_bytes BIGINT, mtime TIMESTAMP, sha256 VARCHAR, change VARCHAR, first_seen VARCHAR);
+
+-- One row per build (history kept in <lake>/_catalog/runs.parquet).
+CREATE TABLE etl.run (
+  run_id VARCHAR, started_at TIMESTAMP, seconds DOUBLE, n_files INTEGER, n_new INTEGER, n_changed INTEGER,
+  n_removed INTEGER, n_hashed INTEGER, n_parsed INTEGER, n_cached INTEGER, n_failed INTEGER, n_quarantined INTEGER,
+  workers INTEGER, scan_seconds DOUBLE, parse_seconds DOUBLE, load_seconds DOUBLE, sql_seconds DOUBLE,
+  peak_rss_mb DOUBLE);
+
 CREATE TABLE etl.data_issue (
   file_id INTEGER, severity VARCHAR, code VARCHAR, entity VARCHAR, message VARCHAR, location VARCHAR);
 

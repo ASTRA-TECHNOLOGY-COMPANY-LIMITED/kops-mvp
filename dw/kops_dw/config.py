@@ -14,6 +14,8 @@ INBOX_DIRS = [Path(p) for p in os.environ.get("KOPS_INBOX", "").split(os.pathsep
 ]
 BUILD_DIR = Path(os.environ.get("KOPS_BUILD", DW_DIR / "build"))
 CACHE_DIR = BUILD_DIR / "cache"
+# Incremental store (manifest + parse results as Parquet). Safe to delete: the next build parses everything again.
+LAKE_DIR = Path(os.environ.get("KOPS_LAKE", BUILD_DIR / "lake"))
 DB_PATH = BUILD_DIR / "kops.duckdb"
 DASHBOARD_PATH = BUILD_DIR / "dashboard.html"
 

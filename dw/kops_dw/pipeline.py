@@ -1,6 +1,7 @@
-"""Build the DW from scratch: discover sources -> register -> parse -> load raw/stg -> run SQL models.
+"""Build the DW: discover sources -> manifest -> register -> parse -> load raw/stg -> run SQL models.
 
-The build is a full rebuild (idempotent): delete build/kops.duckdb and recreate it from the files.
+The database is rebuilt every time (idempotent): delete build/kops.duckdb and recreate it from the files.
+The manifest (manifest.py) remembers size/mtime/sha256 of every file, so unchanged files are not hashed again.
 """
 from __future__ import annotations
 
@@ -12,11 +13,11 @@ from pathlib import Path
 
 import duckdb
 
-from . import config
+from . import config, manifest
 from .excel import open_workbook
 from .ingest import (emails, meeting_notes, order_recap, order_recap_generic, production_plan, production_status,
                      shipment_status)
-from .util import norm_key, sha256
+from .util import norm_key
 
 SQL_DIR = config.DW_DIR / "sql"
 
@@ -109,6 +110,9 @@ def discover():
 
 def build(verbose=True) -> Path:
     t0 = time.time()
+    run_id = manifest.new_run_id()
+    entries, removed, n_hashed = manifest.scan(discover(), run_id, manifest.load())
+    t_scan = time.time() - t0
     config.BUILD_DIR.mkdir(parents=True, exist_ok=True)
     if config.DB_PATH.exists():
         config.DB_PATH.unlink()
@@ -117,14 +121,14 @@ def build(verbose=True) -> Path:
     _load_reference(con)
 
     seen, registry = {}, []
-    for i, path in enumerate(discover(), start=1):
+    for i, entry in enumerate(entries, start=1):
+        path, digest = entry.path, entry.sha256
         stype, parser, season = classify(path)
-        digest = sha256(path)
         ctx = Ctx()
         ctx.file_id = i
         rec = dict(file_id=i, file_name=path.name, rel_path=_rel(path), source_type=stype, parser=parser,
                    season=season, file_date=file_date(path.name), report_date=None, sha256=digest,
-                   size_bytes=path.stat().st_size, is_sample=config.DW_DIR in path.parents,
+                   size_bytes=entry.size_bytes, is_sample=config.DW_DIR in path.parents,
                    status="LOADED", is_current=False, rows_loaded=0, message=None, loaded_at=dt.datetime.now(),
                    family=None)
         if digest in seen:
@@ -172,12 +176,42 @@ def build(verbose=True) -> Path:
     for _, r in latest.values():
         r["is_current"] = True
     _insert(con, "etl.source_file", registry)
+    t_sql = time.time()
     for f in sorted(SQL_DIR.glob("[1-9]*.sql")):
         con.execute(f.read_text())
+    t_sql = time.time() - t_sql
+    run = dict(run_id=run_id, started_at=dt.datetime.fromtimestamp(t0), seconds=round(time.time() - t0, 2),
+               n_files=len(entries), n_new=sum(e.change == "NEW" for e in entries),
+               n_changed=sum(e.change == "CHANGED" for e in entries), n_removed=len(removed), n_hashed=n_hashed,
+               n_parsed=sum(r["status"] in ("LOADED", "FAILED") for r in registry), n_cached=0,
+               n_failed=sum(r["status"] == "FAILED" for r in registry), n_quarantined=0, workers=1,
+               scan_seconds=round(t_scan, 2), parse_seconds=0.0, load_seconds=0.0, sql_seconds=round(t_sql, 2),
+               peak_rss_mb=_peak_rss_mb())
+    _save_manifest(con, entries, removed, run)
     con.close()
     if verbose:
-        print(f"Built {config.DB_PATH} in {time.time() - t0:.1f}s")
+        print(f"Built {config.DB_PATH} in {time.time() - t0:.1f}s "
+              f"({run['n_files']} files: {run['n_new']} new, {run['n_changed']} changed, {n_hashed} hashed)")
     return config.DB_PATH
+
+
+def _save_manifest(con, entries, removed, run):
+    """etl.manifest / etl.run in the DB, and the persistent catalog for the next build."""
+    rows = [dict(path=str(e.path), rel=e.rel, size_bytes=e.size_bytes, mtime=dt.datetime.fromtimestamp(e.mtime_ns / 1e9),
+                 sha256=e.sha256, change=e.change, first_seen=e.first_seen) for e in entries]
+    rows += [dict(path=r["path"], rel=r["rel"], size_bytes=r["size_bytes"], sha256=r["sha256"], change="REMOVED",
+                  mtime=dt.datetime.fromtimestamp(r["mtime_ns"] / 1e9), first_seen=r["first_seen"]) for r in removed]
+    _insert(con, "etl.manifest", rows)
+    manifest.save(entries, run["run_id"])
+    manifest.save_run(run)
+    _insert(con, "etl.run", manifest.load_runs())
+
+
+def _peak_rss_mb() -> float:
+    import resource
+    import sys
+    rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    return round(rss / (1 << 20) if sys.platform == "darwin" else rss / 1024, 1)   # bytes on macOS, KiB on Linux
 
 
 def _parse(path, parser, season, digest, ctx):
