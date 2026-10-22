@@ -1,8 +1,11 @@
-"""CLI: python -m kops_dw [build|test|dashboard|all|fetch-imap|attachments]
+"""CLI: python -m kops_dw [build|test|dashboard|all|fetch-imap|attachments|lake-compact] [--retry-failed]
 
-  all          build + test + dashboard (default)
-  fetch-imap   read-only download of a mailbox folder into raw-docs/inbox/imap/ (see kops_dw/inbox.py)
-  attachments  save .eml attachments to raw-docs/EMAIL_ATTACHMENTS/ so they are parsed by the next build
+  all           build + test + dashboard (default)
+  build         incremental build: only new/changed files are parsed, the rest is read from the lake
+                --retry-failed  parse again the files that failed last time (otherwise kept as FAILED)
+  fetch-imap    read-only download of a mailbox folder into raw-docs/inbox/imap/ (see kops_dw/inbox.py)
+  attachments   save .eml attachments to raw-docs/EMAIL_ATTACHMENTS/ so they are parsed by the next build
+  lake-compact  rewrite the Parquet lake without rows of superseded parses (run when no build is running)
 """
 from __future__ import annotations
 
@@ -11,16 +14,25 @@ import sys
 
 def main(argv=None):
     argv = argv if argv is not None else sys.argv[1:]
-    cmd = argv[0] if argv else "all"
+    flags = {a for a in argv if a.startswith("--")}
+    args = [a for a in argv if not a.startswith("--")]
+    cmd = args[0] if args else "all"
     if cmd == "fetch-imap":
         from .inbox import fetch_imap
         return fetch_imap(argv[1:])
     if cmd == "attachments":
         from .inbox import attachments
         return attachments(argv[1:])
+    if cmd == "lake-compact":
+        from . import lake
+        before = lake.size_bytes()
+        for table, (files, dropped) in lake.compact(lake.read_results()).items():
+            print(f"  {table}: {files} file(s) -> 1, {dropped} superseded row(s) dropped")
+        print(f"Lake {before / 1e6:.1f} MB -> {lake.size_bytes() / 1e6:.1f} MB")
+        return
     if cmd in ("build", "all"):
         from .pipeline import build
-        build()
+        build(retry_failed="--retry-failed" in flags)
     if cmd in ("test", "all"):
         from .checks import run_checks
         ok = run_checks()

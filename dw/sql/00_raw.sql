@@ -12,7 +12,8 @@ CREATE TABLE etl.source_file (
   file_id INTEGER PRIMARY KEY, file_name VARCHAR, rel_path VARCHAR, source_type VARCHAR, parser VARCHAR,
   season VARCHAR, file_date DATE, report_date DATE, sha256 VARCHAR, size_bytes BIGINT, is_sample BOOLEAN,
   status VARCHAR, is_current BOOLEAN, rows_loaded INTEGER, message VARCHAR, loaded_at TIMESTAMP,
-  family VARCHAR);   -- version family, e.g. 'DHG|8 SECONDS' (NULL = one family per parser + season)
+  family VARCHAR,    -- version family, e.g. 'DHG|8 SECONDS' (NULL = one family per parser + season)
+  parse_key VARCHAR, from_cache BOOLEAN, parse_seconds DOUBLE);   -- lake key; rows read back from the lake
 
 -- Every file under the source roots (H-01). change: NEW | CHANGED | UNCHANGED | REMOVED vs the previous build.
 CREATE TABLE etl.manifest (
