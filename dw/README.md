@@ -11,20 +11,22 @@ dw/samples/inbox/*.eml     ┘   (nguyên văn,  (sự kiện   (mô hình  (b�
 
 ## Chạy
 
-Cần Python 3.10+ và LibreOffice. LibreOffice dùng để đọc màu ô (trạng thái style) trong file `.xlsb`; trên macOS cài bằng `brew install --cask libreoffice`.
+Cần Python 3.10+ và LibreOffice. LibreOffice dùng để đọc màu ô (trạng thái style) trong file `.xlsb`; trên macOS cài bằng `brew install --cask libreoffice`. Công cụ tuỳ chọn (thiếu thì được báo, không làm hỏng build): `readpst` cho hộp thư `.pst` (`brew install libpst`), `tesseract` + `poppler` cho OCR (`brew install tesseract tesseract-lang poppler`).
 
 ```bash
 cd dw
-make            # tạo .venv, build kho, chạy test, sinh dashboard
-make open       # mở build/dashboard.html
+python3 -m venv .venv-mac && .venv-mac/bin/pip install -r requirements.txt   # một lần (trên macOS dùng .venv-mac)
+.venv-mac/bin/python -m kops_dw            # build + 33 check + dashboard
+.venv-mac/bin/python -m kops_dw test       # chỉ chạy check
+open build/dashboard.html
 ```
-
-Các lệnh lẻ: `make build`, `make test`, `make dashboard`, `make clean`.
 
 Kết quả nằm trong `dw/build/` (đã `.gitignore`):
 - `kops.duckdb`: kho dữ liệu. Mở bằng `duckdb build/kops.duckdb` hoặc bất kỳ công cụ BI nào đọc được DuckDB.
 - `dashboard.html`: một file HTML chạy offline, dữ liệu nhúng sẵn.
-- `cache/`: bản `.xlsx` chuyển từ `.xlsb`, đặt tên theo sha256, tái dùng giữa các lần build.
+- `lake/`: kết quả parse dạng Parquet + manifest (xem "Nạp tăng dần" bên dưới).
+- `quarantine.csv`: file không nạp được và cần người xem (mở được bằng Excel).
+- `cache/`: bản `.xlsx` chuyển từ `.xlsb`, text OCR, hộp thư `.pst` đã giải nén; đặt tên theo sha256, tái dùng giữa các lần build.
 
 > `dashboard.html` và `kops.duckdb` chứa dữ liệu kinh doanh của KLMAS. Chỉ chia sẻ trong phạm vi dự án (GUIDELINES §8).
 
@@ -38,24 +40,44 @@ Kết quả nằm trong `dw/build/` (đã `.gitignore`):
 | Kế hoạch sản xuất | Thả vào `PRODUCTION PLAN/<KHÁCH>/<MÙA>/` (`production_plan`, mỗi sheet một nhà máy) |
 | Email: PDF export / in từ Outlook, Gmail, Naver… | Thả file `.pdf` vào `raw-docs/inbox/` (thư mục con tuỳ ý, vd. `inbox/pdf/2026-10/`). Một PDF có thể chứa cả chuỗi thư; nhận header EN/KO/VI và kiểu in của Gmail. PDF scan (không có chữ) được báo `PDF_NO_TEXT` |
 | Email: `.eml` / `.msg` | Thả vào `raw-docs/inbox/`. `.msg` cần `pip install extract-msg` |
+| Email: cả hộp thư `.mbox` (Google Takeout, Thunderbird) / `.pst` (Outlook) | Thả vào `raw-docs/inbox/`. Đọc từng thư, giữ thư mục/nhãn (`raw.email.folder`), bỏ thư rác/thư tự động (lý do lưu ở `raw.email_filtered`). `.pst` cần `readpst`; thiếu thì file vào cách ly (`MISSING_TOOL`) và được đọc ở lần build đầu tiên sau khi cài |
+| Email: PDF scan (không có chữ) | Build đưa trang vào hàng đợi OCR (`etl.ocr_queue`). Chạy `.venv-mac/bin/python -m kops_dw ocr` rồi build lại; thư đọc từ OCR có `text_source='ocr'` và cần đối chiếu với PDF |
 | Email: hộp thư (Gmail, Outlook 365, Naver, Hiworks…) | `KOPS_IMAP_PASSWORD=… .venv/bin/python -m kops_dw fetch-imap --host imap.gmail.com --user … --folder KLMAS --since 2026-01-01` (chỉ đọc, không đánh dấu đã đọc). Hoặc agent dùng connector Gmail/Drive lưu `.eml`/PDF vào `raw-docs/inbox/gmail/` |
 | File đính kèm của email `.eml` | `.venv/bin/python -m kops_dw attachments` → `raw-docs/EMAIL_ATTACHMENTS/<yyyy-mm>/`, build sau sẽ nạp như file thường (trùng nội dung thì bỏ qua) |
 | Biên bản họp | Thả `.docx` vào `raw-docs/MEETINGS/` |
 | Báo cáo sản xuất ngày, bảng kiểm, dữ liệu kiểm bên thứ ba | Đã được nhận diện và đăng ký (trạng thái SKIPPED: parser nằm trong kế hoạch Phase 1, `plans/MVP_PHASE1_PLAN.md`) |
 
-Biến môi trường: `KOPS_RAW_DOCS` (thư mục nguồn), `KOPS_INBOX`, `KOPS_BUILD`, `KOPS_SOFFICE` (đường dẫn `soffice` nếu không nằm trong PATH).
+Biến môi trường: `KOPS_RAW_DOCS` (thư mục nguồn, có thể ở ổ ngoài hoặc thư mục Google Drive), `KOPS_INBOX` (nhiều thư mục, ngăn bằng `:`), `KOPS_BUILD`, `KOPS_LAKE` (mặc định `build/lake`), `KOPS_SOFFICE` (đường dẫn `soffice` nếu không nằm trong PATH), `KOPS_WORKERS` (số tiến trình parse, mặc định min(8, số CPU); `1` = không song song, dễ debug), `KOPS_PARSE_TIMEOUT` (giây/file, mặc định 600), `KOPS_TEMPLATE_CHECK` (`0` = tắt kiểm tra template), `KOPS_MAIL_SINCE` / `KOPS_MAIL_UNTIL` (YYYY-MM-DD), `KOPS_MAIL_EXCLUDE_FOLDERS`, `KOPS_MAIL_ALLOW` (người gửi/tên miền không bao giờ bị lọc, ngăn bằng dấu phẩy).
+
+## Nạp tăng dần và dữ liệu lịch sử lớn
+
+Theo `plans/HISTORY_SCALE_PLAN.md` (H-01…H-04, H-06, H-08, H-13).
+
+| Bước | Cách làm | Ở đâu |
+|---|---|---|
+| Manifest | Mỗi file: đường dẫn, kích thước, mtime, sha256. Chỉ tính lại sha256 khi kích thước/mtime đổi | `manifest.py` → `etl.manifest` (NEW / CHANGED / UNCHANGED / REMOVED), `etl.run` (mỗi lần build một dòng: thời gian từng bước, số file parse, RAM) |
+| Lake Parquet | Kết quả parse lưu một lần theo khoá = sha256 + phiên bản parser (hash code parser + cấu hình nó đọc) + tên file + đường dẫn trong thư mục nguồn. Build chỉ parse file chưa có khoá; phần còn lại đọc từ Parquet. Kho DuckDB và SQL model vẫn dựng lại mỗi lần (vài giây) | `lake.py`, `parse.py`; `build/lake/<bảng>/<parser>/<batch>.parquet` |
+| Song song + cách ly | Parse trong `KOPS_WORKERS` tiến trình; mỗi file có giới hạn thời gian. File lỗi, quá giờ, hoặc làm chết tiến trình (file hỏng, hết RAM) được ghi `FAILED` và cách ly; build vẫn chạy tiếp. Không parse lại file lỗi cho tới khi parser đổi hoặc chạy `build --retry-failed` | `pipeline._parse_all` → `etl.quarantine`, `build/quarantine.csv` |
+| Dấu vân tay template | Hash các dòng header của sheet đầu (dòng 1–6). Bố cục chưa có trong `templates/known_templates.json` thì **không nạp**: `UNKNOWN_TEMPLATE`, kèm danh sách nhãn và khác biệt với template gần nhất | `templates.py`; `python -m kops_dw templates` (xem), `templates accept <fp>` (chấp nhận sau khi kiểm tra) |
+| Hộp thư | `.mbox` đọc bằng thư viện chuẩn, `.pst` qua `readpst`; đọc theo luồng 2.000 thư/lần; gộp trùng theo `msg_key` trong `core.email` | `ingest/mailbox.py` |
+| OCR | Build không chạy OCR; trang scan vào hàng đợi; `python -m kops_dw ocr` chạy tesseract `kor+vie+eng`, cache theo sha256 + trang; build sau chỉ parse lại các PDF đó | `ocr.py` |
+| Nghiệm thu, benchmark | Sinh dữ liệu giả lập **ngoài repo** từ file thật, chạy các tình huống của plan | `python -m kops_dw bench accept --out /tmp/kops-bench`; `bench run --out /tmp/kops-bench` (5.000 file / 50.000 thư) |
+
+Lệnh khác: `python -m kops_dw lake-compact` (viết lại lake bỏ các bản parse cũ, khi không có build nào đang chạy).
+
+**Rollback:** lake và cache chỉ là bộ nhớ đệm. Xoá `build/lake` (và/hoặc `build/cache/ocr`, `build/cache/pst`) thì lần build sau parse lại toàn bộ như trước H-02; dữ liệu nguồn không bị đụng tới. Tắt kiểm tra template: `KOPS_TEMPLATE_CHECK=0`. Chạy tuần tự như trước: `KOPS_WORKERS=1`.
 
 ## Các lớp dữ liệu
 
 | Schema | Nội dung | Ai ghi |
 |---|---|---|
-| `etl` | `source_file` (mỗi file: sha256, loại, mùa, ngày báo cáo, bản hiện hành, số dòng) và `data_issue` (mọi bất thường, kèm vị trí ô) | Python |
+| `etl` | `source_file` (mỗi file: sha256, loại, mùa, ngày báo cáo, bản hiện hành, số dòng, khoá lake, dấu vân tay template), `data_issue` (mọi bất thường, kèm vị trí ô), `manifest`, `run`, `quarantine`, `ocr_queue` | Python |
 | `raw` | Dữ liệu gần nguyên văn theo từng template, **mọi phiên bản**: `order_recap_style/color`, `order_line_ext` (khách khác), `production_plan`, `shipment_block/cell`, `production_status(_total)`, `doc_block`, `email` (mỗi thư một dòng, `msg_key` nhận ra cùng một thư ở nhiều file) | Python parser |
 | `stg` | Sự kiện trích từ text tự do: `qty_change`, `factory_event`, `email_change`, `requirement`, `action_item`, `decision`; cùng dữ liệu tham chiếu từ `config.py` | Python |
 | `core` | Mô hình chuẩn, chỉ lấy bản hiện hành: `style_order`, `order_color`, `shipment_detail`, `production_snapshot`, `meeting`, `requirement`… (`10_core`); `order_portfolio` (mọi khách), `production_plan`, `style_dictionary` (`11_core_customers`); `email` (đã gộp trùng), `email_thread`, `email_mention`, `email_reply`, `change_proposal`, `proposal_file_status` (`12_core_email`) | `sql/1x_*.sql` |
 | `mart` | Bảng cho dashboard: `style_360`, `season_kpi`, `factory_kpi`, `supplier_styles`, `shipment_*`, `assortment`, `reconciliation`, `change_log`, `source_lineage` (`20_mart`); `customer_portfolio`, `factory_load_all`, `etd_weekly_all`, `plan_risk`, `file_version`, `version_change`, `email_*` (`25_mart_ext`) | `sql/2x_*.sql` |
 
-Mỗi lần build là một lần **full rebuild**: xoá kho cũ và nạp lại toàn bộ file. Cách này đơn giản và idempotent. Khi chuyển sang app ghi trực tiếp, sẽ cần nạp tăng dần và lưu lịch sử (P1–P4).
+Mỗi lần build dựng lại file DuckDB từ đầu (đơn giản, idempotent), nhưng chỉ **parse** file mới hoặc đổi; kết quả parse của các file khác được đọc lại từ lake Parquet (mục "Nạp tăng dần" ở trên).
 
 ### Nguồn sự thật cho từng loại dữ liệu
 
@@ -106,9 +128,15 @@ dw/
 ├── Makefile, requirements.txt
 ├── kops_dw/
 │   ├── config.py          # đường dẫn, quy tắc nghiệp vụ, alias nhà máy/style, mức đáp ứng yêu cầu
-│   ├── pipeline.py        # discover → registry → parse → load → chạy SQL
+│   ├── pipeline.py        # discover → manifest → registry → parse (song song) → nạp lake → chạy SQL
+│   ├── manifest.py        # size/mtime/sha256 của từng file (H-01)
+│   ├── lake.py            # Parquet lake: ghi/đọc kết quả parse (H-02)
+│   ├── parse.py           # parse một file trong worker, khoá cache, phiên bản parser, timeout (H-02/H-03)
+│   ├── templates.py       # dấu vân tay header Excel (H-04); ../templates/known_templates.json
+│   ├── ocr.py             # hàng đợi OCR tesseract (H-08)
+│   ├── bench.py           # dữ liệu giả lập, nghiệm thu, benchmark (H-13)
 │   ├── excel.py           # đọc workbook, xlsb → xlsx qua LibreOffice, đọc màu ô
-│   ├── ingest/            # một module cho mỗi loại nguồn
+│   ├── ingest/            # một module cho mỗi loại nguồn (mailbox.py: .mbox/.pst, H-06)
 │   ├── checks.py          # golden tests
 │   └── dashboard.py       # xuất mart → JSON → HTML
 ├── sql/                   # 00_raw (DDL) · 10_core · 15_issues · 20_mart

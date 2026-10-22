@@ -28,7 +28,12 @@ brew install --cask libreoffice                                            # nee
 .venv-mac/bin/python -m kops_dw test       # golden / structural checks only
 .venv-mac/bin/python -m kops_dw fetch-imap --host … --user … --folder … --since YYYY-MM-DD   # read-only, KOPS_IMAP_PASSWORD env
 .venv-mac/bin/python -m kops_dw attachments  # .eml attachments -> raw-docs/EMAIL_ATTACHMENTS/
+.venv-mac/bin/python -m kops_dw ocr          # OCR queued scanned PDF pages (tesseract kor+vie+eng), then rebuild
+.venv-mac/bin/python -m kops_dw templates    # Excel layouts quarantined as UNKNOWN_TEMPLATE; `templates accept <fp>`
+.venv-mac/bin/python -m kops_dw bench accept --out /tmp/kops-bench   # history-scale acceptance (data outside repo)
 ```
+Builds are incremental (manifest + Parquet lake in `dw/build/lake`, parallel parse, quarantine in
+`dw/build/quarantine.csv`); deleting `dw/build/lake` forces a full re-parse. Details: `dw/README.md`.
 Emails: drop `.pdf` / `.eml` / `.msg` anywhere under `raw-docs/inbox/`. Questionnaire export: see `analys-docs/exports/tools/README.md`.
 
 ## Hard rules
