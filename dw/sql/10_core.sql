@@ -76,29 +76,7 @@ CREATE TABLE core.factory_event AS
 SELECT e.*, core.factory_code(e.factory_hint) AS factory_code
 FROM stg.factory_event e JOIN core.current_file f USING (file_id);
 
--- Emails and proposed changes (never applied automatically)
-CREATE TABLE core.email AS
-SELECT e.* EXCLUDE (body), left(e.body, 4000) AS body FROM raw.email e JOIN core.current_file f USING (file_id);
-
-CREATE TABLE core.change_proposal AS
-SELECT c.message_id, e.sent_at, e.subject, e.is_sample, c.style_no, o.season, o.factory_code,
-       c.change_type, c.value_text, o.order_qty AS current_qty,
-       CASE WHEN c.change_type = 'QTY_PCT' THEN round(o.order_qty * (1 + c.pct / 100.0))::INT
-            WHEN c.change_type = 'QTY' THEN c.qty_after END AS proposed_qty,
-       o.etd_vn AS current_etd, c.new_date AS proposed_etd, c.color_from, c.color_to,
-       (o.style_no IS NOT NULL) AS style_known, o.status AS style_status,
-       CASE WHEN c.change_type = 'COLOR' THEN EXISTS (
-              SELECT 1 FROM core.order_color oc WHERE oc.style_no = c.style_no AND oc.color = c.color_from)
-       END AS color_from_exists,
-       -- The % change may already be in ORDER RECAP while other files still show the old qty (Q04)
-       CASE WHEN c.change_type = 'QTY_PCT' THEN p.order_qty_reported END AS qty_in_other_file,
-       (c.change_type = 'QTY_PCT' AND p.order_qty_reported IS NOT NULL
-        AND abs(round(p.order_qty_reported * (1 + c.pct / 100.0)) - o.order_qty) <= 1) AS possibly_applied,
-       c.confidence, c.evidence, c.review_status
-FROM stg.email_change c JOIN core.current_file f USING (file_id)
-LEFT JOIN core.email e USING (message_id)
-LEFT JOIN core.style_order o ON o.style_no = c.style_no
-LEFT JOIN core.production_snapshot p ON p.style_no = c.style_no;
+-- Emails and change proposals: see 12_core_email.sql (needs the all-customer style dictionary of 11).
 
 -- Meeting notes
 CREATE TABLE core.meeting AS SELECT m.* FROM stg.meeting m JOIN core.current_file USING (file_id);

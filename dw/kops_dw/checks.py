@@ -52,7 +52,42 @@ CHECKS = [
     ("Every core style row traces back to a source file", None,
      "SELECT count(*) FROM core.style_order o LEFT JOIN etl.source_file f USING (file_id) WHERE f.file_id IS NULL", 0),
     ("Prompt-injection sample did not alter data", None,
-     "SELECT count(*) FROM core.change_proposal WHERE change_type NOT IN ('QTY','QTY_PCT','ETD','COLOR')", 0),
+     """SELECT count(*) FROM core.change_proposal WHERE upper(evidence) LIKE '%IGNORE PREVIOUS%'
+        OR (change_type IN ('QTY', 'QTY_PCT') AND proposed_qty = 0)""", 0),
+    # ---- other customers (header-driven ORDER RECAP), production plan, history ----
+    ("8 SECONDS 26FW: styles / qty", ("file", "261006. DUNG) DHG 8S 26FW"),
+     "SELECT count(*) || ' / ' || sum(order_qty) FROM core.order_line_ext WHERE customer='DHG' AND brand='8 SECONDS' AND season='26FW'",
+     "59 / 119392"),
+    ("MIZUNO 27SS: styles / qty", ("file", "261019 HANG) 27SS MIZUNO"),
+     "SELECT count(*) || ' / ' || sum(order_qty) FROM core.order_line_ext WHERE customer='DKM' AND season='27SS'", "26 / 43909"),
+    ("JBEE 27SS: qty", ("file", "261019 MJ) 27SS JBEE"),
+     "SELECT sum(order_qty) FROM core.order_line_ext WHERE customer='JBEE' AND season='27SS' AND is_active", 67100),
+    ("KOFA 27SS: active qty (cancelled BLACKYAK blocks excluded)", ("file", "261015 MJ) 27SS KOFA"),
+     "SELECT sum(order_qty) FROM core.order_line_ext WHERE customer='KOFA' AND is_active", 4000),
+    ("Beanpole Kids 27SS current version = 261021: blocks / active / qty", ("file", "261021 DHG) BPK 27SS"),
+     """SELECT count(*) || ' / ' || count(*) FILTER (WHERE is_active) || ' / ' || sum(order_qty) FILTER (WHERE is_active)
+        FROM core.order_line_ext WHERE brand='BEANPOLE KIDS'""", "12 / 10 / 8880"),
+    ("Production plan BPK: rows / qty", ("file", "261016 MJ_DHG BPK"),
+     "SELECT count(*) || ' / ' || sum(qty) FROM core.production_plan WHERE brand='BEANPOLE KIDS'", "10 / 9270"),
+    ("Production plan: LBV-27002 BAL = -5 (file) = recomputed", ("file", "261016 MJ_DHG BPK"),
+     "SELECT bal_days || ' / ' || bal_calc FROM core.production_plan WHERE file_no='LBV-27002'", "-5 / -5"),
+    ("History CHALLENGER 27SS 261005 -> 261015: factory changes", ("file", "261005 MJ) 27SS CHALLENGER"),
+     """SELECT count(*) FROM mart.version_change WHERE family='CHALLENGER|CHALLENGER' AND season='27SS'
+        AND from_file LIKE '261005%' AND to_file LIKE '261015%' AND kind='FACTORY'""", 27),
+    ("History CHALLENGER 27SS 261015 -> 261020: only CHG1MPT7131 ETD", ("file", "261020 MJ) 27SS CHALLENGER"),
+     """SELECT string_agg(style_no || ':' || kind, ',') FROM mart.version_change WHERE family='CHALLENGER|CHALLENGER'
+        AND season='27SS' AND from_file LIKE '261015%' AND to_file LIKE '261020%' AND kind IN ('ETD','QTY','FACTORY','STATUS')""",
+     "CHG1MPT7131:ETD"),
+    ("History JBEE 261006 -> 261019: factory assignments", ("file", "261006 MJ) 27SS JBEE"),
+     "SELECT count(*) FROM mart.version_change WHERE family='JBEE|NEPA' AND kind='FACTORY'", 8),
+    # ---- emails (SAMPLE files in dw/samples/inbox) ----
+    ("Email: same message in .eml and quoted in a PDF counted once", ("file", "08_buyer_original_duplicate"),
+     "SELECT count(*) || ' / ' || max(n_copies) FROM core.email WHERE thread_key='[sample] 26fw chf4mpt6444 delivery'", "2 / 2"),
+    ("Email: Korean PDF header parsed (보낸 날짜 → 2026-10-14 14:05)", ("file", "06_korean_qty_sample"),
+     "SELECT strftime(sent_at, '%Y-%m-%d %H:%M') FROM core.email WHERE sender_email='sujin.lee@dhg-sample.kr'",
+     "2026-10-14 14:05"),
+    ("Email: scanned PDF without text is reported, not guessed", ("file", "09_scanned_no_text"),
+     "SELECT count(*) FROM etl.data_issue WHERE code='PDF_NO_TEXT'", 1),
 ]
 
 
@@ -60,10 +95,15 @@ def run_checks(db_path=None) -> bool:
     con = duckdb.connect(str(db_path or config.DB_PATH), read_only=True)
     loaded = {(p, s) for p, s in con.execute(
         "SELECT parser, season FROM etl.source_file WHERE is_current").fetchall()}
+    names = [n for (n,) in con.execute("SELECT file_name FROM etl.source_file WHERE status='LOADED'").fetchall()]
     ok = True
     print("Golden / structural checks")
     for name, need, sql, expected in CHECKS:
-        if need and need not in loaded:
+        if need and need[0] == "file":
+            if not any(n.startswith(need[1]) for n in names):
+                print(f"  SKIP  {name}  (source not loaded)")
+                continue
+        elif need and need not in loaded:
             print(f"  SKIP  {name}  (source not loaded)")
             continue
         got = con.execute(sql).fetchone()[0]

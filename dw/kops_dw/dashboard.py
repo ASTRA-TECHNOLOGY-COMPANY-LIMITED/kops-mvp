@@ -42,6 +42,19 @@ QUERIES = {
     "decisions": "SELECT * FROM core.decision ORDER BY no NULLS FIRST",
     "meeting": "SELECT * FROM core.meeting",
     "rules": "SELECT * FROM stg.rule",
+    # all customers, plans, history, email analytics
+    "portfolio": "SELECT * FROM mart.customer_portfolio ORDER BY order_qty DESC NULLS LAST",
+    "factory_all": "SELECT * FROM mart.factory_load_all ORDER BY order_qty DESC",
+    "etd_all": "SELECT * FROM mart.etd_weekly_all ORDER BY week_start",
+    "plan": "SELECT * FROM mart.plan_risk ORDER BY bal_days NULLS LAST",
+    "versions": "SELECT * FROM mart.file_version ORDER BY parser, family, season, version_no",
+    "vchanges": "SELECT * FROM mart.version_change ORDER BY to_file DESC, kind, style_no",
+    "vsummary": "SELECT * FROM mart.version_change_summary ORDER BY to_file",
+    "email_kpi": "SELECT * FROM mart.email_kpi",
+    "email_list": "SELECT * EXCLUDE (msg_key, thread_key) FROM mart.email_list ORDER BY sent_at DESC NULLS LAST",
+    "email_weekly": "SELECT * FROM mart.email_weekly ORDER BY week_start",
+    "threads": "SELECT * EXCLUDE (thread_key) FROM core.email_thread ORDER BY last_at DESC NULLS LAST",
+    "pstatus": "SELECT * EXCLUDE (msg_key) FROM core.proposal_file_status ORDER BY sent_at DESC",
 }
 
 

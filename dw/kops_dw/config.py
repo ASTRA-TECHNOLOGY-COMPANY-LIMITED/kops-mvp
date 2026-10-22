@@ -38,6 +38,47 @@ FACTORY_ALIASES = {
     "XUAN THANH": "XUAN THANH", "SUNVIET": "SUNVIET", "PHAM GIA": "PHAM GIA",
     "HUY HOANG": "HUY HOANG", "MINH TUAN": "MINH TUAN", "THANH VAN": "THANH VAN", "AYM": "AYM",
 }
+FACTORY_ALIASES.update({
+    # factories seen in other customers' ORDER RECAP / PRODUCTION PLAN (20-21/10/2026; names pending Q08)
+    "SON HA": "SON HA", "SON HA GLOBAL": "SON HA", "JM": "JM", "HAGACO": "HAGACO", "HGC": "HAGACO",
+    "B85": "B85", "XT": "XUAN THANH", "WISER MAX": "WISER MAX", "HA THANH": "HA THANH",
+    "HA THANH PLAN": "HA THANH", "GIA NGUYEN": "GIA NGUYEN", "TRI DUC": "TRI DUC", "FG": "FG VINA",
+    "SH": "SON HA",
+})
+
+# --- Customers (who orders from KLMAS) and brands; first matching key wins (title, file name, then folder) ---
+CUSTOMER_KEYS = [
+    ("CHALLENGER", "CHALLENGER"), ("CLGR", "CHALLENGER"),
+    ("DAEHAN", "DHG"), ("DHG", "DHG"), ("8SECONDS", "DHG"), ("8 SECONDS", "DHG"), ("BPK", "DHG"),
+    ("BEANPOLE", "DHG"), ("XEXYMIX", "DHG"),
+    ("JBEE", "JBEE"), ("KOFA", "KOFA"), ("BLACKYAK", "KOFA"),
+    ("MIZUNO", "DKM"), ("DKMS", "DKM"), ("DKM", "DKM"), ("DAKYUNG", "DKM"), ("다경", "DKM"),
+]
+BRAND_ALIASES = {"8S": "8 SECONDS", "8SECONDS": "8 SECONDS", "BPK": "BEANPOLE KIDS", "BEANPOLE KIDS": "BEANPOLE KIDS",
+                 "CLGR": "CHALLENGER"}
+
+# --- Email ---
+# Sender domains that belong to KLMAS (used to tell buyer -> KLMAS replies apart). Fill in when known.
+KLMAS_EMAIL_DOMAINS: list[str] = [d for d in os.environ.get("KOPS_KLMAS_DOMAINS", "").split(",") if d]
+# Rule-based categories (first match = primary). Keywords in EN / KO / VI, matched case-insensitively.
+EMAIL_CATEGORIES = [
+    ("CANCEL", ["cancel", "취소", "huỷ", "hủy"]),
+    ("QTY", ["quantity", "qty", "reduce", "increase", "수량", "감량", "증량", "số lượng", "giảm số", "tăng số"]),
+    ("ETD", ["etd", "ship date", "delay", "postpone", "납기", "지연", "선적일", "giao hàng", "chậm", "trễ", "dời"]),
+    ("COLOR_SIZE", ["colour", "color", "size", "컬러", "색상", "사이즈", "màu", "kích cỡ"]),
+    ("SAMPLE", ["fpp", "top sample", "pp sample", "sample", "comment", "approve", "샘플", "컨펌", "승인", "mẫu", "duyệt"]),
+    ("MATERIAL", ["fabric", "trim", "accessor", "원단", "부자재", "vải", "phụ liệu", "npl"]),
+    ("INSPECTION", ["inspection", "aql", "final inspect", "검품", "검사", "kiểm hàng", "kiểm tra"]),
+    ("SHIPMENT", ["booking", "b/l", "invoice", "container", "forwarder", "선적", "부킹", "xuất hàng", "đặt tàu"]),
+    ("QUALITY", ["defect", "claim", "complaint", "불량", "클레임", "lỗi", "khiếu nại"]),
+    ("PRICE_PO", ["price", "fob", "cmpt", "purchase order", "단가", "가격", "발주", "giá", "đơn giá"]),
+    ("STATUS", ["status", "update", "progress", "진행", "현황", "tình trạng", "tiến độ"]),
+]
+# Ambiguous numeric dates like 05/10/2026 are read day/month (VN, KR exports). Set KOPS_EMAIL_DMY=0 for US m/d.
+EMAIL_DMY = os.environ.get("KOPS_EMAIL_DMY", "1") == "1"
+# Optional LLM extractor (off by default; needs PO decision P2 in plans/EMAIL_READINESS_PLAN.md).
+EMAIL_LLM = os.environ.get("KOPS_EMAIL_LLM", "0") == "1"
+EMAIL_LLM_MODEL = os.environ.get("KOPS_EMAIL_LLM_MODEL", "claude-sonnet-5-5")
 
 # How the DW MVP covers the 14 requirements from KOPS meeting #1 (req_no -> status, where, next step).
 REQUIREMENT_COVERAGE = {

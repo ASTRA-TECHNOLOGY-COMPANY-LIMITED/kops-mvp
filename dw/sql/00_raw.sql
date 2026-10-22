@@ -11,7 +11,8 @@ CREATE SCHEMA IF NOT EXISTS mart;
 CREATE TABLE etl.source_file (
   file_id INTEGER PRIMARY KEY, file_name VARCHAR, rel_path VARCHAR, source_type VARCHAR, parser VARCHAR,
   season VARCHAR, file_date DATE, report_date DATE, sha256 VARCHAR, size_bytes BIGINT, is_sample BOOLEAN,
-  status VARCHAR, is_current BOOLEAN, rows_loaded INTEGER, message VARCHAR, loaded_at TIMESTAMP);
+  status VARCHAR, is_current BOOLEAN, rows_loaded INTEGER, message VARCHAR, loaded_at TIMESTAMP,
+  family VARCHAR);   -- version family, e.g. 'DHG|8 SECONDS' (NULL = one family per parser + season)
 
 CREATE TABLE etl.data_issue (
   file_id INTEGER, severity VARCHAR, code VARCHAR, entity VARCHAR, message VARCHAR, location VARCHAR);
@@ -52,9 +53,28 @@ CREATE TABLE raw.production_status_total (
 CREATE TABLE raw.doc_block (
   file_id INTEGER, doc_title VARCHAR, seq INTEGER, section VARCHAR, kind VARCHAR, text VARCHAR, table_json VARCHAR);
 
+-- One row per message found in a file (a PDF export can hold a whole thread). msg_key = same message across files.
 CREATE TABLE raw.email (
-  file_id INTEGER, message_id VARCHAR, sent_at TIMESTAMP, sender VARCHAR, recipients VARCHAR, subject VARCHAR,
-  body VARCHAR, is_sample BOOLEAN);
+  file_id INTEGER, message_id VARCHAR, msg_key VARCHAR, thread_key VARCHAR, channel VARCHAR, part_no INTEGER,
+  is_quoted BOOLEAN, sent_at TIMESTAMP, sender VARCHAR, sender_email VARCHAR, recipients VARCHAR, cc VARCHAR,
+  subject VARCHAR, lang VARCHAR, categories VARCHAR, attachments VARCHAR, body VARCHAR, is_sample BOOLEAN,
+  in_reply_to VARCHAR, source_page INTEGER, llm_category VARCHAR, summary_vi VARCHAR, summary_ko VARCHAR);
+
+-- ORDER RECAP of customers other than CHALLENGER (header-driven parser, one row per style block)
+CREATE TABLE raw.order_line_ext (
+  file_id INTEGER, customer VARCHAR, brand VARCHAR, season VARCHAR, sheet VARCHAR, row_no INTEGER, order_no VARCHAR,
+  style_no VARCHAR, style_raw VARCHAR, style_aliases VARCHAR, file_no VARCHAR, factory_code VARCHAR,
+  factory_raw VARCHAR, order_qty INTEGER, qty_raw VARCHAR, qty_source VARCHAR, etd DATE, etd_raw VARCHAR, rdd DATE,
+  rdd_raw VARCHAR, etd_rule VARCHAR, status_fill VARCHAR, status_label VARCHAR, is_active BOOLEAN, report_date DATE);
+
+-- PRODUCTION PLAN: one sheet per factory, one row per style
+CREATE TABLE raw.production_plan (
+  file_id INTEGER, customer VARCHAR, brand VARCHAR, season VARCHAR, factory_code VARCHAR, factory_raw VARCHAR,
+  sheet VARCHAR, row_no INTEGER, as_of DATE, style_no VARCHAR, file_no VARCHAR, item VARCHAR, qty INTEGER,
+  line_worker VARCHAR, daily_target DOUBLE, work_days DOUBLE, fabric_etd DATE, accs_etd DATE, accs_eta_factory DATE,
+  cut_plan DATE, input_plan DATE, finish_plan DATE, exf_plan DATE, etd_plan DATE, eta_plan DATE, due_etd DATE,
+  due_eta DATE, rdd DATE, bal_days INTEGER, bal_offset INTEGER, bal_calc INTEGER, actual_exf DATE, actual_etd DATE,
+  actual_eta DATE, remark VARCHAR);
 
 CREATE TABLE stg.qty_change (
   file_id INTEGER, season VARCHAR, style_no VARCHAR, color_raw VARCHAR, change_date DATE, kind VARCHAR,
@@ -75,7 +95,7 @@ CREATE TABLE stg.decision (
 CREATE TABLE stg.email_change (
   file_id INTEGER, message_id VARCHAR, style_no VARCHAR, change_type VARCHAR, value_text VARCHAR, pct INTEGER,
   qty_after INTEGER, new_date DATE, color_from VARCHAR, color_to VARCHAR, confidence VARCHAR, evidence VARCHAR,
-  review_status VARCHAR);
+  review_status VARCHAR, msg_key VARCHAR);
 
 -- Reference data maintained in code (config.py) and loaded each build.
 CREATE TABLE stg.factory_alias (alias_key VARCHAR, factory_code VARCHAR);

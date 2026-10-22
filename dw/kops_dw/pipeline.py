@@ -14,7 +14,8 @@ import duckdb
 
 from . import config
 from .excel import open_workbook
-from .ingest import emails, meeting_notes, order_recap, production_status, shipment_status
+from .ingest import (emails, meeting_notes, order_recap, order_recap_generic, production_plan, production_status,
+                     shipment_status)
 from .util import norm_key, sha256
 
 SQL_DIR = config.DW_DIR / "sql"
@@ -38,13 +39,14 @@ PENDING = [
     ("KLMAS INSPECTION REPORT (FORM)", "inspection_form", "Blank inspection form (template, not data)"),
     ("INSPECTION REPORT", "inspection_tracker", "Parser planned in Phase 1 (M1-06)"),
     ("INPUT DATA", "qc_third_party", "Third-party QC database; parser proposed (M1-12)"),
-    ("PRODUCTION PLAN", "production_plan", "Factory production plan (one sheet per factory, plan dates and "
-                                           "daily target per style); parser proposed (backlog D-16)"),
-    ("ORDER RECAP", "order_recap_other", "ORDER RECAP of a non-CHALLENGER customer; same template family, "
-                                         "different columns - needs a header-driven parser"),
 ]
-# Only CHALLENGER ORDER RECAPs match the current (fixed-column) parser.
+# CHALLENGER ORDER RECAPs use the detailed fixed-column parser; other customers the header-driven one.
 CHALLENGER_KEYS = ("CHALLENGER", "CLGR")
+EMAIL_EXT = (".eml", ".pdf", ".msg")
+
+
+def _in_inbox(path: Path) -> bool:
+    return any(d in path.parents for d in config.INBOX_DIRS)
 
 
 def classify(path: Path):
@@ -52,15 +54,21 @@ def classify(path: Path):
     name = path.name.upper().replace("_", " ")   # '…_27SS_PRODUCTION_PLAN' -> '… 27SS PRODUCTION PLAN'
     season = (m.group(0) if (m := re.search(r"\b2\d(SS|FW)\b", name)) else None)
     ext = path.suffix.lower()
+    if _in_inbox(path) and ext in EMAIL_EXT:
+        return "email", "emails", season
     if ext in (".xlsx", ".xlsb", ".xlsm"):
         if "ORDER RECAP" in name and any(k in name for k in CHALLENGER_KEYS):
             return "excel", "order_recap", season
+        if "ORDER RECAP" in name:
+            return "excel", "order_recap_ext", season
+        if "PRODUCTION PLAN" in name:
+            return "excel", "production_plan", season
         if "SHIPMENT STATUS" in name:
             return "excel", "shipment_status", season
         if "PRODUCTION AND SHIPPING STATUS" in name:
             return "excel", "production_status", season
         for key, stype, _ in PENDING:
-            if key in name:
+            if stype and key in name:
                 return stype, None, season
         return "excel", None, season
     if ext == ".docx":
@@ -89,12 +97,13 @@ def discover():
             rel = p.relative_to(config.RAW_DOCS_DIR).parts
             if not p.is_file() or any(x.startswith(("_", ".")) for x in rel) or p.name.startswith("~$"):
                 continue
-            if p.suffix.lower() in (".eml", ".md", ".tsv", ".sh"):
+            if p.suffix.lower() in (".eml", ".md", ".tsv", ".sh") or _in_inbox(p):
                 continue                      # emails come from INBOX_DIRS; docs/scripts are not sources
             files.append(p)
-    for d in config.INBOX_DIRS:
+    for d in config.INBOX_DIRS:                # emails: .eml / PDF export / .msg, any sub-folder (gmail/, pdf/ ...)
         if d.exists():
-            files += sorted(p for p in d.glob("*.eml"))
+            files += sorted(p for p in d.rglob("*") if p.is_file() and p.suffix.lower() in EMAIL_EXT
+                            and not any(x.startswith(("_", ".")) for x in p.relative_to(d).parts))
     return files
 
 
@@ -116,7 +125,8 @@ def build(verbose=True) -> Path:
         rec = dict(file_id=i, file_name=path.name, rel_path=_rel(path), source_type=stype, parser=parser,
                    season=season, file_date=file_date(path.name), report_date=None, sha256=digest,
                    size_bytes=path.stat().st_size, is_sample=config.DW_DIR in path.parents,
-                   status="LOADED", is_current=False, rows_loaded=0, message=None, loaded_at=dt.datetime.now())
+                   status="LOADED", is_current=False, rows_loaded=0, message=None, loaded_at=dt.datetime.now(),
+                   family=None)
         if digest in seen:
             rec.update(status="DUPLICATE", message=f"Same content as file_id {seen[digest]}")
             ctx.issue("INFO", "DUPLICATE_FILE", path.name, rec["message"], path.name)
@@ -129,8 +139,12 @@ def build(verbose=True) -> Path:
         else:
             seen[digest] = i
             try:
-                tables, report_date = _parse(path, parser, season, digest, ctx)
-                rec["report_date"] = report_date
+                tables, report_date, family = _parse(path, parser, season, digest, ctx)
+                rec["report_date"], rec["family"] = report_date, family
+                if parser in ("order_recap_ext", "production_plan"):
+                    seasons = {r["season"] for rows in tables.values() for r in rows if r.get("season")}
+                    if len(seasons) == 1:
+                        rec["season"] = seasons.pop()        # sheet title wins over the file name
                 rec["rows_loaded"] = _insert_all(con, tables, i)
             except Exception as e:  # keep going: one bad file must not stop the build
                 rec.update(status="FAILED", message=f"{type(e).__name__}: {e}")
@@ -141,7 +155,9 @@ def build(verbose=True) -> Path:
         _insert(con, "etl.data_issue", ctx.issues)
         if verbose:
             print(f"  [{rec['status']:9}] {path.name}  rows={rec['rows_loaded']}  issues={len(ctx.issues)}")
-    # Several versions of the same report may sit in raw-docs: the newest per (template, season) is current.
+    # Several versions of the same report may sit in raw-docs: the newest per (template, season, family) is
+    # current. Order by the date in the file name first: the 'UP DATE' cell inside a file is typed by hand and
+    # has gone backwards between versions (BPK 261021 says 07/09).
     latest = {}
     for r in registry:
         if r["status"] != "LOADED":
@@ -149,8 +165,8 @@ def build(verbose=True) -> Path:
         if r["parser"] in ("emails", "meeting_notes"):
             r["is_current"] = True
             continue
-        key = (r["parser"], r["season"])
-        rank = (r["report_date"] or r["file_date"] or dt.date.min, r["file_id"])
+        key = (r["parser"], r["season"], r["family"])
+        rank = (r["file_date"] or r["report_date"] or dt.date.min, r["report_date"] or dt.date.min, r["file_id"])
         if key not in latest or rank > latest[key][0]:
             latest[key] = (rank, r)
     for _, r in latest.values():
@@ -165,6 +181,7 @@ def build(verbose=True) -> Path:
 
 
 def _parse(path, parser, season, digest, ctx):
+    """-> (tables, report_date, family). family groups versions of one report (None = parser + season)."""
     if parser in ("order_recap", "shipment_status", "production_status"):
         if not season:
             raise ValueError("Season code (e.g. 26FW) not found in file name")
@@ -172,12 +189,18 @@ def _parse(path, parser, season, digest, ctx):
         mod = {"order_recap": order_recap, "shipment_status": shipment_status,
                "production_status": production_status}[parser]
         tables, report_date = mod.parse(wb, season, ctx)
-        return tables, report_date or file_date(path.name)
+        return tables, report_date or file_date(path.name), None
+    if parser in ("order_recap_ext", "production_plan"):
+        wb = open_workbook(path, digest)
+        mod = order_recap_generic if parser == "order_recap_ext" else production_plan
+        tables, report_date, family = mod.parse(wb, season, ctx, path.name, _rel(path))
+        return tables, report_date or file_date(path.name), family
     if parser == "meeting_notes":
         tables, d = meeting_notes.parse(path, ctx)
-        return tables, (dt.date.fromisoformat(d) if d else None)
+        return tables, (dt.date.fromisoformat(d) if d else None), None
     if parser == "emails":
-        return emails.parse(path, ctx)
+        tables, d = emails.parse(path, ctx)
+        return tables, d, None
     raise ValueError(parser)
 
 
