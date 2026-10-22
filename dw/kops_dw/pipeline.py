@@ -18,7 +18,7 @@ from pathlib import Path
 
 import duckdb
 
-from . import config, lake, manifest, parse, templates
+from . import config, lake, manifest, ocr, parse, templates
 from .util import norm_key
 
 SQL_DIR = config.DW_DIR / "sql"
@@ -138,7 +138,9 @@ def build(verbose=True, retry_failed=False) -> Path:
                 ctx.issue("WARN", "UNKNOWN_TEMPLATE", path.name, "Excel file not matched to a parser", path.name)
         else:
             seen[digest] = i
-            key = parse.cache_key(digest, parser, versions[parser], path.name, entry.rel, rec["is_sample"])
+            ocr_done = parser == "emails" and path.suffix.lower() == ".pdf" and ocr.is_done(digest)
+            key = parse.cache_key(digest, parser, versions[parser], path.name, entry.rel, rec["is_sample"],
+                                  "ocr" if ocr_done else "")      # OCR text arrived: parse this PDF again
             rec["parse_key"] = key
             res = results.get(key)
             if res is None or (retry_failed and res["status"] == "FAILED") or (
@@ -189,6 +191,10 @@ def build(verbose=True, retry_failed=False) -> Path:
     _insert(con, "etl.source_file", registry)
     quarantine = _quarantine(registry)
     _insert(con, "etl.quarantine", quarantine)
+    _insert(con, "etl.ocr_queue", [
+        dict(file_id=r["file_id"], file_name=r["file_name"], path=str(e.path), sha256=r["sha256"],
+             pages=results[r["parse_key"]]["ocr_pages"], status="DONE" if ocr.is_done(r["sha256"]) else "PENDING")
+        for r, e in zip(registry, entries) if r["parse_key"] in results and results[r["parse_key"]]["ocr_pages"]])
     t_sql = time.time()
     for f in sorted(SQL_DIR.glob("[1-9]*.sql")):
         con.execute(f.read_text())

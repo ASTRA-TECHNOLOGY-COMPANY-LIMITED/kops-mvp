@@ -1,4 +1,4 @@
-"""CLI: python -m kops_dw [build|test|dashboard|all|fetch-imap|attachments|lake-compact|templates] [--retry-failed]
+"""CLI: python -m kops_dw [build|test|dashboard|all|fetch-imap|attachments|lake-compact|templates|ocr]
 
   all           build + test + dashboard (default)
   build         incremental build: only new/changed files are parsed, the rest is read from the lake
@@ -7,6 +7,7 @@
   attachments   save .eml attachments to raw-docs/EMAIL_ATTACHMENTS/ so they are parsed by the next build
   lake-compact  rewrite the Parquet lake without rows of superseded parses (run when no build is running)
   templates     Excel layouts not yet known (quarantined); `templates accept <fp>` after checking them
+  ocr           OCR the scanned PDF pages queued by the last build (tesseract kor+vie+eng), then rebuild
 """
 from __future__ import annotations
 
@@ -24,6 +25,9 @@ def main(argv=None):
     if cmd == "attachments":
         from .inbox import attachments
         return attachments(argv[1:])
+    if cmd == "ocr":
+        from .ocr import run
+        sys.exit(run(argv[1:]))
     if cmd == "templates":
         from .templates import cli
         return cli(args[1:] + sorted(flags))

@@ -6,7 +6,8 @@ older conversation quoted below it (Outlook). Each header block becomes one reco
   Gmail print    : 'Name <addr>   Mon, Oct 19, 2026 at 10:15 AM' then 'To: ...'
 Messages after the first block of an Outlook-style export are marked is_quoted (older mails in the chain); they
 still count as history and are de-duplicated against other files by msg_key.
-Scanned PDFs (no text layer) are reported (PDF_NO_TEXT) instead of guessed; OCR is optional (tesseract).
+Scanned PDFs (no text layer) are reported (PDF_NO_TEXT) instead of guessed and their pages are queued for OCR
+(ocr.py, `python -m kops_dw ocr`); once OCR'd, the cached text is used and the records carry text_source='ocr'.
 """
 from __future__ import annotations
 
@@ -42,6 +43,8 @@ def pdf_text(path: Path) -> list[str]:
     if sum(len(p.strip()) for p in pages) < 20 and shutil.which("pdftotext"):
         out = subprocess.run(["pdftotext", "-layout", str(path), "-"], capture_output=True, timeout=120)
         pages = out.stdout.decode("utf-8", "replace").split("\f")
+        if pages and not pages[-1].strip():
+            pages.pop()                    # pdftotext ends every page with \f: no extra empty page
     return [nfc(p) for p in pages]
 
 
@@ -112,8 +115,51 @@ def _doc_subject(lines: list[str]) -> str | None:
     return None
 
 
+def _scanned_pages(path: Path, pages: list[str]) -> list[int]:
+    """1-based pages with (almost) no text that carry an image: candidates for OCR (blank pages are not)."""
+    out = [i for i, p in enumerate(pages, start=1) if len(p.strip()) < 20]
+    if not out:
+        return out
+    try:
+        from pypdf import PdfReader
+        reader = PdfReader(str(path))
+    except Exception:
+        return out
+    keep = []
+    for i in out:
+        if i > len(reader.pages):
+            continue
+        try:
+            res = reader.pages[i - 1].get("/Resources")
+            xo = res.get_object().get("/XObject") if res else None
+            xo = xo.get_object() if xo else {}
+            if any(xo[k].get_object().get("/Subtype") == "/Image" for k in xo):
+                keep.append(i)
+        except Exception:
+            keep.append(i)                 # unknown structure: let OCR decide
+    return keep
+
+
+def _apply_ocr(path: Path, pages: list[str], ctx) -> tuple[set[int], list[int]]:
+    """Replace scanned pages by cached OCR text (ocr.py); pages not OCR'd yet go to the queue (ctx.ocr_pages).
+    -> (pages read from OCR, scanned pages)."""
+    from ..ocr import cached_page
+    used, scanned = set(), _scanned_pages(path, pages)
+    for p in scanned:
+        txt = cached_page(ctx.sha256, p) if getattr(ctx, "sha256", None) else None
+        if txt is None:
+            ctx.ocr_pages.append(p)
+        elif txt.strip():
+            txt = re.sub(r"\n[ \t]*\n+", "\n", nfc(txt))      # tesseract puts blank lines between header lines
+            pages[p - 1] = re.sub(r"[(\[{](?=@)", "", txt)       # and often reads "@" as "(@"
+            used.add(p)
+    return used, scanned
+
+
 def parse(path: Path, ctx, is_sample: bool = False, channel: str = "pdf"):
     pages = pdf_text(path)
+    ocr_used, scanned = _apply_ocr(path, pages, ctx) if hasattr(ctx, "ocr_pages") else (set(), [])
+    queued = getattr(ctx, "ocr_pages", [])
     lines, page_of = [], []
     for pno, p in enumerate(pages, start=1):
         for ln in p.splitlines():
@@ -123,8 +169,20 @@ def parse(path: Path, ctx, is_sample: bool = False, channel: str = "pdf"):
             lines.append(s.strip())
             page_of.append(pno)
     if sum(len(x) for x in lines) < 20:
-        ctx.issue("WARN", "PDF_NO_TEXT", path.name, "No text layer (scanned/image PDF). Needs OCR or a manual read.", path.name)
+        hint = ""
+        if queued:
+            hint = f" Queued for OCR (page {', '.join(map(str, queued))}): run `python -m kops_dw ocr`, then build."
+        elif scanned:
+            hint = " OCR found no readable text either."
+        ctx.issue("WARN", "PDF_NO_TEXT", path.name, "No text layer (scanned/image PDF). Needs OCR or a manual read." + hint,
+                  path.name)
         return dict(email=[], stg_email_change=[]), None
+    if ocr_used:       # same code as above (the file has no text layer), but the text is now readable
+        ctx.issue("INFO", "PDF_NO_TEXT", path.name, f"Scanned page(s) {', '.join(map(str, sorted(ocr_used)))} read by "
+                  "OCR (tesseract); check names, numbers and dates against the PDF before acting on them", path.name)
+    if queued:
+        ctx.issue("INFO", "OCR_QUEUED", path.name, f"Scanned page(s) {', '.join(map(str, queued))} without text "
+                  "queued for OCR (python -m kops_dw ocr)", path.name)
     msgs = split_messages(lines)
     if not msgs:
         ctx.issue("WARN", "EMAIL_HEADER_NOT_FOUND", path.name,
@@ -141,6 +199,7 @@ def parse(path: Path, ctx, is_sample: bool = False, channel: str = "pdf"):
             channel=channel, part_no=n + 1, is_quoted=(style == "outlook" and n > 0), sent_at=sent,
             sender=hdr.get("from"), recipients=hdr.get("to"), cc=hdr.get("cc"),
             subject=hdr.get("subject") or doc_subject or path.stem, attachments=hdr.get("attach"),
-            body=body_txt, is_sample=is_sample, source_page=page_of[idx] if idx < len(page_of) else None))
+            body=body_txt, is_sample=is_sample, source_page=page_of[idx] if idx < len(page_of) else None,
+            text_source="ocr" if idx < len(page_of) and page_of[idx] in ocr_used else "text"))
     first = recs[0]["sent_at"]
     return dict(email=recs), (first.date() if first else None)

@@ -27,7 +27,7 @@ EXCEL_PARSERS = ("order_recap", "order_recap_ext", "production_plan", "shipment_
 _COMMON = ["parse.py", "util.py"]
 _EXCEL = [*_COMMON, "excel.py", "templates.py"]
 _CUSTOMERS = ["CUSTOMER_KEYS", "BRAND_ALIASES", "FACTORY_ALIASES"]
-_EMAIL = [*_COMMON, "ingest/emails.py", "ingest/email_pdf.py", "ingest/email_common.py", "ingest/email_llm.py"]
+_EMAIL = [*_COMMON, "ingest/emails.py", "ingest/email_pdf.py", "ingest/email_common.py", "ingest/email_llm.py", "ocr.py"]
 _EMAIL_CFG = ["EMAIL_CATEGORIES", "EMAIL_DMY", "EMAIL_LLM", "EMAIL_LLM_MODEL"]
 # parser -> (source files under kops_dw/, config names) whose content defines the parser version
 PARSER_DEPS = {
@@ -53,6 +53,7 @@ class Ctx:
         self.file_id = None
         self.sha256 = sha256
         self.report_date = None       # set by streaming parsers (mailboxes)
+        self.ocr_pages = []           # scanned PDF pages waiting for OCR (ocr.py)
 
     def issue(self, severity, code, entity, message, location=None):
         self.issues.append(dict(file_id=self.file_id, severity=severity, code=code, entity=str(entity),
@@ -174,6 +175,8 @@ def _run_one(t: dict, writer: lake.Writer, timeout: int, verbose: bool) -> dict:
 
 def _finish(meta, ctx, writer, t, t0) -> dict:
     meta["n_issues"] = len(ctx.issues)
+    if ctx.ocr_pages:
+        meta["ocr_pages"] = ",".join(map(str, sorted(set(ctx.ocr_pages))))
     writer.add({"etl.data_issue": ctx.issues}, t["key"], t["parser"])
     meta["seconds"] = round(time.time() - t0, 3)
     return meta

@@ -33,6 +33,10 @@ CREATE TABLE etl.quarantine (
   file_id INTEGER, file_name VARCHAR, rel_path VARCHAR, parser VARCHAR, status VARCHAR, reason VARCHAR,
   message VARCHAR, template_fp VARCHAR, labels VARCHAR, action VARCHAR);
 
+-- Scanned PDF pages waiting for OCR (H-08): `python -m kops_dw ocr` processes the PENDING ones.
+CREATE TABLE etl.ocr_queue (
+  file_id INTEGER, file_name VARCHAR, path VARCHAR, sha256 VARCHAR, pages VARCHAR, status VARCHAR);
+
 CREATE TABLE etl.data_issue (
   file_id INTEGER, severity VARCHAR, code VARCHAR, entity VARCHAR, message VARCHAR, location VARCHAR);
 
@@ -78,7 +82,8 @@ CREATE TABLE raw.email (
   is_quoted BOOLEAN, sent_at TIMESTAMP, sender VARCHAR, sender_email VARCHAR, recipients VARCHAR, cc VARCHAR,
   subject VARCHAR, lang VARCHAR, categories VARCHAR, attachments VARCHAR, body VARCHAR, is_sample BOOLEAN,
   in_reply_to VARCHAR, source_page INTEGER, llm_category VARCHAR, summary_vi VARCHAR, summary_ko VARCHAR,
-  folder VARCHAR);   -- mailbox folder (.pst) or Gmail labels (.mbox)
+  folder VARCHAR,    -- mailbox folder (.pst) or Gmail labels (.mbox)
+  text_source VARCHAR);   -- PDF exports: 'text' (text layer) or 'ocr' (scanned page read by tesseract, H-08)
 
 -- Mailbox messages not loaded as business email (H-06), kept to audit the rules: folder | date-range | automated:*
 CREATE TABLE raw.email_filtered (
