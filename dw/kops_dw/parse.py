@@ -17,13 +17,13 @@ import time
 import traceback
 from pathlib import Path
 
-from . import config, lake
-from .excel import open_workbook
+from . import config, lake, templates
+from .excel import open_workbook, xlsx_path
 
 LAKE_FORMAT = "1"          # bump to re-parse everything (e.g. after a change in how rows are stored)
 EXCEL_PARSERS = ("order_recap", "order_recap_ext", "production_plan", "shipment_status", "production_status")
 _COMMON = ["parse.py", "util.py"]
-_EXCEL = [*_COMMON, "excel.py"]
+_EXCEL = [*_COMMON, "excel.py", "templates.py"]
 _CUSTOMERS = ["CUSTOMER_KEYS", "BRAND_ALIASES", "FACTORY_ALIASES"]
 _EMAIL = [*_COMMON, "ingest/emails.py", "ingest/email_pdf.py", "ingest/email_common.py", "ingest/email_llm.py"]
 _EMAIL_CFG = ["EMAIL_CATEGORIES", "EMAIL_DMY", "EMAIL_LLM", "EMAIL_LLM_MODEL"]
@@ -111,8 +111,8 @@ def failed(tasks: list[dict], batch: str, code: str, message: str) -> list[dict]
 def _meta(t: dict, batch: str) -> dict:
     return dict(_key=t["key"], _batch=batch, sha256=t["sha256"], parser=t["parser"], parser_version=t["version"],
                 file_name=t["name"], status="LOADED", message=None, report_date=None, family=None, season=None,
-                rows_loaded=0, n_issues=0, seconds=0.0, template_fp=None, template_labels=None, ocr_pages=None,
-                parsed_at=dt.datetime.now())
+                rows_loaded=0, n_issues=0, seconds=0.0, template_fp=None, template_sheet=None, template_labels=None,
+                ocr_pages=None, parsed_at=dt.datetime.now())
 
 
 def _on_alarm(signum, frame):
@@ -128,6 +128,16 @@ def _run_one(t: dict, writer: lake.Writer, timeout: int, verbose: bool) -> dict:
         signal.signal(signal.SIGALRM, _on_alarm)
         signal.alarm(timeout)
     try:
+        if t["parser"] in EXCEL_PARSERS:
+            fp = templates.fingerprint(xlsx_path(t["path"], t["sha256"]))
+            meta.update(template_fp=fp["fp"], template_sheet=fp["sheet"], template_labels=" | ".join(fp["labels"]))
+            if templates.enabled() and not templates.is_known(fp["fp"], t["parser"]):
+                meta.update(status="UNKNOWN_TEMPLATE", message=f"Unknown layout: header row(s) {fp['row']} of sheet "
+                                                               f"'{fp['sheet']}' (fingerprint {fp['fp']}); "
+                                                               + templates.nearest(fp["labels"], t["parser"]))
+                ctx.issue("WARN", "UNKNOWN_TEMPLATE", t["name"], f"{meta['message']}: {meta['template_labels']}"[:2000],
+                          f"{t['name']} / {fp['sheet']} row {fp['row']}")
+                return _finish(meta, ctx, writer, t, t0)
         tables, report_date, family = parse_file(t, ctx)
         seasons, n = set(), 0
         for part in [tables] if isinstance(tables, dict) else tables:      # mailboxes yield parts
@@ -148,6 +158,10 @@ def _run_one(t: dict, writer: lake.Writer, timeout: int, verbose: bool) -> dict:
     finally:
         if use_alarm:
             signal.alarm(0)
+    return _finish(meta, ctx, writer, t, t0)
+
+
+def _finish(meta, ctx, writer, t, t0) -> dict:
     meta["n_issues"] = len(ctx.issues)
     writer.add({"etl.data_issue": ctx.issues}, t["key"], t["parser"])
     meta["seconds"] = round(time.time() - t0, 3)

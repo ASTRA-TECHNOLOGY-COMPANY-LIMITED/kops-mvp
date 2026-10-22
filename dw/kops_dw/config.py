@@ -20,6 +20,8 @@ QUARANTINE_PATH = BUILD_DIR / "quarantine.csv"
 # Parsing runs in N worker processes (1 = in the build process, easier to debug); each file has a time limit.
 WORKERS = int(os.environ.get("KOPS_WORKERS", min(8, os.cpu_count() or 2)))
 PARSE_TIMEOUT = int(os.environ.get("KOPS_PARSE_TIMEOUT", 600))      # seconds per file, 0 = no limit
+# Excel files whose header layout is not in dw/templates/known_templates.json are quarantined (templates.py).
+TEMPLATE_CHECK = os.environ.get("KOPS_TEMPLATE_CHECK", "1") == "1"
 DB_PATH = BUILD_DIR / "kops.duckdb"
 DASHBOARD_PATH = BUILD_DIR / "dashboard.html"
 

@@ -18,7 +18,7 @@ from pathlib import Path
 
 import duckdb
 
-from . import config, lake, manifest, parse
+from . import config, lake, manifest, parse, templates
 from .util import norm_key
 
 SQL_DIR = config.DW_DIR / "sql"
@@ -111,6 +111,7 @@ def build(verbose=True, retry_failed=False) -> Path:
     t_scan = time.time() - t0
 
     versions, results = parse.parser_versions(), lake.read_results()
+    check_templates, known_templates = templates.enabled(), templates.known()
     seen, registry, extra_issues, tasks = {}, [], [], []
     for i, entry in enumerate(entries, start=1):
         path, digest = entry.path, entry.sha256
@@ -119,7 +120,8 @@ def build(verbose=True, retry_failed=False) -> Path:
                    season=season, file_date=file_date(path.name), report_date=None, sha256=digest,
                    size_bytes=entry.size_bytes, is_sample=config.DW_DIR in path.parents,
                    status="LOADED", is_current=False, rows_loaded=0, message=None, loaded_at=dt.datetime.now(),
-                   family=None, parse_key=None, from_cache=False, parse_seconds=None)
+                   family=None, parse_key=None, from_cache=False, parse_seconds=None, template_fp=None,
+                   template_sheet=None, template_labels=None)
         ctx = Ctx()
         ctx.file_id = i
         if digest in seen:
@@ -136,7 +138,9 @@ def build(verbose=True, retry_failed=False) -> Path:
             key = parse.cache_key(digest, parser, versions[parser], path.name, entry.rel, rec["is_sample"])
             rec["parse_key"] = key
             res = results.get(key)
-            if res is None or (retry_failed and res["status"] == "FAILED"):
+            if res is None or (retry_failed and res["status"] == "FAILED") or (
+                    res["status"] == "UNKNOWN_TEMPLATE" and (not check_templates or
+                                                             templates.is_known(res["template_fp"], parser, known_templates))):
                 tasks.append(dict(key=key, path=str(path), name=path.name, rel=entry.rel, parser=parser,
                                   season=season, sha256=digest, is_sample=rec["is_sample"], version=versions[parser],
                                   size=entry.size_bytes))
@@ -153,9 +157,15 @@ def build(verbose=True, retry_failed=False) -> Path:
         if res is None:
             continue
         r.update(status=res["status"], message=res["message"], report_date=res["report_date"], family=res["family"],
-                 rows_loaded=res["rows_loaded"], from_cache=r["parse_key"] not in parsed, parse_seconds=res["seconds"])
+                 rows_loaded=res["rows_loaded"], from_cache=r["parse_key"] not in parsed, parse_seconds=res["seconds"],
+                 template_fp=res["template_fp"], template_sheet=res.get("template_sheet"),
+                 template_labels=res["template_labels"])
         if res["season"]:
             r["season"] = res["season"]
+        if (check_templates and r["status"] == "LOADED" and r["template_fp"]
+                and not templates.is_known(r["template_fp"], r["parser"], known_templates)):
+            r.update(status="UNKNOWN_TEMPLATE", rows_loaded=0,     # parsed earlier, layout no longer accepted
+                     message=f"Unknown layout (fingerprint {r['template_fp']} not in known_templates.json)")
     if verbose and len(registry) <= 300:
         for r in registry:
             src = "cached" if r["from_cache"] else ("parsed" if r["parse_key"] else "")
@@ -174,7 +184,7 @@ def build(verbose=True, retry_failed=False) -> Path:
     t_load = time.time() - t_load
     _insert(con, "etl.data_issue", extra_issues)
     _insert(con, "etl.source_file", registry)
-    quarantine = _quarantine(registry, results)
+    quarantine = _quarantine(registry)
     _insert(con, "etl.quarantine", quarantine)
     t_sql = time.time()
     for f in sorted(SQL_DIR.glob("[1-9]*.sql")):
@@ -294,20 +304,30 @@ QUARANTINE_HINT = {
     "PARSE_FAILED": "Mở file kiểm tra; sửa parser hoặc nhờ KLMAS gửi lại file, rồi chạy build --retry-failed",
     "PARSE_TIMEOUT": "File quá lớn/treo: tăng KOPS_PARSE_TIMEOUT hoặc tách file, rồi build --retry-failed",
     "PARSE_CRASHED": "Tiến trình parse chết (file hỏng/thiếu RAM): kiểm tra file, rồi build --retry-failed",
+    "UNKNOWN_TEMPLATE": "Bố cục cột chưa biết: so nhãn với parser; đọc đúng thì `python -m kops_dw templates accept "
+                        "<fp>`, sai thì cần sửa/viết parser (H-05)",
+    "UNKNOWN_FILE": "Tên file không khớp loại báo cáo nào: kiểm tra, thêm quy tắc vào pipeline.classify nếu cần",
 }
 
 
-def _quarantine(registry: list[dict], results: dict) -> list[dict]:
-    """Files that are not loaded and need a person: failed / timed out / crashed parses."""
+def _quarantine(registry: list[dict]) -> list[dict]:
+    """Files that are not loaded and need a person: failed / timed out / crashed parses, unknown layouts."""
     out = []
     for r in registry:
-        if r["status"] != "FAILED":
-            continue
         msg = r["message"] or ""
-        code = ("PARSE_TIMEOUT" if msg.startswith("Timeout") else "PARSE_CRASHED" if msg.startswith("Crashed")
-                else "PARSE_FAILED")
+        if r["status"] == "FAILED":
+            code = ("PARSE_TIMEOUT" if msg.startswith("Timeout") else "PARSE_CRASHED" if msg.startswith("Crashed")
+                    else "PARSE_FAILED")
+        elif r["status"] == "UNKNOWN_TEMPLATE":
+            code = "UNKNOWN_TEMPLATE"
+        elif r["status"] == "SKIPPED" and r["source_type"] == "excel" and r["parser"] is None:
+            code = "UNKNOWN_FILE"
+        else:
+            continue
         out.append(dict(file_id=r["file_id"], file_name=r["file_name"], rel_path=r["rel_path"], parser=r["parser"],
-                        status=r["status"], reason=code, message=msg, labels=None, action=QUARANTINE_HINT[code]))
+                        status=r["status"], reason=code, message=msg, template_fp=r["template_fp"],
+                        labels=r["template_labels"] if code == "UNKNOWN_TEMPLATE" else None,
+                        action=QUARANTINE_HINT[code]))
     return out
 
 
@@ -315,7 +335,7 @@ def _write_quarantine(rows: list[dict], verbose: bool):
     import csv
     with open(config.QUARANTINE_PATH, "w", newline="", encoding="utf-8-sig") as f:   # BOM: opens in Excel
         w = csv.DictWriter(f, fieldnames=["file_name", "rel_path", "parser", "status", "reason", "message",
-                                          "labels", "action"], extrasaction="ignore")
+                                          "template_fp", "labels", "action"], extrasaction="ignore")
         w.writeheader()
         w.writerows(rows)
     if verbose and rows:

@@ -13,7 +13,8 @@ CREATE TABLE etl.source_file (
   season VARCHAR, file_date DATE, report_date DATE, sha256 VARCHAR, size_bytes BIGINT, is_sample BOOLEAN,
   status VARCHAR, is_current BOOLEAN, rows_loaded INTEGER, message VARCHAR, loaded_at TIMESTAMP,
   family VARCHAR,    -- version family, e.g. 'DHG|8 SECONDS' (NULL = one family per parser + season)
-  parse_key VARCHAR, from_cache BOOLEAN, parse_seconds DOUBLE);   -- lake key; rows read back from the lake
+  parse_key VARCHAR, from_cache BOOLEAN, parse_seconds DOUBLE,   -- lake key; rows read back from the lake
+  template_fp VARCHAR, template_sheet VARCHAR, template_labels VARCHAR);   -- Excel header fingerprint (H-04)
 
 -- Every file under the source roots (H-01). change: NEW | CHANGED | UNCHANGED | REMOVED vs the previous build.
 CREATE TABLE etl.manifest (
@@ -30,7 +31,7 @@ CREATE TABLE etl.run (
 -- UNKNOWN_TEMPLATE | MISSING_TOOL; labels = header labels of an unknown template. Also written to build/quarantine.csv.
 CREATE TABLE etl.quarantine (
   file_id INTEGER, file_name VARCHAR, rel_path VARCHAR, parser VARCHAR, status VARCHAR, reason VARCHAR,
-  message VARCHAR, labels VARCHAR, action VARCHAR);
+  message VARCHAR, template_fp VARCHAR, labels VARCHAR, action VARCHAR);
 
 CREATE TABLE etl.data_issue (
   file_id INTEGER, severity VARCHAR, code VARCHAR, entity VARCHAR, message VARCHAR, location VARCHAR);

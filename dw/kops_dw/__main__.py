@@ -1,4 +1,4 @@
-"""CLI: python -m kops_dw [build|test|dashboard|all|fetch-imap|attachments|lake-compact] [--retry-failed]
+"""CLI: python -m kops_dw [build|test|dashboard|all|fetch-imap|attachments|lake-compact|templates] [--retry-failed]
 
   all           build + test + dashboard (default)
   build         incremental build: only new/changed files are parsed, the rest is read from the lake
@@ -6,6 +6,7 @@
   fetch-imap    read-only download of a mailbox folder into raw-docs/inbox/imap/ (see kops_dw/inbox.py)
   attachments   save .eml attachments to raw-docs/EMAIL_ATTACHMENTS/ so they are parsed by the next build
   lake-compact  rewrite the Parquet lake without rows of superseded parses (run when no build is running)
+  templates     Excel layouts not yet known (quarantined); `templates accept <fp>` after checking them
 """
 from __future__ import annotations
 
@@ -23,6 +24,9 @@ def main(argv=None):
     if cmd == "attachments":
         from .inbox import attachments
         return attachments(argv[1:])
+    if cmd == "templates":
+        from .templates import cli
+        return cli(args[1:] + sorted(flags))
     if cmd == "lake-compact":
         from . import lake
         before = lake.size_bytes()

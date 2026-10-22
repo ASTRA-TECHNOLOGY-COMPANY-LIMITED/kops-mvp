@@ -33,7 +33,7 @@ RESULT_SCHEMA = pa.schema([
     ("parser_version", pa.string()), ("file_name", pa.string()), ("status", pa.string()), ("message", pa.string()),
     ("report_date", pa.date32()), ("family", pa.string()), ("season", pa.string()), ("rows_loaded", pa.int64()),
     ("n_issues", pa.int64()), ("seconds", pa.float64()), ("template_fp", pa.string()),
-    ("template_labels", pa.string()), ("ocr_pages", pa.string()), ("parsed_at", pa.timestamp("us"))])
+    ("template_sheet", pa.string()), ("template_labels", pa.string()), ("ocr_pages", pa.string()), ("parsed_at", pa.timestamp("us"))])
 LAKE_TABLES_PREFIX = ("raw.", "stg.")
 
 
