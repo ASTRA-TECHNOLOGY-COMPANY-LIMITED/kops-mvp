@@ -22,6 +22,7 @@ import difflib
 import hashlib
 import json
 import re
+from collections import Counter
 import sys
 
 import openpyxl
@@ -87,8 +88,8 @@ def nearest(labels: list[str], parser: str, registry: dict | None = None) -> str
     if best is None:
         return f"no known layout for parser {parser}"
     old = reg[best]["labels"]
-    missing = [x for x in old if x not in labels]
-    new = [x for x in labels if x not in old]
+    missing = list((Counter(old) - Counter(labels)).elements())       # multiset: labels repeat across header rows
+    new = list((Counter(labels) - Counter(old)).elements())
     moved = "" if missing or new else "; same labels, different order/count"
     return (f"closest known {best} ({reg[best]['example']}): missing [{', '.join(missing[:10])}], "
             f"new [{', '.join(new[:10])}]{moved}")
