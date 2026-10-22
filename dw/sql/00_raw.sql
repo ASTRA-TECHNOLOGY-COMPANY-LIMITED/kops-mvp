@@ -77,7 +77,13 @@ CREATE TABLE raw.email (
   file_id INTEGER, message_id VARCHAR, msg_key VARCHAR, thread_key VARCHAR, channel VARCHAR, part_no INTEGER,
   is_quoted BOOLEAN, sent_at TIMESTAMP, sender VARCHAR, sender_email VARCHAR, recipients VARCHAR, cc VARCHAR,
   subject VARCHAR, lang VARCHAR, categories VARCHAR, attachments VARCHAR, body VARCHAR, is_sample BOOLEAN,
-  in_reply_to VARCHAR, source_page INTEGER, llm_category VARCHAR, summary_vi VARCHAR, summary_ko VARCHAR);
+  in_reply_to VARCHAR, source_page INTEGER, llm_category VARCHAR, summary_vi VARCHAR, summary_ko VARCHAR,
+  folder VARCHAR);   -- mailbox folder (.pst) or Gmail labels (.mbox)
+
+-- Mailbox messages not loaded as business email (H-06), kept to audit the rules: folder | date-range | automated:*
+CREATE TABLE raw.email_filtered (
+  file_id INTEGER, msg_key VARCHAR, message_id VARCHAR, sent_at TIMESTAMP, sender_email VARCHAR, subject VARCHAR,
+  folder VARCHAR, reason VARCHAR);
 
 -- ORDER RECAP of customers other than CHALLENGER (header-driven parser, one row per style block)
 CREATE TABLE raw.order_line_ext (

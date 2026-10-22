@@ -11,6 +11,10 @@ STYLE_RE = re.compile(r"^CH[A-Z][0-9][MWU][A-Z]{2}[0-9]{4}$")
 STYLE_IN_TEXT_RE = re.compile(r"\bCH[A-Z]{1,2}[0-9][MWU]?[A-Z]{2}[0-9]{4}\b")
 
 
+class MissingTool(Exception):
+    """An optional system tool (readpst, tesseract...) is not installed: the file is quarantined, not failed."""
+
+
 def sha256(path: Path) -> str:
     h = hashlib.sha256()
     with open(path, "rb") as f:

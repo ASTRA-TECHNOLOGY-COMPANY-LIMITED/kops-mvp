@@ -10,6 +10,7 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import os
+import shutil
 import signal
 import sys
 import threading
@@ -19,6 +20,7 @@ from pathlib import Path
 
 from . import config, lake, templates
 from .excel import open_workbook, xlsx_path
+from .util import MissingTool
 
 LAKE_FORMAT = "1"          # bump to re-parse everything (e.g. after a change in how rows are stored)
 EXCEL_PARSERS = ("order_recap", "order_recap_ext", "production_plan", "shipment_status", "production_status")
@@ -36,7 +38,11 @@ PARSER_DEPS = {
     "production_status": ([*_EXCEL, "ingest/production_status.py"], []),
     "meeting_notes": ([*_COMMON, "ingest/meeting_notes.py"], []),
     "emails": (_EMAIL, _EMAIL_CFG),
+    "mailbox": ([*_EMAIL, "ingest/mailbox.py"],
+                [*_EMAIL_CFG, "MAIL_EXCLUDE_FOLDERS", "MAIL_ALLOW", "MAIL_SINCE", "MAIL_UNTIL"]),
 }
+# Optional tools: installing one changes the version, so files quarantined for MISSING_TOOL are parsed again.
+PARSER_TOOLS = {"mailbox": ["readpst"]}
 
 
 class Ctx:
@@ -62,6 +68,8 @@ def parser_versions() -> dict[str, str]:
             h.update((pkg / f).read_bytes())
         for n in names:
             h.update(f"{n}={getattr(config, n)!r}".encode())
+        for tool in PARSER_TOOLS.get(parser, []):
+            h.update(f"{tool}={shutil.which(tool) is not None}".encode())
         out[parser] = h.hexdigest()[:12]
     return out
 
@@ -147,6 +155,9 @@ def _run_one(t: dict, writer: lake.Writer, timeout: int, verbose: bool) -> dict:
         meta.update(report_date=report_date or ctx.report_date, family=family, rows_loaded=n)
         if len(seasons) == 1:
             meta["season"] = seasons.pop()            # sheet title wins over the file name
+    except MissingTool as e:
+        meta.update(status="SKIPPED", message=f"Missing tool: {e}")
+        ctx.issue("WARN", "MISSING_TOOL", t["name"], meta["message"], t["name"])
     except ParseTimeout:
         meta.update(status="FAILED", message=f"Timeout: parsing took more than {timeout} s (KOPS_PARSE_TIMEOUT)")
         ctx.issue("ERROR", "PARSE_TIMEOUT", t["name"], meta["message"], t["name"])
@@ -193,4 +204,7 @@ def parse_file(t: dict, ctx: Ctx):
     if parser == "emails":
         tables, d = emails.parse(path, ctx)
         return tables, d, None
+    if parser == "mailbox":
+        from .ingest import mailbox
+        return mailbox.parse(path, ctx, t["is_sample"])
     raise ValueError(parser)

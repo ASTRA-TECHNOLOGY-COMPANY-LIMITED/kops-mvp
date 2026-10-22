@@ -34,6 +34,7 @@ PENDING = [
 # CHALLENGER ORDER RECAPs use the detailed fixed-column parser; other customers the header-driven one.
 CHALLENGER_KEYS = ("CHALLENGER", "CLGR")
 EMAIL_EXT = (".eml", ".pdf", ".msg")
+MAILBOX_EXT = (".mbox", ".pst")      # whole mailboxes (ingest/mailbox.py)
 
 
 def _in_inbox(path: Path) -> bool:
@@ -45,6 +46,8 @@ def classify(path: Path):
     name = path.name.upper().replace("_", " ")   # '…_27SS_PRODUCTION_PLAN' -> '… 27SS PRODUCTION PLAN'
     season = (m.group(0) if (m := re.search(r"\b2\d(SS|FW)\b", name)) else None)
     ext = path.suffix.lower()
+    if _in_inbox(path) and ext in MAILBOX_EXT:
+        return "email", "mailbox", season
     if _in_inbox(path) and ext in EMAIL_EXT:
         return "email", "emails", season
     if ext in (".xlsx", ".xlsb", ".xlsm"):
@@ -93,7 +96,7 @@ def discover():
             files.append(p)
     for d in config.INBOX_DIRS:                # emails: .eml / PDF export / .msg, any sub-folder (gmail/, pdf/ ...)
         if d.exists():
-            files += sorted(p for p in d.rglob("*") if p.is_file() and p.suffix.lower() in EMAIL_EXT
+            files += sorted(p for p in d.rglob("*") if p.is_file() and p.suffix.lower() in EMAIL_EXT + MAILBOX_EXT
                             and not any(x.startswith(("_", ".")) for x in p.relative_to(d).parts))
     return files
 
@@ -306,6 +309,7 @@ QUARANTINE_HINT = {
     "PARSE_CRASHED": "Tiến trình parse chết (file hỏng/thiếu RAM): kiểm tra file, rồi build --retry-failed",
     "UNKNOWN_TEMPLATE": "Bố cục cột chưa biết: so nhãn với parser; đọc đúng thì `python -m kops_dw templates accept "
                         "<fp>`, sai thì cần sửa/viết parser (H-05)",
+    "MISSING_TOOL": "Cài công cụ ghi trong message (vd. brew install libpst / tesseract); build sau tự đọc lại",
     "UNKNOWN_FILE": "Tên file không khớp loại báo cáo nào: kiểm tra, thêm quy tắc vào pipeline.classify nếu cần",
 }
 
@@ -320,6 +324,8 @@ def _quarantine(registry: list[dict]) -> list[dict]:
                     else "PARSE_FAILED")
         elif r["status"] == "UNKNOWN_TEMPLATE":
             code = "UNKNOWN_TEMPLATE"
+        elif r["status"] == "SKIPPED" and msg.startswith("Missing tool"):
+            code = "MISSING_TOOL"
         elif r["status"] == "SKIPPED" and r["source_type"] == "excel" and r["parser"] is None:
             code = "UNKNOWN_FILE"
         else:
@@ -352,7 +358,7 @@ def _mark_current(registry):
     for r in registry:
         if r["status"] != "LOADED":
             continue
-        if r["parser"] in ("emails", "meeting_notes"):
+        if r["parser"] in ("emails", "mailbox", "meeting_notes"):
             r["is_current"] = True
             continue
         key = (r["parser"], r["season"], r["family"])

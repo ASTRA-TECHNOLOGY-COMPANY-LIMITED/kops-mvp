@@ -1,6 +1,7 @@
 """Paths, source discovery rules and configurable business rules for the KOPS DW MVP."""
 from __future__ import annotations
 
+import datetime as dt
 import os
 import shutil
 from pathlib import Path
@@ -84,6 +85,24 @@ EMAIL_CATEGORIES = [
 ]
 # Ambiguous numeric dates like 05/10/2026 are read day/month (VN, KR exports). Set KOPS_EMAIL_DMY=0 for US m/d.
 EMAIL_DMY = os.environ.get("KOPS_EMAIL_DMY", "1") == "1"
+# Mailboxes (.mbox / .pst, ingest/mailbox.py): what is not loaded as business email. Comma-separated env overrides.
+def _env_list(name, default):
+    v = os.environ.get(name)
+    return [x.strip() for x in v.split(",") if x.strip()] if v is not None else default
+
+
+def _env_date(name):
+    v = os.environ.get(name)
+    return dt.date.fromisoformat(v) if v else None
+
+
+MAIL_EXCLUDE_FOLDERS = _env_list("KOPS_MAIL_EXCLUDE_FOLDERS", [
+    "Spam", "Junk", "Junk E-mail", "Junk Email", "Trash", "Deleted Items", "Deleted Messages", "Bin", "Drafts",
+    "Outbox", "RSS Feeds", "Sync Issues", "Conflicts", "Calendar", "Contacts", "Tasks", "Notes", "Journal",
+    "스팸", "스팸메일함", "휴지통", "지운 편지함", "임시 보관함", "임시보관함", "Thư rác", "Thùng rác", "Nháp"])
+MAIL_ALLOW = [x.lower() for x in _env_list("KOPS_MAIL_ALLOW", [])]     # senders/domains never filtered
+MAIL_SINCE, MAIL_UNTIL = _env_date("KOPS_MAIL_SINCE"), _env_date("KOPS_MAIL_UNTIL")
+
 # Optional LLM extractor (off by default; needs PO decision P2 in plans/EMAIL_READINESS_PLAN.md).
 EMAIL_LLM = os.environ.get("KOPS_EMAIL_LLM", "0") == "1"
 EMAIL_LLM_MODEL = os.environ.get("KOPS_EMAIL_LLM_MODEL", "claude-sonnet-5-5")

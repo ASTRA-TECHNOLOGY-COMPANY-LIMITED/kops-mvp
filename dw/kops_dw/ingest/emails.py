@@ -46,6 +46,15 @@ def parse(path, ctx):
     else:
         recs = [_parse_eml(path, is_sample, channel)]
         d = None
+    proposals = proposals_for(recs, ctx, path.name)
+    if not d:
+        dates = [r["sent_at"] for r in recs if r["sent_at"]]
+        d = min(dates).date() if dates else None
+    return dict(email=recs, stg_email_change=proposals), d
+
+
+def proposals_for(recs: list[dict], ctx, file_name: str) -> list[dict]:
+    """Rule-based (and, when enabled, LLM) change proposals for each message; all PENDING_REVIEW."""
     proposals = []
     for rec in recs:
         season = rec.pop("season", None) or _guess_season(rec["body"])
@@ -61,17 +70,18 @@ def parse(path, ctx):
                 proposals += llm_props
                 found = found or llm_props
             except Exception as e:      # keep the rule-based result; never block the build on the API
-                ctx.issue("WARN", "EMAIL_LLM_FAILED", rec["message_id"], f"{type(e).__name__}: {e}", path.name)
+                ctx.issue("WARN", "EMAIL_LLM_FAILED", rec["message_id"], f"{type(e).__name__}: {e}", file_name)
         if not found and not rec.get("is_quoted"):
-            ctx.issue("INFO", "EMAIL_NO_CHANGE", rec["message_id"], "No structured change found (inquiry/other)", path.name)
-    if not d:
-        dates = [r["sent_at"] for r in recs if r["sent_at"]]
-        d = min(dates).date() if dates else None
-    return dict(email=recs, stg_email_change=proposals), d
+            ctx.issue("INFO", "EMAIL_NO_CHANGE", rec["message_id"], "No structured change found (inquiry/other)", file_name)
+    return proposals
 
 
 def _parse_eml(path, is_sample, channel):
-    msg = email.message_from_bytes(path.read_bytes(), policy=policy.default)
+    return from_message(email.message_from_bytes(path.read_bytes(), policy=policy.default), is_sample, channel)
+
+
+def from_message(msg, is_sample, channel, folder=None):
+    """One parsed email.message (.eml file, or one message of a .mbox / .pst) -> normalised record."""
     body_part = msg.get_body(preferencelist=("plain", "html"))
     body = nfc(body_part.get_content()) if body_part else ""
     if body_part is not None and body_part.get_content_type() == "text/html":
@@ -87,7 +97,7 @@ def _parse_eml(path, is_sample, channel):
                  recipients=str(msg["To"] or ""), cc=str(msg["Cc"] or "") or None,
                  subject=nfc(str(msg["Subject"] or "")), body=body,
                  attachments="; ".join(atts) or None, in_reply_to=(msg["In-Reply-To"] or "").strip("<> ") or None,
-                 is_sample=is_sample or msg.get("X-KOPS-Sample", "").lower() == "true")
+                 is_sample=is_sample or msg.get("X-KOPS-Sample", "").lower() == "true", folder=folder)
     if not rec["message_id"]:
         rec["message_id"] = rec["msg_key"]
     rec["season"] = msg.get("X-KOPS-Season")
