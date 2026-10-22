@@ -1,4 +1,4 @@
-"""CLI: python -m kops_dw [build|test|dashboard|all|fetch-imap|attachments|lake-compact|templates|ocr]
+"""CLI: python -m kops_dw [build|test|dashboard|all|fetch-imap|attachments|lake-compact|templates|ocr|bench]
 
   all           build + test + dashboard (default)
   build         incremental build: only new/changed files are parsed, the rest is read from the lake
@@ -8,6 +8,7 @@
   lake-compact  rewrite the Parquet lake without rows of superseded parses (run when no build is running)
   templates     Excel layouts not yet known (quarantined); `templates accept <fp>` after checking them
   ocr           OCR the scanned PDF pages queued by the last build (tesseract kor+vie+eng), then rebuild
+  bench         acceptance checks / synthetic data / benchmark outside the repo (see kops_dw/bench.py)
 """
 from __future__ import annotations
 
@@ -25,6 +26,9 @@ def main(argv=None):
     if cmd == "attachments":
         from .inbox import attachments
         return attachments(argv[1:])
+    if cmd == "bench":
+        from .bench import main as bench
+        sys.exit(0 if bench(argv[1:]) in (True, None) else 1)
     if cmd == "ocr":
         from .ocr import run
         sys.exit(run(argv[1:]))

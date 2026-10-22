@@ -89,11 +89,11 @@ def _coerce(v, typ: str):
 class Writer:
     """Buffers rows of many files and writes one Parquet file per (table, parser) when flushed."""
 
-    def __init__(self, batch: str, flush_rows: int = 200_000):
-        self.batch, self.flush_rows = batch, flush_rows
+    def __init__(self, batch: str, flush_rows: int = 200_000, flush_bytes: int = 64 << 20):
+        self.batch, self.flush_rows, self.flush_bytes = batch, flush_rows, flush_bytes
         self.buf: dict[tuple[str, str], dict[str, list]] = {}
         self.seq = defaultdict(int)
-        self.pending = self.part = 0
+        self.pending = self.pending_bytes = self.part = 0
 
     def add(self, tables: dict, key: str, parser: str) -> int:
         """Cast every row first (a bad value fails this file only), then buffer. Returns rows added."""
@@ -114,8 +114,9 @@ class Writer:
             for c, vals in cols.items():
                 buf[c] += vals
             self.pending += cnt
+            self.pending_bytes += sum(len(v) for v in cols.get("body", ()) if v)     # email bodies dominate
             n += cnt if not table.startswith("etl.") else 0
-        if self.pending >= self.flush_rows:
+        if self.pending >= self.flush_rows or self.pending_bytes >= self.flush_bytes:
             self.flush()
         return n
 
@@ -126,7 +127,7 @@ class Writer:
             schema = pa.schema(fields)
             data = pa.Table.from_pydict({f.name: cols[f.name] for f in schema}, schema=schema)
             _write(data, config.LAKE_DIR / table / parser / f"{self.batch}-{self.part:03d}.parquet")
-        self.buf, self.pending = {}, 0
+        self.buf, self.pending, self.pending_bytes = {}, 0, 0
         self.part += 1
 
 
