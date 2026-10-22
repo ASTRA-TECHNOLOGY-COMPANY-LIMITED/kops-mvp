@@ -10,3 +10,5 @@ dw/build/
 dw/.venv/
 __pycache__/
 *.pyc
+dw/.venv-mac/
+dw/lake/
