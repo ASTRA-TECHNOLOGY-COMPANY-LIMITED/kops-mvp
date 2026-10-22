@@ -12,6 +12,25 @@
 - Không tự áp thay đổi vào số liệu khi chưa có người duyệt.
 - Email thật và file đính kèm chỉ để local (`raw-docs/inbox/`), không commit.
 
+## Trạng thái (22/10/2026)
+
+Đã làm, chạy được trên dữ liệu thật và email mẫu, 33/33 check pass:
+
+| Task | Trạng thái | Ghi chú |
+|---|---|---|
+| E-01 Intake | ✅ | `.eml`, PDF export (header EN/KO/VI, kiểu in Gmail, nhiều thư trong một PDF), `.msg` (cần `extract-msg`), IMAP chỉ đọc (`python -m kops_dw fetch-imap`). PDF scan không có chữ được báo `PDF_NO_TEXT` |
+| E-02 Luồng, trùng lặp | ✅ | `msg_key`, `thread_key`; thư trích dẫn bên dưới PDF được tách thành thư riêng (`is_quoted`), trùng thì gộp |
+| E-03 Đính kèm | ✅ một phần | `python -m kops_dw attachments` lưu đính kèm của `.eml` vào `raw-docs/EMAIL_ATTACHMENTS/` để build nạp. PDF export không mang file đính kèm, chỉ có tên (cột `attachments`) |
+| E-04 Từ điển | ✅ | `core.style_dictionary`: mã style, file no, alias của 5 khách + kế hoạch |
+| E-05 Bóc tách | ✅ rule-based, LLM sẵn sàng | Phân loại theo từ khoá EN/KO/VI; `email_llm.py` (JSON schema, trích dẫn phải có thật) tắt cho tới khi P2 được duyệt |
+| E-06 Email ↔ file | ✅ | `core.proposal_file_status`: `IN_FILE` / `NOT_YET` / `PAST_DATE` / `STYLE_UNKNOWN` |
+| E-07 Dashboard | ✅ | Tab Email; thêm tab Khách hàng & kế hoạch, Lịch sử phiên bản |
+| E-08 Mẫu + golden | ✅ | `dw/samples/inbox/05–09` (PDF Outlook EN, PDF tiếng Hàn, Gmail print VI có câu chèn lệnh, bản trùng `.eml`, PDF scan); tạo lại bằng `samples/make_email_samples.py` |
+| E-09 Báo cáo insight | ⏳ | Làm khi có email thật (skill `kops-email-intake` bước 6–7) |
+| E-10 Một lệnh | ✅ | Thả PDF vào `raw-docs/inbox/` rồi `python -m kops_dw` |
+
+Ngoài email, cùng đợt này: parser ORDER RECAP cho khách khác (D-14), parser kế hoạch sản xuất (D-16), lịch sử và thay đổi giữa các phiên bản (D-15).
+
 ## 0. Quyết định cần PO chốt trước
 
 | # | Quyết định | Phương án | Khuyến nghị |

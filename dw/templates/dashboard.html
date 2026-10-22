@@ -260,8 +260,9 @@ const styleLink = (v, r) => v ? `<a class="link" data-style="${esc(v)}" data-sea
 
 /* ---------- tabs ---------- */
 const TABS = [
-  ['overview', 'Tổng quan'], ['tower', 'Control Tower'], ['ship', 'Xuất hàng'], ['partner', 'Nhà máy & NCC'],
-  ['change', 'Thay đổi & Email'], ['quality', 'Đối soát & chất lượng'], ['meeting', 'Cuộc họp & yêu cầu'], ['source', 'Nguồn & lineage'],
+  ['overview', 'Tổng quan'], ['portfolio', 'Khách hàng & kế hoạch'], ['tower', 'Control Tower'], ['ship', 'Xuất hàng'],
+  ['partner', 'Nhà máy & NCC'], ['change', 'Thay đổi'], ['email', 'Email'], ['history', 'Lịch sử phiên bản'],
+  ['quality', 'Đối soát & chất lượng'], ['meeting', 'Cuộc họp & yêu cầu'], ['source', 'Nguồn & lineage'],
 ];
 let TAB = (() => { try { return localStorage.getItem('kops.tab') || 'overview'; } catch { return 'overview'; } })();
 function showTab(t) {
@@ -277,6 +278,7 @@ function render() {
   const html = {
     overview: viewOverview(S, K), tower: viewTower(S, K), ship: viewShip(S), partner: viewPartner(),
     change: viewChange(), quality: viewQuality(), meeting: viewMeeting(), source: viewSource(),
+    portfolio: viewPortfolio(), email: viewEmail(), history: viewHistory(),
   };
   $('#main').innerHTML = TABS.map(([k]) => `<section class="tab" id="tab-${k}" role="tabpanel">${html[k]}</section>`).join('');
   Object.keys(TABLES).forEach(drawTable);
@@ -467,6 +469,139 @@ function viewMeeting() {
   ${table('t-act', TB.actions, [{k: 'owner', l: 'Phụ trách'}, {k: 'item_vi', l: 'Nội dung'}, {k: 'due', l: 'Hạn'}], {search: false})}
   <h2 class="sec">Nội dung thống nhất</h2>
   ${table('t-dec', TB.decisions, [{k: 'no', l: '#', n: 1}, {k: 'topic', l: 'Chủ đề'}, {k: 'text', l: 'Nội dung'}, {k: 'raised_by', l: 'Người nêu'}], {search: true})}`;
+}
+
+/* ---------- all customers, production plans ---------- */
+const CUST_C = ['--s1', '--s2', '--s3', '--s4'];
+const RISK = {LATE: {c: '--critical', i: '✕', l: 'Dự kiến trễ'}, TIGHT: {c: '--serious', i: '!', l: 'Sát hạn (≤3 ngày)'},
+  OK: {c: '--good', i: '✓', l: 'Đủ thời gian'}, UNKNOWN: {c: '--neutral', l: 'Chưa rõ'}};
+const FSTAT = {IN_FILE: {c: '--good', i: '✓', l: 'Đã có trong file'}, NOT_YET: {c: '--warning', i: '⏳', l: 'Chưa vào file'},
+  PAST_DATE: {c: '--neutral', i: '·', l: 'Ngày đã qua (có thể là ETD cũ)'}, STYLE_UNKNOWN: {c: '--serious', i: '?', l: 'Không tìm thấy style'}};
+const CLS = {BUSINESS: {c: '--s1', l: 'Thay đổi nghiệp vụ'}, 'ENTRY_ERROR?': {c: '--critical', i: '!', l: 'Nghi lỗi nhập'}, CORRECTION: {c: '--good', i: '✓', l: 'Sửa lỗi cũ'}};
+const anyStyle = (v, r) => r.customer === 'CHALLENGER' ? styleLink(v, r) : esc(v);
+const sumBy = (rows, key, val) => rows.reduce((m, r) => (m[r[key]] = (m[r[key]] || 0) + (r[val] || 0), m), {});
+function stackTop(rows, xKey, sKey, vKey, n = 4, colors = CUST_C) {
+  const xs = [...new Set(rows.map(r => r[xKey]).filter(Boolean))].sort();
+  const tot = sumBy(rows, sKey, vKey), top = Object.keys(tot).sort((a, b) => tot[b] - tot[a]).slice(0, n);
+  const val = (x, f) => rows.filter(r => r[xKey] === x && f(r)).reduce((a, r) => a + (r[vKey] || 0), 0);
+  const series = [...top.map((s, i) => ({name: s, color: colors[i], values: xs.map(x => val(x, r => r[sKey] === s))})),
+    {name: 'Khác', color: '--neutral', values: xs.map(x => val(x, r => !top.includes(r[sKey])))}].filter(s => s.values.some(v => v));
+  return {xs, series};
+}
+
+function viewPortfolio() {
+  const P = TB.portfolio, PL = TB.plan;
+  const byCust = sumBy(P, 'customer', 'order_qty');
+  const custs = Object.keys(byCust).sort((a, b) => byCust[b] - byCust[a]);
+  const brands = new Set(P.map(p => p.customer + '|' + p.brand));
+  const et = stackTop(TB.etd_all, 'week_start', 'customer', 'order_qty');
+  const fac = {}; TB.factory_all.forEach(f => { const x = fac[f.factory] ||= {qty: 0, styles: 0, cust: new Set()}; x.qty += f.order_qty || 0; x.styles += f.styles; x.cust.add(f.customer); });
+  const facs = Object.entries(fac).sort((a, b) => b[1].qty - a[1].qty).slice(0, 15);
+  const n = k => PL.filter(p => p.plan_risk === k).length;
+  return `
+  <div class="banner">Tất cả khách đặt hàng với KLMAS trong một chỗ: ORDER RECAP của từng khách được đọc theo tên cột (mỗi khách một mẫu khác nhau), kế hoạch sản xuất đọc theo từng nhà máy. CHALLENGER có mô hình chi tiết ở các tab khác; khách còn lại ở mức style, số lượng, ETD, nhà máy.</div>
+  <div class="kpis">
+    ${kpi('Khách hàng', fmt(custs.length), esc(custs.join(', ')))}
+    ${kpi('Brand × mùa', fmt(P.length), `${fmt(brands.size)} brand`)}
+    ${kpi('Style đang chạy', fmt(P.reduce((a, p) => a + (p.styles_active || 0), 0)), `${fmt(P.reduce((a, p) => a + (p.styles_cancelled || 0), 0))} style huỷ`)}
+    ${kpi('Số lượng đặt (pcs)', fmt(P.reduce((a, p) => a + (p.order_qty || 0), 0)), 'mọi khách, mọi mùa')}
+    ${kpi('Kế hoạch: dự kiến trễ', fmt(n('LATE')), `${fmt(n('TIGHT'))} style sát hạn`)}
+    ${kpi('ETD ngoài mùa', fmt(P.reduce((a, p) => a + (p.etd_out_of_season || 0), 0)), 'nghi gõ sai năm')}
+  </div>
+  <div class="grid g2">
+    <div class="card"><h3>Số lượng theo khách</h3><p class="sub">pcs, style đang chạy</p>${hbars(custs.map((c, i) => ({label: c, value: byCust[c], color: CUST_C[i] || '--neutral', tip: `${c}: ${nf.format(byCust[c])} pcs\nBrand: ${[...new Set(P.filter(p => p.customer === c).map(p => p.brand))].join(', ')}`})))}</div>
+    <div class="card"><h3>Số lượng theo tuần ETD</h3><p class="sub">pcs, theo khách; chỉ ETD nằm trong mùa</p>${et.xs.length ? columns(et.xs, et.series, {xFmt: dshort}) : '<p class="note">Chưa có ETD</p>'}</div>
+  </div>
+  <div class="card" style="margin-top:16px"><h3>Tải nhà máy (mọi khách)</h3><p class="sub">Top 15 theo pcs đang chạy; di chuột để xem khách</p>${hbars(facs.map(([f, x]) => ({label: f, value: x.qty, tip: `${f}: ${x.styles} style, ${nf.format(x.qty)} pcs\nKhách: ${[...x.cust].join(', ')}`})))}</div>
+  <h2 class="sec">Danh mục đơn theo khách, brand, mùa</h2>
+  ${table('t-port', P, [{k: 'customer', l: 'Khách'}, {k: 'brand', l: 'Brand'}, {k: 'season', l: 'Mùa'}, {k: 'styles_active', l: 'Style', n: 1},
+    {k: 'styles_cancelled', l: 'Huỷ', n: 1}, {k: 'order_qty', l: 'pcs', n: 1}, {k: 'factories', l: 'Nhà máy', n: 1}, {k: 'etd_first', l: 'ETD đầu'},
+    {k: 'etd_last', l: 'ETD cuối'}, {k: 'etd_out_of_season', l: 'ETD ngoài mùa', n: 1, r: v => v ? `<b style="color:var(--critical)">${fmt(v)}</b>` : '0'},
+    {k: 'etd_rule', l: 'Quy tắc ETD'}, {k: 'file_name', l: 'File hiện hành'}], {search: false})}
+  <h2 class="sec">Kế hoạch sản xuất (${PL.length} style)</h2>
+  ${PL.length ? table('t-plan', PL, [{k: 'plan_risk', l: 'Rủi ro', r: v => chip(RISK[v] || RISK.UNKNOWN, (RISK[v] || RISK.UNKNOWN).l)},
+    {k: 'customer', l: 'Khách'}, {k: 'brand', l: 'Brand'}, {k: 'factory_code', l: 'Nhà máy'}, {k: 'file_no', l: 'File no'}, {k: 'style_no', l: 'Style'},
+    {k: 'qty', l: 'pcs', n: 1}, {k: 'daily_target', l: 'Mục tiêu/ngày', n: 1, r: v => v == null ? '–' : nf.format(Math.round(v))},
+    {k: 'cut_plan', l: 'Cắt'}, {k: 'input_plan', l: 'Vào chuyền'}, {k: 'finish_plan', l: 'May xong'}, {k: 'exf_plan', l: 'Xuất xưởng'},
+    {k: 'due_etd', l: 'Hạn xuất'}, {k: 'rdd', l: 'RDD'}, {k: 'bal_days', l: 'BAL (ngày)', n: 1},
+    {k: 'recap_check', l: 'So với ORDER RECAP', r: v => v ? `<span class="chip">${esc(v)}</span>` : '✓'}, {k: 'as_of', l: 'Ngày KH'}],
+    {filters: [{key: 'customer', label: 'Khách'}, {key: 'factory_code', label: 'Nhà máy'}, {key: 'plan_risk', label: 'Rủi ro'}]})
+    : '<p class="note">Chưa có file kế hoạch sản xuất.</p>'}
+  <h2 class="sec">Tải nhà máy chi tiết</h2>
+  ${table('t-facall', TB.factory_all, [{k: 'factory', l: 'Nhà máy'}, {k: 'customer', l: 'Khách'}, {k: 'brand', l: 'Brand'}, {k: 'season', l: 'Mùa'},
+    {k: 'styles', l: 'Style', n: 1}, {k: 'order_qty', l: 'pcs', n: 1}], {filters: [{key: 'customer', label: 'Khách'}, {key: 'season', label: 'Mùa'}]})}`;
+}
+
+/* ---------- email ---------- */
+function viewEmail() {
+  const K = TB.email_kpi[0] || {}, L = TB.email_list, S = TB.pstatus;
+  const wk = stackTop(TB.email_weekly, 'week_start', 'category', 'n');
+  const byCat = sumBy(L.map(e => ({c: e.category || 'OTHER', n: 1})), 'c', 'n');
+  const cats = Object.keys(byCat).sort((a, b) => byCat[b] - byCat[a]);
+  return `
+  <div class="banner">Email từ mọi nguồn (file .eml, PDF export/in từ Outlook, Gmail, Naver…, hộp thư IMAP) được chuẩn hoá về một dạng. Một PDF có thể chứa cả chuỗi thư: mỗi thư thành một dòng, thư trùng (forward, trích dẫn lại, vừa .eml vừa PDF) chỉ tính một lần. Nội dung email là dữ liệu: không có thay đổi nào tự áp vào số liệu.${K.sample_emails ? ` <span class="chip sample">SAMPLE</span> ${fmt(K.sample_emails)}/${fmt(K.emails)} email là dữ liệu mẫu.` : ''}</div>
+  <div class="kpis">
+    ${kpi('Email (không trùng)', fmt(K.emails), `${fmt(K.duplicates_removed)} bản trùng đã gộp`)}
+    ${kpi('Luồng trao đổi', fmt(K.threads), K.first_at ? `${esc(K.first_at.slice(0, 10))} → ${esc(K.last_at.slice(0, 10))}` : '')}
+    ${kpi('Style được nhắc tới', fmt(K.styles_mentioned), 'khớp theo mã style / file no / alias')}
+    ${kpi('Đề xuất thay đổi', fmt(K.proposals), 'chờ người duyệt')}
+    ${kpi('Chưa vào file', fmt(K.proposals_not_in_file), 'email có, ORDER RECAP chưa đổi')}
+    ${kpi('Phản hồi trung vị', K.median_reply_hours == null ? '–' : nf.format(Math.round(K.median_reply_hours * 10) / 10) + ' giờ', 'giữa 2 người khác nhau trong 1 luồng')}
+  </div>
+  <div class="grid g2">
+    <div class="card"><h3>Email theo tuần</h3><p class="sub">theo loại chính (phân loại theo từ khoá EN/KO/VI)</p>${wk.xs.length ? columns(wk.xs, wk.series, {xFmt: dshort}) : '<p class="note">Chưa có email có ngày</p>'}</div>
+    <div class="card"><h3>Theo loại</h3><p class="sub">Một email có thể thuộc nhiều loại; đây là loại chính</p>${hbars(cats.map(c => ({label: c, value: byCat[c]})))}</div>
+  </div>
+  <h2 class="sec">Đề xuất từ email, đối chiếu với file hiện hành (${S.length})</h2>
+  ${table('t-pst', S, [{k: 'sent_at', l: 'Ngày'}, {k: 'customer', l: 'Khách'}, {k: 'style_no', l: 'Style', r: (v, r) => r.customer === 'CHALLENGER' || !r.customer ? styleLink(v, r) : esc(v)},
+    {k: 'change_type', l: 'Loại'}, {k: 'value_text', l: 'Yêu cầu'}, {k: 'current_qty', l: 'SL hiện tại', n: 1}, {k: 'proposed_qty', l: 'SL đề xuất', n: 1},
+    {k: 'current_etd', l: 'ETD hiện tại'}, {k: 'proposed_etd', l: 'ETD đề xuất'},
+    {k: 'file_status', l: 'Trong file?', r: v => chip(FSTAT[v] || {c: '--neutral'}, (FSTAT[v] || {}).l || v)},
+    {k: 'confidence', l: 'Tin cậy'}, {k: 'evidence', l: 'Trích dẫn'}], {filters: [{key: 'file_status', label: 'Trạng thái'}, {key: 'customer', label: 'Khách'}]})}
+  <h2 class="sec">Luồng trao đổi (${TB.threads.length})</h2>
+  ${table('t-thr', TB.threads, [{k: 'last_at', l: 'Gần nhất'}, {k: 'subject', l: 'Chủ đề'}, {k: 'n_messages', l: 'Thư', n: 1}, {k: 'n_senders', l: 'Người gửi', n: 1},
+    {k: 'senders', l: 'Ai'}, {k: 'customers', l: 'Khách'}, {k: 'first_at', l: 'Bắt đầu'}, {k: 'is_sample', l: 'Mẫu', r: v => v ? '<span class="chip sample">SAMPLE</span>' : ''}])}
+  <h2 class="sec">Tất cả email</h2>
+  ${table('t-eml', L, [{k: 'sent_at', l: 'Ngày'}, {k: 'sender', l: 'Người gửi'}, {k: 'subject', l: 'Chủ đề'}, {k: 'category', l: 'Loại'},
+    {k: 'styles', l: 'Style'}, {k: 'customers', l: 'Khách'}, {k: 'reply_hours', l: 'Phản hồi (giờ)', n: 1, r: v => v == null ? '–' : nf.format(Math.round(v * 10) / 10)},
+    {k: 'lang', l: 'Ngôn ngữ'}, {k: 'channel', l: 'Nguồn'}, {k: 'n_copies', l: 'Bản', n: 1},
+    {k: 'body', l: 'Nội dung', r: v => `<details><summary class="note">xem</summary><pre class="body">${esc(v)}</pre></details>`}],
+    {filters: [{key: 'category', label: 'Loại'}, {key: 'channel', label: 'Nguồn'}, {key: 'lang', label: 'Ngôn ngữ'}]})}`;
+}
+
+/* ---------- version history ---------- */
+function viewHistory() {
+  const V = TB.versions, C = TB.vchanges, S = TB.vsummary;
+  const fams = new Set(V.map(v => v.parser + '|' + v.season + '|' + (v.family || '')));
+  const multi = [...fams].filter(f => V.filter(v => v.parser + '|' + v.season + '|' + (v.family || '') === f).length > 1);
+  const cnt = cls => S.filter(s => s.change_class === cls).reduce((a, s) => a + s.n, 0);
+  const pairs = [...new Set(S.map(s => s.to_file))];
+  const lab = f => f.slice(0, 6) + ' ' + (f.match(/\b2\d(SS|FW)\b/) || [''])[0] + ' ' + ((S.find(s => s.to_file === f) || {}).family || '').split('|').pop();
+  const kinds = ['FACTORY', 'QTY', 'ETD', 'STATUS'];
+  const series = [...kinds.map((k, i) => ({name: k, color: CUST_C[i], values: pairs.map(p => S.filter(s => s.to_file === p && s.kind === k).reduce((a, s) => a + s.n, 0))})),
+    {name: 'Khác (thêm, bớt, RDD)', color: '--neutral', values: pairs.map(p => S.filter(s => s.to_file === p && !kinds.includes(s.kind)).reduce((a, s) => a + s.n, 0))}].filter(s => s.values.some(v => v));
+  return `
+  <div class="banner">Mọi phiên bản cũ của ORDER RECAP, kế hoạch, Production/Shipment Status đều được giữ trong kho (lớp raw); bản mới nhất theo ngày trong tên file là bản hiện hành. Bảng dưới so từng bản với bản ngay trước nó và tách <b>thay đổi nghiệp vụ</b> với <b>nghi lỗi nhập</b> (ngày nằm ngoài mùa). Thêm dữ liệu mùa cũ vào <code>raw-docs/</code> là có lịch sử dài hơn.</div>
+  <div class="kpis">
+    ${kpi('Nguồn có nhiều bản', fmt(multi.length), `${fmt(fams.size)} nguồn`)}
+    ${kpi('Tổng phiên bản', fmt(V.length), '')}
+    ${kpi('Thay đổi nghiệp vụ', fmt(cnt('BUSINESS')), 'giữa các bản liên tiếp')}
+    ${kpi('Nghi lỗi nhập', fmt(cnt('ENTRY_ERROR?')), 'ngày ngoài mùa ở bản mới')}
+    ${kpi('Sửa lỗi cũ', fmt(cnt('CORRECTION')), 'ngày sai ở bản trước đã được sửa')}
+    ${kpi('Ngày UP DATE lùi', fmt(V.filter(v => v.report_date_went_back).length), 'ô ngày trong file nhỏ hơn bản trước')}
+  </div>
+  <div class="card"><h3>Số thay đổi theo lần cập nhật</h3><p class="sub">mỗi cột = một bản so với bản trước của cùng nguồn</p>${pairs.length ? columns(pairs, series, {xFmt: lab}) : '<p class="note">Chưa có nguồn nào có từ 2 phiên bản</p>'}</div>
+  <h2 class="sec">Thay đổi giữa các phiên bản (${C.length})</h2>
+  ${table('t-vch', C, [{k: 'family', l: 'Nguồn'}, {k: 'season', l: 'Mùa'}, {k: 'from_file', l: 'Từ bản'}, {k: 'to_file', l: 'Sang bản'},
+    {k: 'style_no', l: 'Style', r: (v, r) => (r.family || '').startsWith('CHALLENGER') ? styleLink(v, r) : esc(v)}, {k: 'file_no', l: 'File no'},
+    {k: 'kind', l: 'Loại'}, {k: 'before_v', l: 'Trước'}, {k: 'after_v', l: 'Sau'},
+    {k: 'change_class', l: 'Phân loại', r: v => chip(CLS[v] || {c: '--neutral'}, (CLS[v] || {}).l || v)}],
+    {filters: [{key: 'family', label: 'Nguồn'}, {key: 'kind', label: 'Loại'}, {key: 'change_class', label: 'Phân loại'}]})}
+  <h2 class="sec">Các phiên bản</h2>
+  ${table('t-ver', V, [{k: 'parser', l: 'Loại nguồn'}, {k: 'family', l: 'Khách|brand'}, {k: 'season', l: 'Mùa'}, {k: 'version_no', l: 'Bản #', n: 1},
+    {k: 'file_name', l: 'File'}, {k: 'file_date', l: 'Ngày trong tên'}, {k: 'report_date', l: 'Ngày UP DATE'},
+    {k: 'report_date_went_back', l: 'Ngày lùi', r: v => v ? '<b style="color:var(--critical)">!</b>' : ''},
+    {k: 'is_current', l: 'Hiện hành', r: v => v ? '✓' : ''}, {k: 'rows_loaded', l: 'Dòng', n: 1}], {filters: [{key: 'parser', label: 'Loại'}]})}`;
 }
 
 function viewSource() {

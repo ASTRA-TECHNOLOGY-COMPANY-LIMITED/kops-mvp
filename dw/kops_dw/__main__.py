@@ -1,4 +1,9 @@
-"""CLI: python -m kops_dw [build|test|dashboard|all]"""
+"""CLI: python -m kops_dw [build|test|dashboard|all|fetch-imap|attachments]
+
+  all          build + test + dashboard (default)
+  fetch-imap   read-only download of a mailbox folder into raw-docs/inbox/imap/ (see kops_dw/inbox.py)
+  attachments  save .eml attachments to raw-docs/EMAIL_ATTACHMENTS/ so they are parsed by the next build
+"""
 from __future__ import annotations
 
 import sys
@@ -7,6 +12,12 @@ import sys
 def main(argv=None):
     argv = argv if argv is not None else sys.argv[1:]
     cmd = argv[0] if argv else "all"
+    if cmd == "fetch-imap":
+        from .inbox import fetch_imap
+        return fetch_imap(argv[1:])
+    if cmd == "attachments":
+        from .inbox import attachments
+        return attachments(argv[1:])
     if cmd in ("build", "all"):
         from .pipeline import build
         build()
