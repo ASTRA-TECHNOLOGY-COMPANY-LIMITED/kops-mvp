@@ -12,7 +12,30 @@ CREATE TABLE etl.source_file (
   file_id INTEGER PRIMARY KEY, file_name VARCHAR, rel_path VARCHAR, source_type VARCHAR, parser VARCHAR,
   season VARCHAR, file_date DATE, report_date DATE, sha256 VARCHAR, size_bytes BIGINT, is_sample BOOLEAN,
   status VARCHAR, is_current BOOLEAN, rows_loaded INTEGER, message VARCHAR, loaded_at TIMESTAMP,
-  family VARCHAR);   -- version family, e.g. 'DHG|8 SECONDS' (NULL = one family per parser + season)
+  family VARCHAR,    -- version family, e.g. 'DHG|8 SECONDS' (NULL = one family per parser + season)
+  parse_key VARCHAR, from_cache BOOLEAN, parse_seconds DOUBLE,   -- lake key; rows read back from the lake
+  template_fp VARCHAR, template_sheet VARCHAR, template_labels VARCHAR);   -- Excel header fingerprint (H-04)
+
+-- Every file under the source roots (H-01). change: NEW | CHANGED | UNCHANGED | REMOVED vs the previous build.
+CREATE TABLE etl.manifest (
+  path VARCHAR, rel VARCHAR, size_bytes BIGINT, mtime TIMESTAMP, sha256 VARCHAR, change VARCHAR, first_seen VARCHAR);
+
+-- One row per build (history kept in <lake>/_catalog/runs.parquet).
+CREATE TABLE etl.run (
+  run_id VARCHAR, started_at TIMESTAMP, seconds DOUBLE, n_files INTEGER, n_new INTEGER, n_changed INTEGER,
+  n_removed INTEGER, n_hashed INTEGER, n_parsed INTEGER, n_cached INTEGER, n_failed INTEGER, n_quarantined INTEGER,
+  workers INTEGER, scan_seconds DOUBLE, parse_seconds DOUBLE, load_seconds DOUBLE, sql_seconds DOUBLE,
+  peak_rss_mb DOUBLE);
+
+-- Files that were not loaded and need a person (H-03/H-04): reason PARSE_FAILED | PARSE_TIMEOUT | PARSE_CRASHED |
+-- UNKNOWN_TEMPLATE | MISSING_TOOL; labels = header labels of an unknown template. Also written to build/quarantine.csv.
+CREATE TABLE etl.quarantine (
+  file_id INTEGER, file_name VARCHAR, rel_path VARCHAR, parser VARCHAR, status VARCHAR, reason VARCHAR,
+  message VARCHAR, template_fp VARCHAR, labels VARCHAR, action VARCHAR);
+
+-- Scanned PDF pages waiting for OCR (H-08): `python -m kops_dw ocr` processes the PENDING ones.
+CREATE TABLE etl.ocr_queue (
+  file_id INTEGER, file_name VARCHAR, path VARCHAR, sha256 VARCHAR, pages VARCHAR, status VARCHAR);
 
 CREATE TABLE etl.data_issue (
   file_id INTEGER, severity VARCHAR, code VARCHAR, entity VARCHAR, message VARCHAR, location VARCHAR);
@@ -58,7 +81,14 @@ CREATE TABLE raw.email (
   file_id INTEGER, message_id VARCHAR, msg_key VARCHAR, thread_key VARCHAR, channel VARCHAR, part_no INTEGER,
   is_quoted BOOLEAN, sent_at TIMESTAMP, sender VARCHAR, sender_email VARCHAR, recipients VARCHAR, cc VARCHAR,
   subject VARCHAR, lang VARCHAR, categories VARCHAR, attachments VARCHAR, body VARCHAR, is_sample BOOLEAN,
-  in_reply_to VARCHAR, source_page INTEGER, llm_category VARCHAR, summary_vi VARCHAR, summary_ko VARCHAR);
+  in_reply_to VARCHAR, source_page INTEGER, llm_category VARCHAR, summary_vi VARCHAR, summary_ko VARCHAR,
+  folder VARCHAR,    -- mailbox folder (.pst) or Gmail labels (.mbox)
+  text_source VARCHAR);   -- PDF exports: 'text' (text layer) or 'ocr' (scanned page read by tesseract, H-08)
+
+-- Mailbox messages not loaded as business email (H-06), kept to audit the rules: folder | date-range | automated:*
+CREATE TABLE raw.email_filtered (
+  file_id INTEGER, msg_key VARCHAR, message_id VARCHAR, sent_at TIMESTAMP, sender_email VARCHAR, subject VARCHAR,
+  folder VARCHAR, reason VARCHAR);
 
 -- ORDER RECAP of customers other than CHALLENGER (header-driven parser, one row per style block)
 CREATE TABLE raw.order_line_ext (

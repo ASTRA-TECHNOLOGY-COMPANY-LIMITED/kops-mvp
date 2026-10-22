@@ -1,37 +1,28 @@
-"""Build the DW from scratch: discover sources -> register -> parse -> load raw/stg -> run SQL models.
+"""Build the DW: discover sources -> manifest -> register -> parse new files -> load raw/stg -> run SQL models.
 
-The build is a full rebuild (idempotent): delete build/kops.duckdb and recreate it from the files.
+The database is rebuilt every time (idempotent): delete build/kops.duckdb and recreate it. Parsing is incremental:
+the manifest (manifest.py) remembers size/mtime/sha256 of every file, and parse results are kept in the Parquet lake
+(lake.py) under a key of content + parser version (parse.py). A build only parses files whose key is not in the lake
+(new, changed, renamed/moved, or parser changed) and reads everything else back from Parquet.
 """
 from __future__ import annotations
 
 import datetime as dt
+import fcntl
 import re
+import shutil
 import time
-import traceback
+from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
+from concurrent.futures import TimeoutError as FuturesTimeout
 from pathlib import Path
 
 import duckdb
 
-from . import config
-from .excel import open_workbook
-from .ingest import (emails, meeting_notes, order_recap, order_recap_generic, production_plan, production_status,
-                     shipment_status)
-from .util import norm_key, sha256
+from . import config, lake, manifest, ocr, parse, templates
+from .util import norm_key
 
 SQL_DIR = config.DW_DIR / "sql"
-
-
-class Ctx:
-    """Collects data issues for the file being parsed."""
-
-    def __init__(self):
-        self.issues = []
-        self.file_id = None
-
-    def issue(self, severity, code, entity, message, location=None):
-        self.issues.append(dict(file_id=self.file_id, severity=severity, code=code, entity=str(entity),
-                                message=message, location=location))
-
+Ctx = parse.Ctx
 
 # Known source types that have no parser yet (Phase 1 tasks): registered and skipped without a warning.
 PENDING = [
@@ -43,6 +34,7 @@ PENDING = [
 # CHALLENGER ORDER RECAPs use the detailed fixed-column parser; other customers the header-driven one.
 CHALLENGER_KEYS = ("CHALLENGER", "CLGR")
 EMAIL_EXT = (".eml", ".pdf", ".msg")
+MAILBOX_EXT = (".mbox", ".pst")      # whole mailboxes (ingest/mailbox.py)
 
 
 def _in_inbox(path: Path) -> bool:
@@ -54,6 +46,8 @@ def classify(path: Path):
     name = path.name.upper().replace("_", " ")   # '…_27SS_PRODUCTION_PLAN' -> '… 27SS PRODUCTION PLAN'
     season = (m.group(0) if (m := re.search(r"\b2\d(SS|FW)\b", name)) else None)
     ext = path.suffix.lower()
+    if _in_inbox(path) and ext in MAILBOX_EXT:
+        return "email", "mailbox", season
     if _in_inbox(path) and ext in EMAIL_EXT:
         return "email", "emails", season
     if ext in (".xlsx", ".xlsb", ".xlsm"):
@@ -102,31 +96,37 @@ def discover():
             files.append(p)
     for d in config.INBOX_DIRS:                # emails: .eml / PDF export / .msg, any sub-folder (gmail/, pdf/ ...)
         if d.exists():
-            files += sorted(p for p in d.rglob("*") if p.is_file() and p.suffix.lower() in EMAIL_EXT
+            files += sorted(p for p in d.rglob("*") if p.is_file() and p.suffix.lower() in EMAIL_EXT + MAILBOX_EXT
                             and not any(x.startswith(("_", ".")) for x in p.relative_to(d).parts))
     return files
 
 
-def build(verbose=True) -> Path:
+def build(verbose=True, retry_failed=False) -> Path:
     t0 = time.time()
-    config.BUILD_DIR.mkdir(parents=True, exist_ok=True)
-    if config.DB_PATH.exists():
-        config.DB_PATH.unlink()
-    con = duckdb.connect(str(config.DB_PATH))
-    con.execute((SQL_DIR / "00_raw.sql").read_text())
-    _load_reference(con)
+    config.LAKE_DIR.mkdir(parents=True, exist_ok=True)
+    lock = open(config.LAKE_DIR / ".lock", "w")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        raise SystemExit(f"Another build is using {config.LAKE_DIR}") from None
+    run_id = manifest.new_run_id()
+    entries, removed, n_hashed = manifest.scan(discover(), run_id, manifest.load())
+    t_scan = time.time() - t0
 
-    seen, registry = {}, []
-    for i, path in enumerate(discover(), start=1):
+    versions, results = parse.parser_versions(), lake.read_results()
+    check_templates, known_templates = templates.enabled(), templates.known()
+    seen, registry, extra_issues, tasks = {}, [], [], []
+    for i, entry in enumerate(entries, start=1):
+        path, digest = entry.path, entry.sha256
         stype, parser, season = classify(path)
-        digest = sha256(path)
-        ctx = Ctx()
-        ctx.file_id = i
         rec = dict(file_id=i, file_name=path.name, rel_path=_rel(path), source_type=stype, parser=parser,
                    season=season, file_date=file_date(path.name), report_date=None, sha256=digest,
-                   size_bytes=path.stat().st_size, is_sample=config.DW_DIR in path.parents,
+                   size_bytes=entry.size_bytes, is_sample=config.DW_DIR in path.parents,
                    status="LOADED", is_current=False, rows_loaded=0, message=None, loaded_at=dt.datetime.now(),
-                   family=None)
+                   family=None, parse_key=None, from_cache=False, parse_seconds=None, template_fp=None,
+                   template_sheet=None, template_labels=None)
+        ctx = Ctx()
+        ctx.file_id = i
         if digest in seen:
             rec.update(status="DUPLICATE", message=f"Same content as file_id {seen[digest]}")
             ctx.issue("INFO", "DUPLICATE_FILE", path.name, rec["message"], path.name)
@@ -138,31 +138,233 @@ def build(verbose=True) -> Path:
                 ctx.issue("WARN", "UNKNOWN_TEMPLATE", path.name, "Excel file not matched to a parser", path.name)
         else:
             seen[digest] = i
-            try:
-                tables, report_date, family = _parse(path, parser, season, digest, ctx)
-                rec["report_date"], rec["family"] = report_date, family
-                if parser in ("order_recap_ext", "production_plan"):
-                    seasons = {r["season"] for rows in tables.values() for r in rows if r.get("season")}
-                    if len(seasons) == 1:
-                        rec["season"] = seasons.pop()        # sheet title wins over the file name
-                rec["rows_loaded"] = _insert_all(con, tables, i)
-            except Exception as e:  # keep going: one bad file must not stop the build
-                rec.update(status="FAILED", message=f"{type(e).__name__}: {e}")
-                ctx.issue("ERROR", "PARSE_FAILED", path.name, rec["message"], path.name)
-                if verbose:
-                    traceback.print_exc()
+            ocr_done = parser == "emails" and path.suffix.lower() == ".pdf" and ocr.is_done(digest)
+            key = parse.cache_key(digest, parser, versions[parser], path.name, entry.rel, rec["is_sample"],
+                                  "ocr" if ocr_done else "")      # OCR text arrived: parse this PDF again
+            rec["parse_key"] = key
+            res = results.get(key)
+            if res is None or (retry_failed and res["status"] == "FAILED") or (
+                    res["status"] == "UNKNOWN_TEMPLATE" and (not check_templates or
+                                                             templates.is_known(res["template_fp"], parser, known_templates))):
+                tasks.append(dict(key=key, path=str(path), name=path.name, rel=entry.rel, parser=parser,
+                                  season=season, sha256=digest, is_sample=rec["is_sample"], version=versions[parser],
+                                  size=entry.size_bytes))
         registry.append(rec)
-        _insert(con, "etl.data_issue", ctx.issues)
-        if verbose:
-            print(f"  [{rec['status']:9}] {path.name}  rows={rec['rows_loaded']}  issues={len(ctx.issues)}")
-    # Several versions of the same report may sit in raw-docs: the newest per (template, season, family) is
-    # current. Order by the date in the file name first: the 'UP DATE' cell inside a file is typed by hand and
-    # has gone backwards between versions (BPK 261021 says 07/09).
+        extra_issues += ctx.issues
+
+    t_parse = time.time()
+    metas = _parse_all(tasks, run_id, verbose)
+    t_parse = time.time() - t_parse
+    parsed = {m["_key"] for m in metas}
+    results.update({m["_key"]: m for m in metas})
+    for r in registry:
+        res = results.get(r["parse_key"]) if r["parse_key"] else None
+        if res is None:
+            continue
+        r.update(status=res["status"], message=res["message"], report_date=res["report_date"], family=res["family"],
+                 rows_loaded=res["rows_loaded"], from_cache=r["parse_key"] not in parsed, parse_seconds=res["seconds"],
+                 template_fp=res["template_fp"], template_sheet=res.get("template_sheet"),
+                 template_labels=res["template_labels"])
+        if res["season"]:
+            r["season"] = res["season"]
+        if (check_templates and r["status"] == "LOADED" and r["template_fp"]
+                and not templates.is_known(r["template_fp"], r["parser"], known_templates)):
+            r.update(status="UNKNOWN_TEMPLATE", rows_loaded=0,     # parsed earlier, layout no longer accepted
+                     message=f"Unknown layout (fingerprint {r['template_fp']} not in known_templates.json)")
+    if verbose and len(registry) <= 300:
+        for r in registry:
+            src = "cached" if r["from_cache"] else ("parsed" if r["parse_key"] else "")
+            print(f"  [{r['status']:9}] {r['file_name']}  rows={r['rows_loaded']}  {src}")
+    _mark_current(registry)
+
+    config.BUILD_DIR.mkdir(parents=True, exist_ok=True)
+    if config.DB_PATH.exists():
+        config.DB_PATH.unlink()
+    con = duckdb.connect(str(config.DB_PATH))
+    con.execute((SQL_DIR / "00_raw.sql").read_text())
+    _load_reference(con)
+    t_load = time.time()
+    lake.load(con, [dict(_key=r["parse_key"], _batch=results[r["parse_key"]]["_batch"], file_id=r["file_id"],
+                         loaded=r["status"] == "LOADED") for r in registry if r["parse_key"] in results])
+    t_load = time.time() - t_load
+    _insert(con, "etl.data_issue", extra_issues)
+    _insert(con, "etl.source_file", registry)
+    quarantine = _quarantine(registry)
+    _insert(con, "etl.quarantine", quarantine)
+    _insert(con, "etl.ocr_queue", [
+        dict(file_id=r["file_id"], file_name=r["file_name"], path=str(e.path), sha256=r["sha256"],
+             pages=results[r["parse_key"]]["ocr_pages"], status="DONE" if ocr.is_done(r["sha256"]) else "PENDING")
+        for r, e in zip(registry, entries) if r["parse_key"] in results and results[r["parse_key"]]["ocr_pages"]])
+    t_sql = time.time()
+    for f in sorted(SQL_DIR.glob("[1-9]*.sql")):
+        con.execute(f.read_text())
+    t_sql = time.time() - t_sql
+    run = dict(run_id=run_id, started_at=dt.datetime.fromtimestamp(t0), seconds=round(time.time() - t0, 2),
+               n_files=len(entries), n_new=sum(e.change == "NEW" for e in entries),
+               n_changed=sum(e.change == "CHANGED" for e in entries), n_removed=len(removed), n_hashed=n_hashed,
+               n_parsed=len(metas), n_cached=sum(r["from_cache"] for r in registry),
+               n_failed=sum(r["status"] == "FAILED" for r in registry), n_quarantined=len(quarantine),
+               workers=config.WORKERS if metas else 0,
+               scan_seconds=round(t_scan, 2), parse_seconds=round(t_parse, 2), load_seconds=round(t_load, 2),
+               sql_seconds=round(t_sql, 2), peak_rss_mb=_peak_rss_mb())
+    _save_manifest(con, entries, removed, run)
+    con.close()
+    lake.compact_results(results, run_id)
+    lock.close()
+    _write_quarantine(quarantine, verbose)
+    if verbose:
+        print(f"Built {config.DB_PATH} in {time.time() - t0:.1f}s ({run['n_files']} files: {run['n_new']} new, "
+              f"{run['n_changed']} changed, {n_hashed} hashed; parsed {run['n_parsed']}, cached {run['n_cached']})")
+    return config.DB_PATH
+
+
+def _chunks(tasks: list[dict], max_files=50, max_bytes=16 << 20) -> list[list[dict]]:
+    """Big files alone, small files (emails) together: fewer Parquet files and less process overhead."""
+    out, cur, size = [], [], 0
+    for t in sorted(tasks, key=lambda t: -t["size"]):
+        if cur and (len(cur) >= max_files or size + t["size"] > max_bytes):
+            out.append(cur)
+            cur, size = [], 0
+        cur.append(t)
+        size += t["size"]
+    return out + ([cur] if cur else [])
+
+
+def _parse_all(tasks: list[dict], run_id: str, verbose: bool) -> list[dict]:
+    """Parse in worker processes. A file that raises, times out (KOPS_PARSE_TIMEOUT) or kills its worker
+    (segfault, out of memory) is recorded as FAILED and quarantined; the other files go on."""
+    if not tasks:
+        return []
+    chunks = _chunks(tasks)
+    batches = [f"{run_id}-{n:05d}" for n in range(len(chunks))]
+    timeout, workers = config.PARSE_TIMEOUT, max(1, min(config.WORKERS, len(chunks)))
+    if workers == 1:
+        return [m for b, c in zip(batches, chunks) for m in parse.run_chunk(c, b, timeout, verbose)]
+    inflight = config.LAKE_DIR / "_inflight"        # <pid>.txt = key of the file a worker is parsing right now
+    metas, t0, rnd, n_iso = [], time.time(), 0, 0
+    todo = list(zip(batches, chunks))
+    while todo:
+        shutil.rmtree(inflight, ignore_errors=True)
+        inflight.mkdir(parents=True)
+        leftovers = _pool_round(todo, workers, timeout, verbose, inflight, metas, len(tasks), t0)
+        if not leftovers:
+            break
+        # A worker died or hung: the files it was parsing are tried alone, the others go to a fresh pool.
+        suspects = {f.read_text() for f in inflight.glob("*.txt")}
+        done_keys = {m["_key"] for m in metas}
+        rest = [t for t in leftovers if t["key"] not in done_keys]
+        alone = [t for t in rest if t["key"] in suspects] or rest       # no marker found: try every file alone
+        for t in alone:
+            metas += _parse_isolated(t, f"{run_id}-i{n_iso:05d}", timeout, verbose)
+            n_iso += 1
+        rnd += 1
+        alone_keys = {t["key"] for t in alone}
+        again = [t for t in rest if t["key"] not in alone_keys]
+        todo = [(f"{run_id}-r{rnd}-{n:05d}", c) for n, c in enumerate(_chunks(again))]
+    shutil.rmtree(inflight, ignore_errors=True)
+    return metas
+
+
+def _pool_round(todo, workers, timeout, verbose, inflight, metas, n_tasks, t0) -> list[dict]:
+    """Run chunks in a process pool; returns the tasks of chunks lost because the pool broke."""
+    leftovers, last = [], time.time()
+    stall = 2 * timeout + 60 if timeout else None
+    ex = ProcessPoolExecutor(workers)
+    futs = {ex.submit(parse.run_chunk, c, b, timeout, verbose, str(inflight)): c for b, c in todo}
+    pending = set(futs)
+    try:
+        while pending:
+            done, pending = wait(pending, timeout=15, return_when=FIRST_COMPLETED)
+            for f in done:
+                try:
+                    metas += f.result()
+                except Exception:              # BrokenProcessPool: a worker died (segfault, out of memory, killed)
+                    leftovers += futs[f]
+            if done:
+                last = time.time()
+                if verbose and n_tasks > 50:
+                    print(f"  parse {len(metas)}/{n_tasks} files, {time.time() - t0:.0f}s", flush=True)
+            elif stall and time.time() - last > stall:     # a worker hangs in C code (the alarm cannot fire)
+                for p in list(getattr(ex, "_processes", {}).values()):
+                    p.kill()
+    finally:
+        ex.shutdown(wait=True, cancel_futures=True)
+    return leftovers
+
+
+def _parse_isolated(t: dict, batch: str, timeout: int, verbose: bool) -> list[dict]:
+    """Re-run one file in its own process to tell a crashing/hanging file from its chunk neighbours."""
+    one = ProcessPoolExecutor(1)
+    fut = one.submit(parse.run_chunk, [t], batch, timeout, verbose)
+    try:
+        return fut.result(timeout=(timeout + 60) if timeout else None)
+    except FuturesTimeout:
+        for p in list(getattr(one, "_processes", {}).values()):
+            p.kill()
+        return parse.failed([t], batch, "PARSE_TIMEOUT", f"Timeout: worker hung for more than {timeout} s")
+    except Exception as e:
+        return parse.failed([t], batch, "PARSE_CRASHED",
+                            f"Crashed: the parser process died ({type(e).__name__}); file may be corrupt or too large")
+    finally:
+        one.shutdown(wait=True, cancel_futures=True)
+
+
+QUARANTINE_HINT = {
+    "PARSE_FAILED": "Mở file kiểm tra; sửa parser hoặc nhờ KLMAS gửi lại file, rồi chạy build --retry-failed",
+    "PARSE_TIMEOUT": "File quá lớn/treo: tăng KOPS_PARSE_TIMEOUT hoặc tách file, rồi build --retry-failed",
+    "PARSE_CRASHED": "Tiến trình parse chết (file hỏng/thiếu RAM): kiểm tra file, rồi build --retry-failed",
+    "UNKNOWN_TEMPLATE": "Bố cục cột chưa biết: so nhãn với parser; đọc đúng thì `python -m kops_dw templates accept "
+                        "<fp>`, sai thì cần sửa/viết parser (H-05)",
+    "MISSING_TOOL": "Cài công cụ ghi trong message (vd. brew install libpst / tesseract); build sau tự đọc lại",
+    "UNKNOWN_FILE": "Tên file không khớp loại báo cáo nào: kiểm tra, thêm quy tắc vào pipeline.classify nếu cần",
+}
+
+
+def _quarantine(registry: list[dict]) -> list[dict]:
+    """Files that are not loaded and need a person: failed / timed out / crashed parses, unknown layouts."""
+    out = []
+    for r in registry:
+        msg = r["message"] or ""
+        if r["status"] == "FAILED":
+            code = ("PARSE_TIMEOUT" if msg.startswith("Timeout") else "PARSE_CRASHED" if msg.startswith("Crashed")
+                    else "PARSE_FAILED")
+        elif r["status"] == "UNKNOWN_TEMPLATE":
+            code = "UNKNOWN_TEMPLATE"
+        elif r["status"] == "SKIPPED" and msg.startswith("Missing tool"):
+            code = "MISSING_TOOL"
+        elif r["status"] == "SKIPPED" and r["source_type"] == "excel" and r["parser"] is None:
+            code = "UNKNOWN_FILE"
+        else:
+            continue
+        out.append(dict(file_id=r["file_id"], file_name=r["file_name"], rel_path=r["rel_path"], parser=r["parser"],
+                        status=r["status"], reason=code, message=msg, template_fp=r["template_fp"],
+                        labels=r["template_labels"] if code == "UNKNOWN_TEMPLATE" else None,
+                        action=QUARANTINE_HINT[code]))
+    return out
+
+
+def _write_quarantine(rows: list[dict], verbose: bool):
+    import csv
+    with open(config.QUARANTINE_PATH, "w", newline="", encoding="utf-8-sig") as f:   # BOM: opens in Excel
+        w = csv.DictWriter(f, fieldnames=["file_name", "rel_path", "parser", "status", "reason", "message",
+                                          "template_fp", "labels", "action"], extrasaction="ignore")
+        w.writeheader()
+        w.writerows(rows)
+    if verbose and rows:
+        print(f"Quarantine: {len(rows)} file(s) not loaded -> {config.QUARANTINE_PATH}")
+        for r in rows[:20]:
+            print(f"  [{r['reason']}] {r['file_name']}: {(r['message'] or '')[:120]}")
+
+
+def _mark_current(registry):
+    """Several versions of the same report may sit in raw-docs: the newest per (template, season, family) is
+    current. Order by the date in the file name first: the 'UP DATE' cell inside a file is typed by hand and
+    has gone backwards between versions (BPK 261021 says 07/09)."""
     latest = {}
     for r in registry:
         if r["status"] != "LOADED":
             continue
-        if r["parser"] in ("emails", "meeting_notes"):
+        if r["parser"] in ("emails", "mailbox", "meeting_notes"):
             r["is_current"] = True
             continue
         key = (r["parser"], r["season"], r["family"])
@@ -171,49 +373,25 @@ def build(verbose=True) -> Path:
             latest[key] = (rank, r)
     for _, r in latest.values():
         r["is_current"] = True
-    _insert(con, "etl.source_file", registry)
-    for f in sorted(SQL_DIR.glob("[1-9]*.sql")):
-        con.execute(f.read_text())
-    con.close()
-    if verbose:
-        print(f"Built {config.DB_PATH} in {time.time() - t0:.1f}s")
-    return config.DB_PATH
 
 
-def _parse(path, parser, season, digest, ctx):
-    """-> (tables, report_date, family). family groups versions of one report (None = parser + season)."""
-    if parser in ("order_recap", "shipment_status", "production_status"):
-        if not season:
-            raise ValueError("Season code (e.g. 26FW) not found in file name")
-        wb = open_workbook(path, digest)
-        mod = {"order_recap": order_recap, "shipment_status": shipment_status,
-               "production_status": production_status}[parser]
-        tables, report_date = mod.parse(wb, season, ctx)
-        return tables, report_date or file_date(path.name), None
-    if parser in ("order_recap_ext", "production_plan"):
-        wb = open_workbook(path, digest)
-        mod = order_recap_generic if parser == "order_recap_ext" else production_plan
-        tables, report_date, family = mod.parse(wb, season, ctx, path.name, _rel(path))
-        return tables, report_date or file_date(path.name), family
-    if parser == "meeting_notes":
-        tables, d = meeting_notes.parse(path, ctx)
-        return tables, (dt.date.fromisoformat(d) if d else None), None
-    if parser == "emails":
-        tables, d = emails.parse(path, ctx)
-        return tables, d, None
-    raise ValueError(parser)
+def _save_manifest(con, entries, removed, run):
+    """etl.manifest / etl.run in the DB, and the persistent catalog for the next build."""
+    rows = [dict(path=str(e.path), rel=e.rel, size_bytes=e.size_bytes, mtime=dt.datetime.fromtimestamp(e.mtime_ns / 1e9),
+                 sha256=e.sha256, change=e.change, first_seen=e.first_seen) for e in entries]
+    rows += [dict(path=r["path"], rel=r["rel"], size_bytes=r["size_bytes"], sha256=r["sha256"], change="REMOVED",
+                  mtime=dt.datetime.fromtimestamp(r["mtime_ns"] / 1e9), first_seen=r["first_seen"]) for r in removed]
+    _insert(con, "etl.manifest", rows)
+    manifest.save(entries, run["run_id"])
+    manifest.save_run(run)
+    _insert(con, "etl.run", manifest.load_runs())
 
 
-def _insert_all(con, tables: dict, file_id: int) -> int:
-    n = 0
-    for name, rows in tables.items():
-        schema = "stg" if name.startswith("stg_") else "raw"
-        table = f"{schema}.{name[4:] if name.startswith('stg_') else name}"
-        for r in rows:
-            r["file_id"] = file_id
-        _insert(con, table, rows)
-        n += len(rows)
-    return n
+def _peak_rss_mb() -> float:
+    import resource
+    import sys
+    rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    return round(rss / (1 << 20) if sys.platform == "darwin" else rss / 1024, 1)   # bytes on macOS, KiB on Linux
 
 
 def _insert(con, table: str, rows: list[dict]):

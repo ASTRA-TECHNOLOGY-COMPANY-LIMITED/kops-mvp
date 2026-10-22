@@ -2,6 +2,12 @@ duckdb==1.5.6
 openpyxl==3.1.5
 python-docx==1.2.0
 pypdf==5.1.0
-# optional:
-#   extract-msg   -> read Outlook .msg emails
-#   anthropic     -> LLM email extractor (KOPS_EMAIL_LLM=1, only after PO decision P2)
+pyarrow==25.0.1
+# optional Python packages:
+#   extract-msg    -> read Outlook .msg emails
+#   anthropic      -> LLM email extractor (KOPS_EMAIL_LLM=1, only after PO decision P2)
+#   pillow==11.3.0 -> only for `python -m kops_dw bench` (synthetic scanned PDF)
+# optional system tools (a missing one is reported with an install hint, never fatal):
+#   LibreOffice (soffice)                         -> .xlsb          brew install --cask libreoffice
+#   readpst (libpst)                              -> .pst mailboxes brew install libpst
+#   tesseract + kor/vie data, pdftoppm (poppler)  -> OCR queue      brew install tesseract tesseract-lang poppler

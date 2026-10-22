@@ -16,10 +16,13 @@ class ExcelError(RuntimeError):
 
 
 def open_workbook(path: Path, digest: str):
+    return openpyxl.load_workbook(xlsx_path(path, digest), data_only=True)
+
+
+def xlsx_path(path: Path, digest: str) -> Path:
+    """The file itself, or its cached .xlsx conversion for .xlsb."""
     path = Path(path)
-    if path.suffix.lower() == ".xlsb":
-        path = _xlsb_to_xlsx(path, digest)
-    return openpyxl.load_workbook(path, data_only=True)
+    return _xlsb_to_xlsx(path, digest) if path.suffix.lower() == ".xlsb" else path
 
 
 def _xlsb_to_xlsx(path: Path, digest: str) -> Path:

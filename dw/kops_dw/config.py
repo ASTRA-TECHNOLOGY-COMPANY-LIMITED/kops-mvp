@@ -1,6 +1,7 @@
 """Paths, source discovery rules and configurable business rules for the KOPS DW MVP."""
 from __future__ import annotations
 
+import datetime as dt
 import os
 import shutil
 from pathlib import Path
@@ -14,6 +15,14 @@ INBOX_DIRS = [Path(p) for p in os.environ.get("KOPS_INBOX", "").split(os.pathsep
 ]
 BUILD_DIR = Path(os.environ.get("KOPS_BUILD", DW_DIR / "build"))
 CACHE_DIR = BUILD_DIR / "cache"
+# Incremental store (manifest + parse results as Parquet). Safe to delete: the next build parses everything again.
+LAKE_DIR = Path(os.environ.get("KOPS_LAKE", BUILD_DIR / "lake"))
+QUARANTINE_PATH = BUILD_DIR / "quarantine.csv"
+# Parsing runs in N worker processes (1 = in the build process, easier to debug); each file has a time limit.
+WORKERS = int(os.environ.get("KOPS_WORKERS", min(8, os.cpu_count() or 2)))
+PARSE_TIMEOUT = int(os.environ.get("KOPS_PARSE_TIMEOUT", 600))      # seconds per file, 0 = no limit
+# Excel files whose header layout is not in dw/templates/known_templates.json are quarantined (templates.py).
+TEMPLATE_CHECK = os.environ.get("KOPS_TEMPLATE_CHECK", "1") == "1"
 DB_PATH = BUILD_DIR / "kops.duckdb"
 DASHBOARD_PATH = BUILD_DIR / "dashboard.html"
 
@@ -76,6 +85,24 @@ EMAIL_CATEGORIES = [
 ]
 # Ambiguous numeric dates like 05/10/2026 are read day/month (VN, KR exports). Set KOPS_EMAIL_DMY=0 for US m/d.
 EMAIL_DMY = os.environ.get("KOPS_EMAIL_DMY", "1") == "1"
+# Mailboxes (.mbox / .pst, ingest/mailbox.py): what is not loaded as business email. Comma-separated env overrides.
+def _env_list(name, default):
+    v = os.environ.get(name)
+    return [x.strip() for x in v.split(",") if x.strip()] if v is not None else default
+
+
+def _env_date(name):
+    v = os.environ.get(name)
+    return dt.date.fromisoformat(v) if v else None
+
+
+MAIL_EXCLUDE_FOLDERS = _env_list("KOPS_MAIL_EXCLUDE_FOLDERS", [
+    "Spam", "Junk", "Junk E-mail", "Junk Email", "Trash", "Deleted Items", "Deleted Messages", "Bin", "Drafts",
+    "Outbox", "RSS Feeds", "Sync Issues", "Conflicts", "Calendar", "Contacts", "Tasks", "Notes", "Journal",
+    "스팸", "스팸메일함", "휴지통", "지운 편지함", "임시 보관함", "임시보관함", "Thư rác", "Thùng rác", "Nháp"])
+MAIL_ALLOW = [x.lower() for x in _env_list("KOPS_MAIL_ALLOW", [])]     # senders/domains never filtered
+MAIL_SINCE, MAIL_UNTIL = _env_date("KOPS_MAIL_SINCE"), _env_date("KOPS_MAIL_UNTIL")
+
 # Optional LLM extractor (off by default; needs PO decision P2 in plans/EMAIL_READINESS_PLAN.md).
 EMAIL_LLM = os.environ.get("KOPS_EMAIL_LLM", "0") == "1"
 EMAIL_LLM_MODEL = os.environ.get("KOPS_EMAIL_LLM_MODEL", "claude-sonnet-5-5")

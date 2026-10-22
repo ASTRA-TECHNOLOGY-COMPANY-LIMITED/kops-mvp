@@ -118,3 +118,35 @@ Tổng khoảng 56 giờ. Làm trước (không cần chờ dữ liệu): H-01, 
 - **Dữ liệu nhạy cảm trong hộp thư** (lương, nhân sự, thông tin cá nhân): lọc theo thư mục/người gửi trước khi nạp; LLM chỉ chạy khi PO duyệt; không publish dashboard.
 - **Template quá khác** ở mùa cũ: báo cáo cách ly cho biết cần viết thêm parser nào, thay vì nạp sai.
 - **Chi phí LLM:** luôn chạy thử 200 thư và báo ước tính trước khi chạy toàn bộ; dùng batch + cache.
+
+## 9. Trạng thái (22/10/2026, nhánh `feat/dw-history-scale`)
+
+| ID | Trạng thái | Nghiệm thu (lệnh `python -m kops_dw bench accept --out <thư mục ngoài repo>`, 10/10 PASS) |
+|---|---|---|
+| H-01 | DONE | Lần 2 không đổi: 0 file hash, 0 file parse. Thêm 1 file: chỉ parse file đó |
+| H-02 | DONE | Build lần 2 trên dữ liệu hiện tại **0,4–0,7 s** (mục tiêu < 10 s). 33/33 check pass; mọi bảng raw/stg/core/mart giống hệt pipeline cũ |
+| H-03 | DONE | File hỏng, file quá giờ, file làm chết worker: build chạy tiếp, file vào `etl.quarantine` + `build/quarantine.csv`. Build lạnh dữ liệu hiện tại 15 s → 4,5 s |
+| H-04 | DONE | 11 template đã biết (`dw/templates/known_templates.json`). File đổi tên cột `ORDER Q'TY` → `UNKNOWN_TEMPLATE`, kèm nhãn và "missing [ORDER Q'TY], new [ORDER QUANTITY]" |
+| H-06 | DONE | `.mbox` 1.000 thư (870 nghiệp vụ, 50 trùng, 80 tự động): 1,4 s; `core.email` = 870, `raw.email_filtered` = 80. `.pst` qua `readpst`: đã thử nhánh thiếu công cụ và file hỏng; **chưa thử với file .pst thật** (chưa có mẫu) |
+| H-08 | DONE | PDF scan KO/VI/EN tự sinh → OCR đúng người gửi, ngày, tiêu đề, nội dung tiếng Hàn và tiếng Việt; chạy lại: OCR 0 trang, build parse 0 file |
+| H-13 | DONE | Xem bảng dưới |
+| H-05, H-07, H-09…H-12 | Chưa làm | Chờ dữ liệu thật / quyết định của PO |
+
+**Khác với thiết kế ở §1:**
+- Lake ghi theo **lô** (`lake/<bảng>/<parser>/<batch>.parquet`, mỗi dòng có `_key`), không phải một Parquet cho mỗi sha256: 50.000 thư thành 100.000 file nhỏ sẽ chậm. Không phân vùng theo customer/season (một lô trộn nhiều mùa); `lake-compact` gom file khi cần.
+- Bảng `raw.*` trong DuckDB được **nạp từ Parquet** (INSERT … SELECT read_parquet) thay vì view: giữ đúng kiểu cột và SQL model không phải sửa. Nạp lake chỉ mất ~2 s với 750 nghìn dòng.
+- Phiên bản parser tính tự động = hash code parser + giá trị config parser đọc (+ công cụ tuỳ chọn có/không), không cần nhớ tăng số.
+- OCR không chạy trong build; build xếp hàng, lệnh `ocr` xử lý (build luôn nhanh).
+
+**Benchmark H-13** (MacBook 8 CPU, 16 GB; 5.000 file Excel nhân bản từ file thật = 22,7 GB, 50.000 thư trong 10 `.mbox` + 1.000 `.eml`; dữ liệu nằm ngoài repo, không commit):
+
+| Lượt build | Thời gian | Parse | SQL | File parse | RAM lớn nhất | Mục tiêu §7 |
+|---|---|---|---|---|---|---|
+| Lần đầu | 522 s (8,7 phút) | 438 s | 62 s | 4.287 | 1,1 GB | < 2 giờ: đạt |
+| Lần sau, không đổi | 79 s | 0 s | 64 s | 0 | 0,9 GB | — |
+| Thêm 10 file + 100 thư | 84 s | 3,5 s | 65 s | 8 | 1,0 GB | < 2 phút: đạt |
+
+- Lake Parquet **40 MB** = 0,2% dung lượng nguồn (4.545 file); DuckDB 69 MB; 743 nghìn dòng đơn hàng/ô xuất hàng; 46.172 thư raw → 43.717 sau gộp trùng, 3.928 thư bị lọc.
+- **Điểm nghẽn 1 — `12_core_email.sql` 64 s** (mục tiêu SQL < 1 phút: trượt nhẹ): `core.email_mention` so từng thư với 1.193 mã trong từ điển bằng `strpos` (46 nghìn × 1.193 phép tìm chuỗi). Các file SQL khác < 1 s. Hướng xử lý: tách token mã trong thư rồi join bằng `=` (cùng chỉ mục n-gram của H-10); đổi cách khớp nên cần thêm golden check trên email thật trước khi làm.
+- **Điểm nghẽn 2 — parse ORDER RECAP CHALLENGER** (~2,3 s/file, 70% thời gian CPU lần đầu): openpyxl đọc cả workbook kèm định dạng ô (cần màu trạng thái). Chấp nhận được vì mỗi file chỉ parse một lần.
+- **Điểm nghẽn 3 — dashboard một file**: 160 MB HTML với dữ liệu giả lập → cần H-11 (dashboard theo mùa, tải lười) trước khi nạp dữ liệu lịch sử thật.
