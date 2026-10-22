@@ -16,6 +16,10 @@ BUILD_DIR = Path(os.environ.get("KOPS_BUILD", DW_DIR / "build"))
 CACHE_DIR = BUILD_DIR / "cache"
 # Incremental store (manifest + parse results as Parquet). Safe to delete: the next build parses everything again.
 LAKE_DIR = Path(os.environ.get("KOPS_LAKE", BUILD_DIR / "lake"))
+QUARANTINE_PATH = BUILD_DIR / "quarantine.csv"
+# Parsing runs in N worker processes (1 = in the build process, easier to debug); each file has a time limit.
+WORKERS = int(os.environ.get("KOPS_WORKERS", min(8, os.cpu_count() or 2)))
+PARSE_TIMEOUT = int(os.environ.get("KOPS_PARSE_TIMEOUT", 600))      # seconds per file, 0 = no limit
 DB_PATH = BUILD_DIR / "kops.duckdb"
 DASHBOARD_PATH = BUILD_DIR / "dashboard.html"
 

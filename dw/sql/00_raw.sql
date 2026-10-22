@@ -26,6 +26,12 @@ CREATE TABLE etl.run (
   workers INTEGER, scan_seconds DOUBLE, parse_seconds DOUBLE, load_seconds DOUBLE, sql_seconds DOUBLE,
   peak_rss_mb DOUBLE);
 
+-- Files that were not loaded and need a person (H-03/H-04): reason PARSE_FAILED | PARSE_TIMEOUT | PARSE_CRASHED |
+-- UNKNOWN_TEMPLATE | MISSING_TOOL; labels = header labels of an unknown template. Also written to build/quarantine.csv.
+CREATE TABLE etl.quarantine (
+  file_id INTEGER, file_name VARCHAR, rel_path VARCHAR, parser VARCHAR, status VARCHAR, reason VARCHAR,
+  message VARCHAR, labels VARCHAR, action VARCHAR);
+
 CREATE TABLE etl.data_issue (
   file_id INTEGER, severity VARCHAR, code VARCHAR, entity VARCHAR, message VARCHAR, location VARCHAR);
 

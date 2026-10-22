@@ -10,7 +10,10 @@ from __future__ import annotations
 import datetime as dt
 import fcntl
 import re
+import shutil
 import time
+from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
+from concurrent.futures import TimeoutError as FuturesTimeout
 from pathlib import Path
 
 import duckdb
@@ -171,6 +174,8 @@ def build(verbose=True, retry_failed=False) -> Path:
     t_load = time.time() - t_load
     _insert(con, "etl.data_issue", extra_issues)
     _insert(con, "etl.source_file", registry)
+    quarantine = _quarantine(registry, results)
+    _insert(con, "etl.quarantine", quarantine)
     t_sql = time.time()
     for f in sorted(SQL_DIR.glob("[1-9]*.sql")):
         con.execute(f.read_text())
@@ -179,23 +184,144 @@ def build(verbose=True, retry_failed=False) -> Path:
                n_files=len(entries), n_new=sum(e.change == "NEW" for e in entries),
                n_changed=sum(e.change == "CHANGED" for e in entries), n_removed=len(removed), n_hashed=n_hashed,
                n_parsed=len(metas), n_cached=sum(r["from_cache"] for r in registry),
-               n_failed=sum(r["status"] == "FAILED" for r in registry), n_quarantined=0, workers=1,
+               n_failed=sum(r["status"] == "FAILED" for r in registry), n_quarantined=len(quarantine),
+               workers=config.WORKERS if metas else 0,
                scan_seconds=round(t_scan, 2), parse_seconds=round(t_parse, 2), load_seconds=round(t_load, 2),
                sql_seconds=round(t_sql, 2), peak_rss_mb=_peak_rss_mb())
     _save_manifest(con, entries, removed, run)
     con.close()
     lake.compact_results(results, run_id)
     lock.close()
+    _write_quarantine(quarantine, verbose)
     if verbose:
         print(f"Built {config.DB_PATH} in {time.time() - t0:.1f}s ({run['n_files']} files: {run['n_new']} new, "
               f"{run['n_changed']} changed, {n_hashed} hashed; parsed {run['n_parsed']}, cached {run['n_cached']})")
     return config.DB_PATH
 
 
+def _chunks(tasks: list[dict], max_files=50, max_bytes=16 << 20) -> list[list[dict]]:
+    """Big files alone, small files (emails) together: fewer Parquet files and less process overhead."""
+    out, cur, size = [], [], 0
+    for t in sorted(tasks, key=lambda t: -t["size"]):
+        if cur and (len(cur) >= max_files or size + t["size"] > max_bytes):
+            out.append(cur)
+            cur, size = [], 0
+        cur.append(t)
+        size += t["size"]
+    return out + ([cur] if cur else [])
+
+
 def _parse_all(tasks: list[dict], run_id: str, verbose: bool) -> list[dict]:
+    """Parse in worker processes. A file that raises, times out (KOPS_PARSE_TIMEOUT) or kills its worker
+    (segfault, out of memory) is recorded as FAILED and quarantined; the other files go on."""
     if not tasks:
         return []
-    return parse.run_chunk(tasks, f"{run_id}-00000", verbose=verbose)
+    chunks = _chunks(tasks)
+    batches = [f"{run_id}-{n:05d}" for n in range(len(chunks))]
+    timeout, workers = config.PARSE_TIMEOUT, max(1, min(config.WORKERS, len(chunks)))
+    if workers == 1:
+        return [m for b, c in zip(batches, chunks) for m in parse.run_chunk(c, b, timeout, verbose)]
+    inflight = config.LAKE_DIR / "_inflight"        # <pid>.txt = key of the file a worker is parsing right now
+    metas, t0, rnd, n_iso = [], time.time(), 0, 0
+    todo = list(zip(batches, chunks))
+    while todo:
+        shutil.rmtree(inflight, ignore_errors=True)
+        inflight.mkdir(parents=True)
+        leftovers = _pool_round(todo, workers, timeout, verbose, inflight, metas, len(tasks), t0)
+        if not leftovers:
+            break
+        # A worker died or hung: the files it was parsing are tried alone, the others go to a fresh pool.
+        suspects = {f.read_text() for f in inflight.glob("*.txt")}
+        done_keys = {m["_key"] for m in metas}
+        rest = [t for t in leftovers if t["key"] not in done_keys]
+        alone = [t for t in rest if t["key"] in suspects] or rest       # no marker found: try every file alone
+        for t in alone:
+            metas += _parse_isolated(t, f"{run_id}-i{n_iso:05d}", timeout, verbose)
+            n_iso += 1
+        rnd += 1
+        alone_keys = {t["key"] for t in alone}
+        again = [t for t in rest if t["key"] not in alone_keys]
+        todo = [(f"{run_id}-r{rnd}-{n:05d}", c) for n, c in enumerate(_chunks(again))]
+    shutil.rmtree(inflight, ignore_errors=True)
+    return metas
+
+
+def _pool_round(todo, workers, timeout, verbose, inflight, metas, n_tasks, t0) -> list[dict]:
+    """Run chunks in a process pool; returns the tasks of chunks lost because the pool broke."""
+    leftovers, last = [], time.time()
+    stall = 2 * timeout + 60 if timeout else None
+    ex = ProcessPoolExecutor(workers)
+    futs = {ex.submit(parse.run_chunk, c, b, timeout, verbose, str(inflight)): c for b, c in todo}
+    pending = set(futs)
+    try:
+        while pending:
+            done, pending = wait(pending, timeout=15, return_when=FIRST_COMPLETED)
+            for f in done:
+                try:
+                    metas += f.result()
+                except Exception:              # BrokenProcessPool: a worker died (segfault, out of memory, killed)
+                    leftovers += futs[f]
+            if done:
+                last = time.time()
+                if verbose and n_tasks > 50:
+                    print(f"  parse {len(metas)}/{n_tasks} files, {time.time() - t0:.0f}s", flush=True)
+            elif stall and time.time() - last > stall:     # a worker hangs in C code (the alarm cannot fire)
+                for p in list(getattr(ex, "_processes", {}).values()):
+                    p.kill()
+    finally:
+        ex.shutdown(wait=True, cancel_futures=True)
+    return leftovers
+
+
+def _parse_isolated(t: dict, batch: str, timeout: int, verbose: bool) -> list[dict]:
+    """Re-run one file in its own process to tell a crashing/hanging file from its chunk neighbours."""
+    one = ProcessPoolExecutor(1)
+    fut = one.submit(parse.run_chunk, [t], batch, timeout, verbose)
+    try:
+        return fut.result(timeout=(timeout + 60) if timeout else None)
+    except FuturesTimeout:
+        for p in list(getattr(one, "_processes", {}).values()):
+            p.kill()
+        return parse.failed([t], batch, "PARSE_TIMEOUT", f"Timeout: worker hung for more than {timeout} s")
+    except Exception as e:
+        return parse.failed([t], batch, "PARSE_CRASHED",
+                            f"Crashed: the parser process died ({type(e).__name__}); file may be corrupt or too large")
+    finally:
+        one.shutdown(wait=True, cancel_futures=True)
+
+
+QUARANTINE_HINT = {
+    "PARSE_FAILED": "Mở file kiểm tra; sửa parser hoặc nhờ KLMAS gửi lại file, rồi chạy build --retry-failed",
+    "PARSE_TIMEOUT": "File quá lớn/treo: tăng KOPS_PARSE_TIMEOUT hoặc tách file, rồi build --retry-failed",
+    "PARSE_CRASHED": "Tiến trình parse chết (file hỏng/thiếu RAM): kiểm tra file, rồi build --retry-failed",
+}
+
+
+def _quarantine(registry: list[dict], results: dict) -> list[dict]:
+    """Files that are not loaded and need a person: failed / timed out / crashed parses."""
+    out = []
+    for r in registry:
+        if r["status"] != "FAILED":
+            continue
+        msg = r["message"] or ""
+        code = ("PARSE_TIMEOUT" if msg.startswith("Timeout") else "PARSE_CRASHED" if msg.startswith("Crashed")
+                else "PARSE_FAILED")
+        out.append(dict(file_id=r["file_id"], file_name=r["file_name"], rel_path=r["rel_path"], parser=r["parser"],
+                        status=r["status"], reason=code, message=msg, labels=None, action=QUARANTINE_HINT[code]))
+    return out
+
+
+def _write_quarantine(rows: list[dict], verbose: bool):
+    import csv
+    with open(config.QUARANTINE_PATH, "w", newline="", encoding="utf-8-sig") as f:   # BOM: opens in Excel
+        w = csv.DictWriter(f, fieldnames=["file_name", "rel_path", "parser", "status", "reason", "message",
+                                          "labels", "action"], extrasaction="ignore")
+        w.writeheader()
+        w.writerows(rows)
+    if verbose and rows:
+        print(f"Quarantine: {len(rows)} file(s) not loaded -> {config.QUARANTINE_PATH}")
+        for r in rows[:20]:
+            print(f"  [{r['reason']}] {r['file_name']}: {(r['message'] or '')[:120]}")
 
 
 def _mark_current(registry):

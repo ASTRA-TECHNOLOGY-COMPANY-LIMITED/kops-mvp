@@ -9,7 +9,10 @@ from __future__ import annotations
 
 import datetime as dt
 import hashlib
+import os
+import signal
 import sys
+import threading
 import time
 import traceback
 from pathlib import Path
@@ -67,22 +70,63 @@ def cache_key(sha256: str, parser: str, version: str, name: str, rel: str, is_sa
     return hashlib.sha1("|".join([sha256, parser, version, name, rel, str(is_sample), extra]).encode()).hexdigest()[:24]
 
 
-def run_chunk(tasks: list[dict], batch: str, timeout: int = 0, verbose: bool = False) -> list[dict]:
-    """Parse files one after another, write their rows to the lake as one batch, then the results."""
+class ParseTimeout(BaseException):     # BaseException: parsers have broad "except Exception" blocks
+    pass
+
+
+def run_chunk(tasks: list[dict], batch: str, timeout: int = 0, verbose: bool = False,
+              inflight: str | None = None) -> list[dict]:
+    """Parse files one after another, write their rows to the lake as one batch, then the results.
+    Runs in a worker process (or in the build process when KOPS_WORKERS=1). If the process dies, the
+    <inflight>/<pid>.txt marker tells the build which file it was parsing."""
     writer = lake.Writer(batch)
-    metas = [_run_one(t, writer, verbose) for t in tasks]
+    marker = Path(inflight) / f"{os.getpid()}.txt" if inflight else None
+    metas = []
+    for t in tasks:
+        if marker:
+            marker.write_text(t["key"])
+        metas.append(_run_one(t, writer, timeout, verbose))
+    writer.flush()
+    lake.write_results(metas, batch)
+    if marker:
+        marker.unlink(missing_ok=True)
+    return metas
+
+
+def failed(tasks: list[dict], batch: str, code: str, message: str) -> list[dict]:
+    """Record files that could not be parsed at all (worker crashed or hung) so they are quarantined, not retried
+    on every build (`build --retry-failed` retries them)."""
+    writer, metas = lake.Writer(batch), []
+    for t in tasks:
+        meta = _meta(t, batch)
+        meta.update(status="FAILED", message=message, n_issues=1)
+        writer.add({"etl.data_issue": [dict(severity="ERROR", code=code, entity=t["name"], message=message,
+                                            location=t["name"])]}, t["key"], t["parser"])
+        metas.append(meta)
     writer.flush()
     lake.write_results(metas, batch)
     return metas
 
 
-def _run_one(t: dict, writer: lake.Writer, verbose: bool) -> dict:
-    ctx = Ctx(t["sha256"])
-    t0 = time.time()
-    meta = dict(_key=t["key"], _batch=writer.batch, sha256=t["sha256"], parser=t["parser"], parser_version=t["version"],
+def _meta(t: dict, batch: str) -> dict:
+    return dict(_key=t["key"], _batch=batch, sha256=t["sha256"], parser=t["parser"], parser_version=t["version"],
                 file_name=t["name"], status="LOADED", message=None, report_date=None, family=None, season=None,
                 rows_loaded=0, n_issues=0, seconds=0.0, template_fp=None, template_labels=None, ocr_pages=None,
                 parsed_at=dt.datetime.now())
+
+
+def _on_alarm(signum, frame):
+    raise ParseTimeout()
+
+
+def _run_one(t: dict, writer: lake.Writer, timeout: int, verbose: bool) -> dict:
+    ctx = Ctx(t["sha256"])
+    t0 = time.time()
+    meta = _meta(t, writer.batch)
+    use_alarm = timeout > 0 and threading.current_thread() is threading.main_thread()
+    if use_alarm:
+        signal.signal(signal.SIGALRM, _on_alarm)
+        signal.alarm(timeout)
     try:
         tables, report_date, family = parse_file(t, ctx)
         seasons, n = set(), 0
@@ -93,11 +137,17 @@ def _run_one(t: dict, writer: lake.Writer, verbose: bool) -> dict:
         meta.update(report_date=report_date or ctx.report_date, family=family, rows_loaded=n)
         if len(seasons) == 1:
             meta["season"] = seasons.pop()            # sheet title wins over the file name
+    except ParseTimeout:
+        meta.update(status="FAILED", message=f"Timeout: parsing took more than {timeout} s (KOPS_PARSE_TIMEOUT)")
+        ctx.issue("ERROR", "PARSE_TIMEOUT", t["name"], meta["message"], t["name"])
     except Exception as e:  # keep going: one bad file must not stop the build
         meta.update(status="FAILED", message=f"{type(e).__name__}: {e}"[:1000])
         ctx.issue("ERROR", "PARSE_FAILED", t["name"], meta["message"], t["name"])
         if verbose:
             traceback.print_exc(file=sys.stderr)
+    finally:
+        if use_alarm:
+            signal.alarm(0)
     meta["n_issues"] = len(ctx.issues)
     writer.add({"etl.data_issue": ctx.issues}, t["key"], t["parser"])
     meta["seconds"] = round(time.time() - t0, 3)
