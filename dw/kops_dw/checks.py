@@ -1,51 +1,90 @@
 """Golden-number regression tests (GUIDELINES.md §7) + structural checks on the built DW.
 
 Golden values are only asserted when the matching source file is loaded, so the suite also runs on a
-partial raw-docs folder (missing sources are reported as SKIP)."""
+partial raw-docs folder (missing sources are reported as SKIP).
+
+Golden numbers belong to one version of a file (N-05). A golden check names the files it was measured on
+(pins): it runs on a snapshot DB built from the lake in which those files are the current version of their
+report family (pipeline.build(pins=...); nothing is parsed again). A newer version therefore never turns an old
+golden red; the new version gets its own golden, taken from the total cells of that file (cited in the name)."""
 from __future__ import annotations
 
 import duckdb
 
 from . import config
 
+# Files current when the golden numbers of GUIDELINES §7 were set (checks green on 22/10/2026).
+GOLDEN_2210 = ("261015 MJ) 26FW CHALLENGER ORDER RECAP", "261015 MJ) 27SS CHALLENGER ORDER RECAP",
+               "261014R2 MJ) 26FW CHALLENGER ALL STYLES SHIPMENT STATUS",
+               "261012 HUONG) 26FW CLGR PRODUCTION AND SHIPPING STATUS", "261016 MJ_DHG BPK -ALL 27SS PRODUCTION PLAN",
+               "261021 DHG) BPK 27SS ORDER RECAP", "261009. DUNG) DHG 8S 26FW", "261019 HANG) 27SS MIZUNO",
+               "261021 MJ) 27SS JBEE", "261015 MJ) 27SS KOFA")
+# Versions received 22-23/10/2026 (new-docs).
+GOLDEN_2310 = ("261022 MJ) 26FW CHALLENGER ORDER RECAP", "261022 MJ) 27SS CHALLENGER ORDER RECAP",
+               "261021 HUONG) 26FW CLGR PRODUCTION AND SHIPPING STATUS")
+_R26, _R27 = ("file", GOLDEN_2210[0]), ("file", GOLDEN_2210[1])
+_SH, _PS = ("file", GOLDEN_2210[2]), ("file", GOLDEN_2210[3])
+_CLGR = "f.is_current AND f.family = 'CHALLENGER'"     # MIZUNO status files are current too (own family)
+
 CHECKS = [
-    # (name, required parser+season, sql returning one value, expected)
-    ("ORDER RECAP 26FW: style blocks", ("order_recap", "26FW"),
-     "SELECT count(*) FROM core.style_order WHERE season='26FW'", 113),
-    ("ORDER RECAP 26FW: active styles", ("order_recap", "26FW"),
-     "SELECT count(*) FROM core.style_order WHERE season='26FW' AND is_active", 110),
-    ("ORDER RECAP 26FW: order qty (sum of colours)", ("order_recap", "26FW"),
-     "SELECT sum(order_qty) FROM core.style_order WHERE season='26FW' AND is_active", 62131),
-    ("ORDER RECAP 27SS: style blocks", ("order_recap", "27SS"),
-     "SELECT count(*) FROM core.style_order WHERE season='27SS'", 143),
-    ("ORDER RECAP 27SS: active styles", ("order_recap", "27SS"),
-     "SELECT count(*) FROM core.style_order WHERE season='27SS' AND is_active", 137),
-    ("ORDER RECAP 27SS: order qty (sum of colours)", ("order_recap", "27SS"),
-     "SELECT sum(order_qty) FROM core.style_order WHERE season='27SS' AND is_active", 87940),
-    ("Shipment Status: blocks", ("shipment_status", "26FW"),
-     "SELECT count(*) FROM raw.shipment_block b JOIN etl.source_file f USING (file_id) WHERE f.is_current", 144),
-    ("Shipment Status: blocks with data", ("shipment_status", "26FW"),
-     "SELECT count(*) FROM raw.shipment_block b JOIN etl.source_file f USING (file_id) WHERE f.is_current AND has_data", 104),
-    ("Shipment Status: blocks whose recomputed totals match the file", ("shipment_status", "26FW"),
-     """SELECT count(*) FROM raw.shipment_block b JOIN etl.source_file f USING (file_id) WHERE f.is_current AND has_data
+    # (name, required parser+season / ("file", prefix), sql returning one value, expected[, pinned files])
+    ("ORDER RECAP 26FW: style blocks", _R26,
+     "SELECT count(*) FROM core.style_order WHERE season='26FW'", 113, GOLDEN_2210),
+    ("ORDER RECAP 26FW: active styles", _R26,
+     "SELECT count(*) FROM core.style_order WHERE season='26FW' AND is_active", 110, GOLDEN_2210),
+    ("ORDER RECAP 26FW: order qty (sum of colours)", _R26,
+     "SELECT sum(order_qty) FROM core.style_order WHERE season='26FW' AND is_active", 62131, GOLDEN_2210),
+    ("ORDER RECAP 27SS: style blocks", _R27,
+     "SELECT count(*) FROM core.style_order WHERE season='27SS'", 143, GOLDEN_2210),
+    ("ORDER RECAP 27SS: active styles", _R27,
+     "SELECT count(*) FROM core.style_order WHERE season='27SS' AND is_active", 137, GOLDEN_2210),
+    ("ORDER RECAP 27SS: order qty (sum of colours)", _R27,
+     "SELECT sum(order_qty) FROM core.style_order WHERE season='27SS' AND is_active", 87940, GOLDEN_2210),
+    ("Shipment Status: blocks", _SH,
+     f"SELECT count(*) FROM raw.shipment_block b JOIN etl.source_file f USING (file_id) WHERE {_CLGR}", 144, GOLDEN_2210),
+    ("Shipment Status: blocks with data", _SH,
+     f"SELECT count(*) FROM raw.shipment_block b JOIN etl.source_file f USING (file_id) WHERE {_CLGR} AND has_data", 104,
+     GOLDEN_2210),
+    ("Shipment Status: blocks whose recomputed totals match the file", _SH,
+     f"""SELECT count(*) FROM raw.shipment_block b JOIN etl.source_file f USING (file_id) WHERE {_CLGR} AND has_data
         AND order_ttl_reported IS NOT DISTINCT FROM order_ttl_computed
-        AND shipped_smpl_reported IS NOT DISTINCT FROM shipped_smpl_computed""", 104),
-    ("Production Status: styles", ("production_status", "26FW"),
-     "SELECT count(*) FROM core.production_snapshot WHERE season='26FW'", 110),
-    ("Production Status: order qty recomputed (file shows 106,681)", ("production_status", "26FW"),
-     "SELECT sum(order_qty_reported) FROM core.production_snapshot WHERE season='26FW'", 62357),
-    ("Production Status: broken grand total is flagged", ("production_status", "26FW"),
-     "SELECT count(*) FROM etl.data_issue WHERE code='TOTAL_MISMATCH' AND entity='G.TTL' AND message LIKE '%106681%'", 1),
-    ("Cross-file: styles with order qty mismatch", ("shipment_status", "26FW"),
-     "SELECT count(*) FROM mart.reconciliation WHERE season='26FW' AND mismatch LIKE 'ORDER:%'", 4),
-    ("Factory history CHF3MJK6301 (NATEXCO -> HA HIEU -> MTT)", ("order_recap", "26FW"),
+        AND shipped_smpl_reported IS NOT DISTINCT FROM shipped_smpl_computed""", 104, GOLDEN_2210),
+    ("Production Status: styles", _PS,
+     "SELECT count(*) FROM core.production_snapshot WHERE season='26FW'", 110, GOLDEN_2210),
+    ("Production Status: order qty recomputed (file shows 106,681)", _PS,
+     "SELECT sum(order_qty_reported) FROM core.production_snapshot WHERE season='26FW'", 62357, GOLDEN_2210),
+    ("Production Status: broken grand total is flagged", _PS,
+     """SELECT count(*) FROM etl.data_issue i JOIN etl.source_file f USING (file_id) WHERE f.is_current
+        AND i.code='TOTAL_MISMATCH' AND i.entity='G.TTL' AND i.message LIKE '%106681%'""", 1, GOLDEN_2210),
+    ("Cross-file: styles with order qty mismatch", _SH,
+     "SELECT count(*) FROM mart.reconciliation WHERE season='26FW' AND mismatch LIKE 'ORDER:%'", 4, GOLDEN_2210),
+    ("Factory history CHF3MJK6301 (NATEXCO -> HA HIEU -> MTT)", _R26,
      """SELECT string_agg(coalesce(factory_code, factory_hint), '>' ORDER BY event_date) FROM core.factory_event
-        WHERE style_no='CHF3MJK6301'""", "NATEXCO>HA HIEU>MTT"),
-    ("Alert W33 CHF4MPT6444 projected ~49 days late", ("production_status", "26FW"),
-     "SELECT days_late FROM mart.style_360 WHERE style_no='CHF4MPT6444'", 49),
+        WHERE style_no='CHF3MJK6301'""", "NATEXCO>HA HIEU>MTT", GOLDEN_2210),
+    ("Alert W33 CHF4MPT6444 projected ~49 days late", _PS,
+     "SELECT days_late FROM mart.style_360 WHERE style_no='CHF4MPT6444'", 49, GOLDEN_2210),
     # Prototype showed 79%; the DW also matches the 3 aliased style codes (Q05), giving 79.6%.
-    ("26FW on-time shipment rate (first lot <= ETD + 7)", ("shipment_status", "26FW"),
-     "SELECT ontime_pct FROM mart.season_kpi WHERE season='26FW'", 79.6),
+    ("26FW on-time shipment rate (first lot <= ETD + 7)", _SH,
+     "SELECT ontime_pct FROM mart.season_kpi WHERE season='26FW'", 79.6, GOLDEN_2210),
+    # ---- golden of the versions received 22-23/10, from the file's own total cells (N-05) ----
+    ("ORDER RECAP 261022 26FW: active styles / qty = 'ORDER RECAP'!M631 'G.TTL(26FW)' / K594 'GRAND TOTAL'",
+     ("file", GOLDEN_2310[0]),
+     "SELECT count(*) || ' / ' || sum(order_qty) FROM core.style_order WHERE season='26FW' AND is_active", "110 / 62131",
+     GOLDEN_2310),
+    ("ORDER RECAP 261022 27SS: qty = 'ORDER RECAP'!K731 'GRAND TOTAL'", ("file", GOLDEN_2310[1]),
+     "SELECT sum(order_qty) FROM core.style_order WHERE season='27SS' AND is_active", 87940, GOLDEN_2310),
+    ("PRODUCTION STATUS 261021: styles = '26FW-CLGR'!B122 'G.TTL (TTL 110 STYLES)'", ("file", GOLDEN_2310[2]),
+     "SELECT count(*) FROM core.production_snapshot WHERE season='26FW'", 110, GOLDEN_2310),
+    ("PRODUCTION STATUS 261021: factory subtotals that add up = L34 / L48 / L121", ("file", GOLDEN_2310[2]),
+     """SELECT string_agg(factory_code || ' ' || n || ' / ' || q, ', ' ORDER BY factory_code) FROM (
+          SELECT factory_code, count(*) AS n, sum(order_qty_reported) AS q FROM core.production_snapshot
+          WHERE season='26FW' AND factory_code IN ('DONG MY', 'MTT', 'TAN BINH MINH') GROUP BY factory_code)""",
+     "DONG MY 28 / 17790, MTT 13 / 5620, TAN BINH MINH 37 / 19770", GOLDEN_2310),
+    ("PRODUCTION STATUS 261021: grand total L122 (106,681) flagged / recomputed qty", ("file", GOLDEN_2310[2]),
+     """SELECT (SELECT count(*) FROM etl.data_issue i JOIN etl.source_file f USING (file_id) WHERE f.is_current
+                 AND i.code='TOTAL_MISMATCH' AND i.entity='G.TTL' AND i.message LIKE '%106681%') || ' / ' ||
+               (SELECT sum(order_qty_reported) FROM core.production_snapshot WHERE season='26FW')""", "1 / 62357",
+     GOLDEN_2310),
     # structural rules
     ("No email change is applied without review", None,
      "SELECT count(*) FROM core.change_proposal WHERE review_status <> 'PENDING_REVIEW'", 0),
@@ -55,22 +94,22 @@ CHECKS = [
      """SELECT count(*) FROM core.change_proposal WHERE upper(evidence) LIKE '%IGNORE PREVIOUS%'
         OR (change_type IN ('QTY', 'QTY_PCT') AND proposed_qty = 0)""", 0),
     # ---- other customers (header-driven ORDER RECAP), production plan, history ----
-    ("8 SECONDS 26FW: styles / qty", ("file", "261006. DUNG) DHG 8S 26FW"),
+    ("8 SECONDS 26FW: styles / qty", ("file", "261009. DUNG) DHG 8S 26FW"),
      "SELECT count(*) || ' / ' || sum(order_qty) FROM core.order_line_ext WHERE customer='DHG' AND brand='8 SECONDS' AND season='26FW'",
-     "59 / 119392"),
+     "59 / 119392", GOLDEN_2210),
     ("MIZUNO 27SS: styles / qty", ("file", "261019 HANG) 27SS MIZUNO"),
-     "SELECT count(*) || ' / ' || sum(order_qty) FROM core.order_line_ext WHERE customer='DKM' AND season='27SS'", "26 / 43909"),
-    ("JBEE 27SS: qty", ("file", "261019 MJ) 27SS JBEE"),
-     "SELECT sum(order_qty) FROM core.order_line_ext WHERE customer='JBEE' AND season='27SS' AND is_active", 67100),
+     "SELECT count(*) || ' / ' || sum(order_qty) FROM core.order_line_ext WHERE customer='DKM' AND season='27SS'", "26 / 43909", GOLDEN_2210),
+    ("JBEE 27SS: qty", ("file", "261021 MJ) 27SS JBEE"),
+     "SELECT sum(order_qty) FROM core.order_line_ext WHERE customer='JBEE' AND season='27SS' AND is_active", 67100, GOLDEN_2210),
     ("KOFA 27SS: active qty (cancelled BLACKYAK blocks excluded)", ("file", "261015 MJ) 27SS KOFA"),
-     "SELECT sum(order_qty) FROM core.order_line_ext WHERE customer='KOFA' AND is_active", 4000),
+     "SELECT sum(order_qty) FROM core.order_line_ext WHERE customer='KOFA' AND is_active", 4000, GOLDEN_2210),
     ("Beanpole Kids 27SS current version = 261021: blocks / active / qty", ("file", "261021 DHG) BPK 27SS"),
      """SELECT count(*) || ' / ' || count(*) FILTER (WHERE is_active) || ' / ' || sum(order_qty) FILTER (WHERE is_active)
-        FROM core.order_line_ext WHERE brand='BEANPOLE KIDS'""", "12 / 10 / 8880"),
+        FROM core.order_line_ext WHERE brand='BEANPOLE KIDS'""", "12 / 10 / 8880", GOLDEN_2210),
     ("Production plan BPK: rows / qty", ("file", "261016 MJ_DHG BPK"),
-     "SELECT count(*) || ' / ' || sum(qty) FROM core.production_plan WHERE brand='BEANPOLE KIDS'", "10 / 9270"),
+     "SELECT count(*) || ' / ' || sum(qty) FROM core.production_plan WHERE brand='BEANPOLE KIDS'", "10 / 9270", GOLDEN_2210),
     ("Production plan: LBV-27002 BAL = -5 (file) = recomputed", ("file", "261016 MJ_DHG BPK"),
-     "SELECT bal_days || ' / ' || bal_calc FROM core.production_plan WHERE file_no='LBV-27002'", "-5 / -5"),
+     "SELECT bal_days || ' / ' || bal_calc FROM core.production_plan WHERE file_no='LBV-27002'", "-5 / -5", GOLDEN_2210),
     ("History CHALLENGER 27SS 261005 -> 261015: factory changes", ("file", "261005 MJ) 27SS CHALLENGER"),
      """SELECT count(*) FROM mart.version_change WHERE family='CHALLENGER|CHALLENGER' AND season='27SS'
         AND from_file LIKE '261005%' AND to_file LIKE '261015%' AND kind='FACTORY'""", 27),
@@ -145,14 +184,38 @@ CHECKS = [
 
 
 def run_checks(db_path=None) -> bool:
-    con = duckdb.connect(str(db_path or config.DB_PATH), read_only=True)
+    main = str(db_path or config.DB_PATH)
+    groups: dict[tuple, list] = {}
+    for check in CHECKS:
+        groups.setdefault(tuple(check[4]) if len(check) > 4 else (), []).append(check[:4])
+    ok = True
+    print("Golden / structural checks")
+    for pins, checks in groups.items():
+        db = main
+        if pins:
+            from .pipeline import build
+            name = "snapshot_" + min(pins)[:6]
+            print(f"  -- golden pinned to: {', '.join(pins)}")
+            db = str(build(verbose=False, pins=list(pins), db_path=config.BUILD_DIR / f"{name}.duckdb"))
+        ok &= _run(db, checks)
+    con = duckdb.connect(main, read_only=True)
+    failed = con.execute("SELECT file_name, message FROM etl.source_file WHERE status='FAILED'").fetchall()
+    con.close()
+    for f, m in failed:
+        ok = False
+        print(f"  FAIL  source failed to parse: {f}: {m}")
+    print("ALL PASS" if ok else "SOME CHECKS FAILED")
+    return ok
+
+
+def _run(db: str, checks: list) -> bool:
+    con = duckdb.connect(db, read_only=True)
     loaded = {(p, s) for p, s in con.execute(
         "SELECT parser, season FROM etl.source_file WHERE is_current").fetchall()}
     names = [n for (n,) in con.execute("SELECT file_name FROM etl.source_file WHERE status='LOADED'").fetchall()]
     docs = [n for (n,) in con.execute("SELECT file_name FROM core.document").fetchall()]
     ok = True
-    print("Golden / structural checks")
-    for name, need, sql, expected in CHECKS:
+    for name, need, sql, expected in checks:
         if need and need[0] in ("file", "doc"):
             if not any(n.startswith(need[1]) for n in (names if need[0] == "file" else docs)):
                 print(f"  SKIP  {name}  (source not loaded)")
@@ -164,10 +227,5 @@ def run_checks(db_path=None) -> bool:
         good = (float(got) == float(expected)) if isinstance(expected, (int, float)) and got is not None else got == expected
         ok &= good
         print(f"  {'PASS' if good else 'FAIL'}  {name}: {got}" + ("" if good else f" (expected {expected})"))
-    failed = con.execute("SELECT file_name, message FROM etl.source_file WHERE status='FAILED'").fetchall()
-    for f, m in failed:
-        ok = False
-        print(f"  FAIL  source failed to parse: {f}: {m}")
     con.close()
-    print("ALL PASS" if ok else "SOME CHECKS FAILED")
     return ok

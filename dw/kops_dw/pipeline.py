@@ -113,7 +113,9 @@ def discover():
     return files
 
 
-def build(verbose=True, retry_failed=False) -> Path:
+def build(verbose=True, retry_failed=False, pins: list[str] | None = None, db_path: Path | None = None) -> Path:
+    """pins: file-name prefixes that are the current version of their report family instead of the newest one
+    (golden snapshots, checks.py). With pins the build writes db_path only: no manifest / run / quarantine update."""
     t0 = time.time()
     config.LAKE_DIR.mkdir(parents=True, exist_ok=True)
     lock = open(config.LAKE_DIR / ".lock", "w")
@@ -196,12 +198,13 @@ def build(verbose=True, retry_failed=False) -> Path:
         for r in registry:
             src = "cached" if r["from_cache"] else ("parsed" if r["parse_key"] else "")
             print(f"  [{r['status']:9}] {r['file_name']}  rows={r['rows_loaded']}  {src}")
-    _mark_current(registry)
+    _mark_current(registry, pins)
+    db = db_path or config.DB_PATH
 
     config.BUILD_DIR.mkdir(parents=True, exist_ok=True)
-    if config.DB_PATH.exists():
-        config.DB_PATH.unlink()
-    con = duckdb.connect(str(config.DB_PATH))
+    if db.exists():
+        db.unlink()
+    con = duckdb.connect(str(db))
     con.execute((SQL_DIR / "00_raw.sql").read_text())
     _load_reference(con)
     t_load = time.time()
@@ -229,6 +232,10 @@ def build(verbose=True, retry_failed=False) -> Path:
                workers=config.WORKERS if metas else 0,
                scan_seconds=round(t_scan, 2), parse_seconds=round(t_parse, 2), load_seconds=round(t_load, 2),
                sql_seconds=round(t_sql, 2), peak_rss_mb=_peak_rss_mb())
+    if pins is not None:                      # snapshot: leave the catalog, runs and quarantine report as they are
+        con.close()
+        lock.close()
+        return db
     _save_manifest(con, entries, removed, run)
     con.close()
     lake.compact_results(results, run_id)
@@ -384,10 +391,11 @@ def _write_quarantine(rows: list[dict], verbose: bool):
             print(f"  [{r['reason']}] {r['file_name']}: {(r['message'] or '')[:120]}")
 
 
-def _mark_current(registry):
+def _mark_current(registry, pins: list[str] | None = None):
     """Several versions of the same report may sit in raw-docs: the newest per (template, season, family) is
     current. Order by the date in the file name first: the 'UP DATE' cell inside a file is typed by hand and
-    has gone backwards between versions (BPK 261021 says 07/09)."""
+    has gone backwards between versions (BPK 261021 says 07/09). A pinned file (name prefix) is current for its
+    family whatever newer version exists."""
     latest = {}
     for r in registry:
         if r["status"] != "LOADED":
@@ -396,7 +404,8 @@ def _mark_current(registry):
             r["is_current"] = True
             continue
         key = (r["parser"], r["season"], r["family"])
-        rank = (r["file_date"] or r["report_date"] or dt.date.min, r["report_date"] or dt.date.min, r["file_id"])
+        rank = (any(r["file_name"].startswith(p) for p in pins or ()),
+                r["file_date"] or r["report_date"] or dt.date.min, r["report_date"] or dt.date.min, r["file_id"])
         if key not in latest or rank > latest[key][0]:
             latest[key] = (rank, r)
     for _, r in latest.values():
