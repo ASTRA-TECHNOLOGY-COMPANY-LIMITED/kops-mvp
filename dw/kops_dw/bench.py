@@ -414,10 +414,11 @@ def page_load_ms(env: dict, season: str | None = None, port: int = 8799) -> int 
         time.sleep(1.5)
         with tempfile.TemporaryDirectory() as prof:
             url = f"http://127.0.0.1:{port}/" + (f"?season={season}" if season else "")
+            t0 = time.time()        # wall clock: Chrome start + fetch + parse + render (upper bound of opening the page)
             p = subprocess.run([chrome, "--headless", "--disable-gpu", f"--user-data-dir={prof}",
                                 "--virtual-time-budget=20000", "--dump-dom", url], capture_output=True, text=True, timeout=120)
-        m = re.search(r'data-load-ms="(\d+)"', p.stdout)
-        return int(m.group(1)) if m else None
+            wall = int((time.time() - t0) * 1000)
+        return wall if re.search(r'data-load-ms="\d+"', p.stdout) else None
     finally:
         srv.terminate()
         srv.wait()
@@ -440,7 +441,8 @@ def dash_lines(env: dict) -> list[str]:
     ms_big = page_load_ms(env, big[0]) if big[0] != idx["default"] else ms
     return [f"- Dashboard theo mùa (H-11): render {secs} s; {len(seasons)} mùa, file mùa lớn nhất {big[0]} {big[1]:.1f} MB, "
             f"tổng các mùa {sum(seasons.values()):.1f} MB, _common {sizes.get('_common', 0):.1f} MB; mở trang (mùa "
-            f"{idx['default']}) {ms if ms is not None else 'n/a'} ms, mùa {big[0]} {ms_big if ms_big is not None else 'n/a'} ms"]
+            f"{idx['default']}) {ms if ms is not None else 'n/a'} ms, mùa {big[0]} {ms_big if ms_big is not None else 'n/a'} ms "
+            f"(đồng hồ thật, gồm cả khởi động Chrome headless)"]
 
 
 def benchmark(out: Path) -> bool:

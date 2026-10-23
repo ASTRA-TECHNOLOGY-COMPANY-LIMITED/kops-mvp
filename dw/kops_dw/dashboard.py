@@ -15,6 +15,7 @@ from __future__ import annotations
 import datetime as dt
 import decimal
 import json
+import os
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 import duckdb
@@ -23,6 +24,11 @@ from . import config
 
 TEMPLATE = config.DW_DIR / "templates" / "dashboard.html"
 
+# Detail lists are cut to the first ROW_CAP rows of each data file (queries put the newest / most severe first);
+# totals stay right because KPIs come from aggregated marts. The page says which lists were cut.
+ROW_CAP = int(os.environ.get("KOPS_DASH_ROWS", 2000))
+CAPPED = {"pstatus", "vchanges", "changes", "emails", "email_list", "threads", "issues", "lot_detail", "assortment",
+          "style_events", "sched_recap", "plan", "sources"}
 # Kept whole in _common.json: the season list / KPI header and the file lineage (overview counts every source).
 GLOBAL = {"season_kpi", "sources"}
 # Season of an email = the season most of the styles it mentions belong to (split of the dashboard data, H-11).
@@ -45,9 +51,8 @@ QUERIES = {
     "lot_detail": "SELECT * FROM mart.lot_detail",
     "recon": "SELECT * FROM mart.reconciliation WHERE mismatch IS NOT NULL ORDER BY season, style_no",
     "changes": "SELECT * FROM mart.change_log ORDER BY event_date DESC NULLS LAST",
-    "proposals": "SELECT * FROM core.change_proposal ORDER BY sent_at",
     "emails": f"""SELECT message_id, sent_at, sender, subject, is_sample, left(body, 1200) AS body, s.season
-                  FROM core.email LEFT JOIN ({EMAIL_SEASON}) s USING (msg_key) ORDER BY sent_at""",
+                  FROM core.email LEFT JOIN ({EMAIL_SEASON}) s USING (msg_key) ORDER BY sent_at DESC NULLS LAST""",
     "issues": """SELECT i.severity, i.code, i.entity, i.message, i.location, f.file_name
                  FROM etl.data_issue i LEFT JOIN etl.source_file f USING (file_id)
                  ORDER BY CASE i.severity WHEN 'ERROR' THEN 0 WHEN 'WARN' THEN 1 ELSE 2 END, i.code""",
@@ -141,6 +146,10 @@ def render(db_path=None, out_path=None, single: bool = False):
         old.unlink()
     sizes = {}
     for name, obj in [("_common", common), *by_season.items()]:
+        cut = {k: len(t["rows"]) for k, t in obj.items() if k in CAPPED and len(t["rows"]) > ROW_CAP}
+        for k in cut:
+            obj[k] = {"cols": obj[k]["cols"], "rows": obj[k]["rows"][:ROW_CAP]}
+        obj["_cut"] = {"cols": ["dataset", "total", "kept"], "rows": [[k, n, ROW_CAP] for k, n in cut.items()]}
         f = ddir / f"{name}.json"
         f.write_text(_dump(obj), encoding="utf-8")
         sizes[name] = f.stat().st_size

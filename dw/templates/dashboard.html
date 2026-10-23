@@ -143,6 +143,7 @@ const CACHE = {};
 function setTables(...parts) {
   TB = {};
   for (const p of parts) for (const [k, t] of Object.entries(p || {})) if (t && t.cols) (TB[k] = TB[k] || []).push(...rowsOf(t));
+  TB.proposals = TB.pstatus || [];        // proposal_file_status = change_proposal + file_status (one list, not two)
 }
 async function getJSON(u) { const r = await fetch(u, {cache: 'no-cache'}); if (!r.ok) throw new Error(`${u}: HTTP ${r.status}`); return r.json(); }
 async function loadSeason(s) {
@@ -291,7 +292,9 @@ function render() {
     change: viewChange(), quality: viewQuality(), meeting: viewMeeting(), source: viewSource(),
     portfolio: viewPortfolio(), email: viewEmail(), history: viewHistory(), progress: viewProgress(),
   };
-  $('#main').innerHTML = TABS.map(([k]) => `<section class="tab" id="tab-${k}" role="tabpanel">${html[k]}</section>`).join('');
+  const cut = (TB._cut || []).map(c => `${c.dataset} ${nf.format(c.kept)}/${nf.format(c.total)}`);
+  $('#main').innerHTML = (cut.length ? `<div class="banner">Danh sách dài chỉ tải các dòng mới nhất / nghiêm trọng nhất (KOPS_DASH_ROWS): ${esc(cut.join(', '))}. Các ô tổng vẫn tính trên toàn bộ dữ liệu; bản đầy đủ trong build/kops.duckdb.</div>` : '')
+    + TABS.map(([k]) => `<section class="tab" id="tab-${k}" role="tabpanel">${html[k]}</section>`).join('');
   Object.keys(TABLES).forEach(drawTable);
   showTab(TAB);
 }
