@@ -9,20 +9,37 @@ SELECT * EXCLUDE (rn) FROM (
          row_number() OVER (PARTITION BY e.msg_key ORDER BY e.is_quoted, e.file_id, e.part_no) AS rn
   FROM raw.email e JOIN core.current_file f USING (file_id)) WHERE rn = 1;
 
+-- Style mentions (N-07): code-like tokens are cut once per email (subject + the stored 4,000 body characters) and
+-- joined by equality with the dictionary, instead of searching every key in every email (strpos x keys was 64 s
+-- on 50,000 emails). A token is a run of letters, digits and '-' of 6+ characters, and its heads at '-' are tokens too,
+-- so 'CHF3WJK6701-G-260624' and 'LBV-26002-1' still name CHF3WJK6701 / LBV-26002. A dictionary key written with a
+-- note ('32YA6F00 (=32MK0000)') is matched on its first code.
+CREATE TEMP TABLE email_token AS
+WITH t AS (
+  SELECT DISTINCT e.msg_key, u.tok
+  FROM core.email e,
+       unnest(regexp_extract_all(upper(coalesce(e.subject, '') || ' ' || coalesce(e.body, '')),
+                                 '[A-Z0-9][A-Z0-9-]*[A-Z0-9]')) AS u(tok)
+  WHERE length(u.tok) >= 6 AND regexp_matches(u.tok, '[0-9]'))
+SELECT DISTINCT msg_key, array_to_string(list_slice(string_split(tok, '-'), 1, g.n), '-') AS tok
+FROM t, unnest(generate_series(1, least(len(string_split(tok, '-')), 4))) AS g(n);
+
 CREATE TABLE core.email_mention AS
-SELECT DISTINCT e.msg_key, d.style_no, d.customer, d.brand, d.season, d.key AS matched_key, d.kind
-FROM core.email e JOIN core.style_dictionary d
-  ON strpos(upper(coalesce(e.subject, '') || ' ' || coalesce(e.body, '')), d.key) > 0;
+SELECT DISTINCT t.msg_key, d.style_no, d.customer, d.brand, d.season, d.key AS matched_key, d.kind
+FROM email_token t
+JOIN (SELECT *, regexp_extract(key, '^[A-Z0-9][A-Z0-9-]*[A-Z0-9]') AS key_tok FROM core.style_dictionary) d
+  ON d.key_tok = t.tok;
 
 CREATE TABLE core.email_thread AS
-SELECT thread_key, arg_min(subject, sent_at) AS subject, count(*) AS n_messages,
-       min(sent_at) AS first_at, max(sent_at) AS last_at,
-       count(DISTINCT coalesce(sender_email, sender)) AS n_senders,
-       string_agg(DISTINCT coalesce(sender, sender_email), ', ') AS senders,
-       bool_or(is_sample) AS is_sample,
-       (SELECT string_agg(DISTINCT m.customer, ', ') FROM core.email_mention m
-         WHERE m.msg_key IN (SELECT msg_key FROM core.email e2 WHERE e2.thread_key = e.thread_key)) AS customers
-FROM core.email e GROUP BY thread_key;
+WITH cust AS (       -- customers of the styles mentioned anywhere in the thread (a join: a per-thread subquery took 48 s)
+  SELECT e.thread_key, string_agg(DISTINCT m.customer, ', ' ORDER BY m.customer) AS customers
+  FROM core.email e JOIN core.email_mention m USING (msg_key) GROUP BY e.thread_key)
+SELECT e.thread_key, arg_min(e.subject, e.sent_at) AS subject, count(*) AS n_messages,
+       min(e.sent_at) AS first_at, max(e.sent_at) AS last_at,
+       count(DISTINCT coalesce(e.sender_email, e.sender)) AS n_senders,
+       string_agg(DISTINCT coalesce(e.sender, e.sender_email), ', ') AS senders,
+       bool_or(e.is_sample) AS is_sample, any_value(c.customers) AS customers
+FROM core.email e LEFT JOIN cust c USING (thread_key) GROUP BY e.thread_key;
 
 -- Reply time: gap to the previous message of the thread written by someone else.
 CREATE TABLE core.email_reply AS

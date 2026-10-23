@@ -167,6 +167,12 @@ CHECKS = [
      """SELECT string_agg(DISTINCT c, ',' ORDER BY c) FROM (
           SELECT customer AS c FROM core.style_milestone WHERE source_kind = 'email' AND NOT is_sample
           INTERSECT SELECT customer FROM core.shipment_event WHERE NOT is_sample)""", "CHALLENGER,DHG,DKM,JBEE"),
+    # Same (email, style) pairs as the former strpos join (N-07); LBV-26002 is not in the style dictionary yet
+    # (no BEANPOLE KIDS 26FW ORDER RECAP / plan received), so neither method finds it.
+    ("Email mentions by token: CHF3WJK6701 / LBV-26002 / LEV-26111 (messages)", ("file", "KLMAS CO., LTD 메일 - 0514) CHF3WJK6701"),
+     """SELECT string_agg(k || ' ' || (SELECT count(DISTINCT m.msg_key) FROM core.email_mention m JOIN core.style_dictionary d
+                ON d.style_no = m.style_no WHERE d.key = k), ' / ' ORDER BY k)
+        FROM (VALUES ('CHF3WJK6701'), ('LBV-26002'), ('LEV-26111')) v(k)""", "CHF3WJK6701 13 / LBV-26002 0 / LEV-26111 16"),
     # ---- emails (SAMPLE files in dw/samples/inbox) ----
     ("Email: same message in .eml and quoted in a PDF counted once", ("file", "08_buyer_original_duplicate"),
      "SELECT count(*) || ' / ' || max(n_copies) FROM core.email WHERE thread_key='[sample] 26fw chf4mpt6444 delivery'", "2 / 2"),
