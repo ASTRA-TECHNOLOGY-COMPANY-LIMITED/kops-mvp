@@ -19,6 +19,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 TZ=Asia/Ho_Chi_Minh \
     KOPS_RAW_DOCS=/data/raw-docs \
     KOPS_INBOX=/data/raw-docs/inbox:/app/samples/inbox \
     KOPS_BUILD=/app/build \
+    KOPS_STATE=/app/state \
     KOPS_SOFFICE=/usr/bin/soffice \
     KOPS_CHROME=/usr/bin/chromium \
     HOME=/app/build/home
@@ -28,12 +29,13 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY kops_dw ./kops_dw
+COPY app ./app
 COPY sql ./sql
 COPY templates ./templates
 COPY samples ./samples
 COPY README.md mail_allow.example.txt ./
 
-RUN useradd --create-home --uid 1000 kops && mkdir -p /app/build && chown kops:kops /app/build \
+RUN useradd --create-home --uid 1000 kops && mkdir -p /app/build /app/state && chown kops:kops /app/build /app/state \
  && chmod -R a+rX /app
 USER kops
 

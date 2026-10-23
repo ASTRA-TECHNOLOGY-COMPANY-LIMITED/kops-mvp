@@ -1,7 +1,7 @@
 # KOPS local stack (D-07): `make up` -> http://127.0.0.1:8765
 #   kops-build      one shot: build the DW from raw-docs, run every check, render the dashboards (exits non-zero if a
 #                   check fails, and the dashboard then does not start)
-#   kops-dashboard  static server for the dashboards, starts after kops-build succeeded
+#   kops-dashboard  web app (login, data API, dashboards), starts after kops-build succeeded
 # raw-docs is mounted read-only; the build output stays in the named volume kops_build (not in the image, not in
 # dw/build of the host). ANTHROPIC_API_KEY and other secrets come from .env at run time (optional file).
 # Synthetic demo data (schema sim, labelled on the page): KOPS_SIM=1 (default for the demo, `make up`),
@@ -16,6 +16,7 @@ x-common: &common
     - ./raw-docs:/data/raw-docs:ro
     - ./analys-docs/open_questions.md:/data/open_questions.md:ro   # question codes / titles (read only)
     - kops_build:/app/build
+    - kops_state:/app/state                # app state (users, sessions, notifications): kept across rebuilds
   env_file:
     - path: .env
       required: false
@@ -42,3 +43,4 @@ services:
 
 volumes:
   kops_build:
+  kops_state:

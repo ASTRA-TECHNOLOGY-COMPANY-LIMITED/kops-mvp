@@ -68,7 +68,7 @@ def main(argv=None):
         if not ok and cmd == "test":
             sys.exit(1)
     if cmd == "serve":
-        from .dashboard import serve
+        from app.main import serve      # web app (F-00): login, data API, notifications, chatbot
         sys.exit(serve(argv[1:]))
     if cmd in ("dashboard", "all"):
         from .dashboard import render

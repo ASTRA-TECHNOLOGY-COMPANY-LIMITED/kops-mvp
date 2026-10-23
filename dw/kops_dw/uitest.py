@@ -1,7 +1,7 @@
 """Automatic UI test of the manager dashboard (E-07): python -m kops_dw check-ui --out <dir> [--quick]  (make check-ui).
 
-Playwright drives the system Chromium (Docker image: Debian chromium; macOS: Google Chrome) against the dashboard
-served on 127.0.0.1. Matrix on season 26FW (the season with real + synthetic data): every page x light / dark x
+Playwright drives the system Chromium (tools image: Debian chromium; macOS: Google Chrome) against the web app started
+on 127.0.0.1 with a throw-away state DB and a test account (app/local.py). Matrix on season 26FW (the season with real + synthetic data): every page x light / dark x
 desktop / mobile x VI / KO x synthetic off / on, plus every page of the running season 27SS (real data only).
 Each load must have:
   - no console error / page error, and no render error banner;
@@ -21,7 +21,7 @@ from urllib.parse import urlencode
 import duckdb
 
 from . import config
-from .report import find_chrome, start_server
+from .report import find_chrome
 
 PAGES = ("actions", "overview", "production", "ship", "quality", "factory", "change", "style", "health")
 SIM_PAGES = ("overview", "production", "ship", "quality", "factory")       # 26FW pages that show synthetic data
@@ -63,7 +63,10 @@ def run(argv: list[str]) -> int:
         return 1
     quick = "--quick" in argv
     exp = _expected()
-    httpd, port = start_server()
+    from app.local import local_app
+    app_cm = local_app("admin")
+    app = app_cm.__enter__()
+    base = app["url"]
     results: list[tuple[str, bool, str]] = []
     t0 = time.time()
 
@@ -84,13 +87,14 @@ def run(argv: list[str]) -> int:
                 w, h = VIEWPORTS[vp]
                 ctx = browser.new_context(viewport={"width": w, "height": h}, is_mobile=vp == "mobile", has_touch=vp == "mobile",
                                           color_scheme=theme)
+                ctx.add_cookies([app["cookie"]])
                 page = ctx.new_page()
                 errors: list[str] = []
                 page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
                 page.on("pageerror", lambda e: errors.append(str(e)))
                 q = {"tab": page_id, "season": season, "lang": lang, "theme": theme, "syn": syn, "noanim": 1}
                 name = f"{season} {page_id} {theme} {vp} {lang} syn={syn}"
-                page.goto(f"http://127.0.0.1:{port}/?{urlencode(q)}")
+                page.goto(f"{base}/?{urlencode(q)}")
                 page.wait_for_selector("body[data-load-ms]", timeout=30000)
                 page.wait_for_timeout(150)
                 r = page.evaluate(PROBE)
@@ -105,11 +109,21 @@ def run(argv: list[str]) -> int:
                     check(f"{name}: synthetic-data chips shown", r["sim"] > 0, "0 chip")
                 page.screenshot(path=str(out / f"{season}_{page_id}_{theme}_{vp}_{lang}_syn{syn}.png"), full_page=True)
                 ctx.close()
+            # no session: pages go to the login page, data answers 401 (full route list: security check, F-07)
+            anon = browser.new_context()
+            r = anon.request.get(f"{base}/api/data/mgr/index.json")
+            check("No session: data API answers 401", r.status == 401, str(r.status))
+            pg = anon.new_page()
+            pg.goto(f"{base}/?tab=overview")
+            check("No session: dashboard redirects to /login", "/login" in pg.url, pg.url)
+            anon.close()
             # main KPIs against the marts
-            page = browser.new_page(viewport={"width": 1366, "height": 900})
+            kctx = browser.new_context(viewport={"width": 1366, "height": 900})
+            kctx.add_cookies([app["cookie"]])
+            page = kctx.new_page()
             for q, keys in ((dict(tab="overview", season="26FW", customer="CHALLENGER", syn="0"), ("order", "shipped_pct", "ontime_pct")),
                             (dict(tab="actions", season="27SS", syn="0"), ("actions",))):
-                page.goto(f"http://127.0.0.1:{port}/?{urlencode({**q, 'noanim': 1})}")
+                page.goto(f"{base}/?{urlencode({**q, 'noanim': 1})}")
                 page.wait_for_selector("body[data-load-ms]", timeout=30000)
                 kpi = page.evaluate(PROBE)["kpi"]
                 for k in keys:
@@ -117,7 +131,7 @@ def run(argv: list[str]) -> int:
                     check(f"KPI {q['tab']} {q['season']} {k} = mart", abs(got - exp[k]) < 0.05, f"page {got} / mart {exp[k]:.2f}")
             # new data while the page stays open (E-08): render again, the page picks it up without a reload
             from .mgr_dashboard import render
-            page.goto(f"http://127.0.0.1:{port}/?tab=overview&noanim=1")
+            page.goto(f"{base}/?tab=overview&noanim=1")
             page.wait_for_selector("body[data-load-ms]", timeout=30000)
             before = page.evaluate("() => [IDX.build_id, performance.getEntriesByType('navigation').length]")
             render()
@@ -128,7 +142,7 @@ def run(argv: list[str]) -> int:
                   f"{before} -> {after}")
             browser.close()
     finally:
-        httpd.shutdown()
+        app_cm.__exit__(None, None, None)
     ok = sum(1 for r in results if r[1])
     print(f"UI checks: {ok}/{len(results)} passed, {len(loads)} page loads, {time.time() - t0:.0f} s; screenshots in {out}")
     print("ALL PASS" if ok == len(results) else "SOME UI CHECKS FAILED")

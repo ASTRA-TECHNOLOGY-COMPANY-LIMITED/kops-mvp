@@ -131,9 +131,12 @@ const synChip = (ids, share) => { const qs = uniq((ids || []).map(qOf));
   const sim = !(ids || []).length || ids.some(i => String(i || '').startsWith('ASM-SIM'));    // synthetic data, not a rule assumption
   return `<span class="syn${sim ? ' sim' : ''}" title="${esc(tip)}">${L('Giả định')}${share != null ? ' ' + nf1.format(share) + '%' : ''}${qs.length ? ' · ' + qs.join(', ') : ''}</span>`; };
 
-async function getJSON(u) { const r = await fetch(u, {cache: 'no-cache'}); if (!r.ok) throw new Error(u + ': HTTP ' + r.status); return r.json(); }
+async function getJSON(u) {     // data only through the app's API (session checked); no session -> login page
+  const r = await fetch(u, {cache: 'no-cache', credentials: 'same-origin'});
+  if (r.status === 401) { location.href = '/login?next=' + encodeURIComponent(location.pathname + location.search); throw new Error('login'); }
+  if (!r.ok) throw new Error(u + ': HTTP ' + r.status); return r.json(); }
 async function loadSeasons(list) {
-  for (const s of list) if (!CACHE[s]) CACHE[s] = await getJSON('data/mgr/' + encodeURIComponent(s) + '.json');
+  for (const s of list) if (!CACHE[s]) CACHE[s] = await getJSON('api/data/mgr/' + encodeURIComponent(s) + '.json');
   D = {};
   for (const part of [COMMON, ...list.map(s => CACHE[s])]) for (const [k, t] of Object.entries(part || {})) (D[k] = D[k] || []).push(...rowsOf(t));
 }
@@ -614,9 +617,9 @@ function showBuilt() {
 }
 async function pollNewData() {
   try {
-    const idx = await getJSON('data/mgr/index.json');
+    const idx = await getJSON('api/data/mgr/index.json');
     if (idx.build_id === IDX.build_id) return;
-    const common = await getJSON('data/mgr/_common.json');
+    const common = await getJSON('api/data/mgr/_common.json');
     IDX = idx; COMMON = common; CACHE = {};
     COMMON_ROWS = Object.fromEntries(Object.entries(COMMON).map(([k, t]) => [k, rowsOf(t)]));
     if (STATE.season !== ALL && !IDX.seasons.includes(STATE.season)) STATE.season = IDX.default;
@@ -653,7 +656,7 @@ $('#themeBtn').onclick = () => { const r = document.documentElement, dark = r.da
   const q = new URLSearchParams(location.search);
   if (q.get('theme')) document.documentElement.dataset.theme = q.get('theme');
   try {
-    IDX = await getJSON('data/mgr/index.json'); COMMON = await getJSON('data/mgr/_common.json');
+    IDX = await getJSON('api/data/mgr/index.json'); COMMON = await getJSON('api/data/mgr/_common.json');
   } catch (err) {
     $('#main').innerHTML = `<div class="banner">${L('Trang này tải dữ liệu từ <b>data/mgr/</b>: chạy <code>python -m kops_dw serve</code> (hoặc <code>make up</code>) rồi mở <b>http://127.0.0.1:8765/</b>.')}<br><span class="note">${esc(err.message)}</span></div>`; return;
   }

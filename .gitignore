@@ -7,6 +7,7 @@ raw-docs/*
 
 # Data warehouse MVP build output (contains KLMAS data) and local env
 dw/build/
+dw/state/
 dw/.venv/
 __pycache__/
 *.pyc

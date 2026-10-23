@@ -4,8 +4,8 @@
   build/data/_common.json    tables without a season + rows whose season is unknown (always loaded)
   build/data/<season>.json   rows of one season: the page loads only the season being viewed (season filter on
                              every tab); switching season fetches that file once
-The page fetches these files, so it is opened through `python -m kops_dw serve` (local static server on
-127.0.0.1) rather than from the file system. `python -m kops_dw dashboard --single` still writes one
+The page fetches these files through the web app (`python -m kops_dw serve`, dw/app): only after login, from
+/api/data/analyst/<file>, never as static files. `python -m kops_dw dashboard --single` still writes one
 self-contained HTML file with every season embedded (small data sets, offline copy).
 
 The output contains KLMAS business data: it is written to build/ (git-ignored) and must not be
@@ -16,7 +16,6 @@ import datetime as dt
 import decimal
 import json
 import os
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 import duckdb
 
@@ -163,44 +162,3 @@ def render(db_path=None, out_path=None, single: bool = False):
           f"manager.html + data/mgr ({len(msizes) - 1} seasons, largest {max(msizes.values()) / 1e6:.1f} MB) "
           f"-> open with: python -m kops_dw serve")
     return out
-
-
-class _Handler(SimpleHTTPRequestHandler):
-    """Serves manager.html (start page), dashboard.html, data/**.json and vendor/*.js from build/, nothing else (the
-    DB and the lake stay private)."""
-
-    def do_GET(self):
-        path = self.path.split("?", 1)[0]
-        if path in ("/", "/index.html"):
-            self.path = "/manager.html"
-        elif not (path in ("/dashboard.html", "/manager.html")
-                  or (path.startswith("/data/") and path.endswith(".json") and ".." not in path)
-                  or (path.startswith("/vendor/") and path.endswith(".js") and ".." not in path)):
-            self.send_error(404)
-            return
-        super().do_GET()
-
-    def log_message(self, fmt, *args):
-        pass
-
-
-def serve(argv: list[str]) -> int:
-    """python -m kops_dw serve [--port 8765] [--open]: local static server for the dashboard (127.0.0.1 only)."""
-    import functools
-    import webbrowser
-    port = int(argv[argv.index("--port") + 1]) if "--port" in argv else 8765
-    # inside the Docker container: --host 0.0.0.0, the host side publishes 127.0.0.1:8765 only (docker-compose.yml)
-    host = argv[argv.index("--host") + 1] if "--host" in argv else "127.0.0.1"
-    if not (config.BUILD_DIR / "data" / "index.json").exists():
-        render()
-    handler = functools.partial(_Handler, directory=str(config.BUILD_DIR))
-    httpd = ThreadingHTTPServer((host, port), handler)
-    url = f"http://127.0.0.1:{port}/"
-    print(f"Dashboard on {url} (Ctrl+C to stop; listening on {host})", flush=True)
-    if "--open" in argv:
-        webbrowser.open(url)
-    try:
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        pass
-    return 0

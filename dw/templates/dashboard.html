@@ -147,7 +147,7 @@ function setTables(...parts) {
 }
 async function getJSON(u) { const r = await fetch(u, {cache: 'no-cache'}); if (!r.ok) throw new Error(`${u}: HTTP ${r.status}`); return r.json(); }
 async function loadSeason(s) {
-  if (!CACHE[s]) CACHE[s] = await getJSON(`data/${encodeURIComponent(s)}.json`);
+  if (!CACHE[s]) CACHE[s] = await getJSON(`api/data/analyst/${encodeURIComponent(s)}.json`);
   setTables(CACHE._common, CACHE[s]);
 }
 const $ = (s, el = document) => el.querySelector(s);
@@ -741,9 +741,9 @@ const URL_SEASON = list => { const q = new URLSearchParams(location.search).get(
 async function boot() {
   if (D.lazy) {
     try {
-      const idx = await getJSON('data/index.json');
+      const idx = await getJSON('api/data/analyst/index.json');
       BUILT = idx.built_at; SEASONS = idx.seasons; SEASON = URL_SEASON(SEASONS) || idx.default || SEASONS[SEASONS.length - 1];
-      CACHE._common = await getJSON('data/_common.json');
+      CACHE._common = await getJSON('api/data/analyst/_common.json');
       await loadSeason(SEASON);
     } catch (err) {
       $('#main').innerHTML = `<div class="banner">Dashboard tải dữ liệu theo mùa từ thư mục <b>data/</b> nên cần mở qua máy chủ cục bộ:

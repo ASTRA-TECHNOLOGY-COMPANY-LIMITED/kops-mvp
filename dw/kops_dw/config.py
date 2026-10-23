@@ -27,6 +27,9 @@ TEMPLATE_CHECK = os.environ.get("KOPS_TEMPLATE_CHECK", "1") == "1"
 # (work sheets, comments, CAD...) are never opened whatever their size (docmeta.py). Emails/mailboxes are exempt.
 MAX_PARSE_MB = float(os.environ.get("KOPS_MAX_PARSE_MB", 30))
 DB_PATH = BUILD_DIR / "kops.duckdb"
+# Web app state (users, sessions, notifications, chat, settings): SQLite, kept apart from the rebuildable DW (app/state.py)
+STATE_DIR = Path(os.environ.get("KOPS_STATE", DW_DIR / "state"))
+BRANDING_DIR = Path(os.environ.get("KOPS_BRANDING", REPO_DIR / "branding"))
 # Open questions to KLMAS (read only): codes used in code / dashboard are checked against it (questions.py)
 QUESTIONS_FILE = Path(os.environ.get("KOPS_QUESTIONS_FILE", REPO_DIR / "analys-docs" / "open_questions.md"))
 DASHBOARD_PATH = BUILD_DIR / "dashboard.html"

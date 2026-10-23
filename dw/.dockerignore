@@ -1,5 +1,6 @@
 # Nothing with KLMAS data, secrets or local environments goes into the image (D-07).
 build/
+state/
 .venv/
 .venv-mac/
 **/__pycache__/
