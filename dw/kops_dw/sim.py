@@ -157,7 +157,8 @@ def generate(con) -> dict:
         if key not in has_daily and -60 <= (etd - today).days <= 75:
             rates = p["rate"].get(fac)
             rate = statistics.median(rates) if rates else p["all_rate"](rng)
-            days = max(3, math.ceil(qty / max(rate, 1)))
+            days = min(45, max(3, math.ceil(qty / max(rate, 1))))     # a big order runs on several lines
+            rate = max(rate, qty / days)
             start = etd - dt.timedelta(days=int(days * 7 / 6) + config.RULES["ready_buffer_days"])
             d, ttl = start, 0
             while ttl < qty and d <= today:

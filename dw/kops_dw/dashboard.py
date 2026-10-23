@@ -157,19 +157,25 @@ def render(db_path=None, out_path=None, single: bool = False):
     (ddir / "index.json").write_text(_dump(index), encoding="utf-8")
     out.write_text(template.replace("/*__KOPS_DATA__*/null", '{"lazy":true}'), encoding="utf-8")
     big = max(sizes.items(), key=lambda x: x[1])
-    print(f"Dashboard: {out} + {ddir}/ ({len(seasons)} seasons; largest {big[0]}.json {big[1] / 1e6:.1f} MB) "
+    from . import mgr_dashboard
+    msizes = mgr_dashboard.render(db_path, out.parent)
+    print(f"Dashboard: {out} + {ddir}/ ({len(seasons)} seasons; largest {big[0]}.json {big[1] / 1e6:.1f} MB); "
+          f"manager.html + data/mgr ({len(msizes) - 1} seasons, largest {max(msizes.values()) / 1e6:.1f} MB) "
           f"-> open with: python -m kops_dw serve")
     return out
 
 
 class _Handler(SimpleHTTPRequestHandler):
-    """Serves dashboard.html and data/*.json from build/, nothing else (the DB and the lake stay private)."""
+    """Serves manager.html (start page), dashboard.html, data/**.json and vendor/*.js from build/, nothing else (the
+    DB and the lake stay private)."""
 
     def do_GET(self):
         path = self.path.split("?", 1)[0]
         if path in ("/", "/index.html"):
-            self.path = "/dashboard.html"
-        elif not (path == "/dashboard.html" or (path.startswith("/data/") and path.endswith(".json") and ".." not in path)):
+            self.path = "/manager.html"
+        elif not (path in ("/dashboard.html", "/manager.html")
+                  or (path.startswith("/data/") and path.endswith(".json") and ".." not in path)
+                  or (path.startswith("/vendor/") and path.endswith(".js") and ".." not in path)):
             self.send_error(404)
             return
         super().do_GET()

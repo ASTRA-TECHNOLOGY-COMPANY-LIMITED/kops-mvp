@@ -30,17 +30,22 @@ SELECT customer, brand, season, factory_code, style_no, color, size_code,
        max(report_date) AS last_seen_date
 FROM core.daily_row GROUP BY ALL;
 
--- Output per day (§4.2): sum of TODAY; when TODAY is empty, the change of TTL since the previous report of the style
+-- Output per day: the change of TTL since the previous report of the style; TODAY only when TTL is missing or for the
+-- first report. Spec §4.2 reads TODAY first, but factories leave TODAY unchanged after a style is finished
+-- (TRUONG PHUC CHF3WVT6708: TODAY 300 every day while TTL stays 300), which counted the same pieces again
+-- (DAILY_TODAY_STALE in etl.data_issue via 15_issues).
 CREATE TABLE core.daily_output_series AS
 WITH d AS (
   SELECT customer, brand, season, factory_code, style_no, report_date, sum(output_today) AS today_sum,
-         count(output_today) AS n_today, sum(output_ttl) AS ttl, sum(input_today) AS input_day, sum(cut_today) AS cut_day
-  FROM core.daily_row GROUP BY ALL)
+         count(output_today) AS n_today, sum(output_ttl) AS ttl, count(output_ttl) AS n_ttl,
+         sum(input_today) AS input_day, sum(cut_today) AS cut_day
+  FROM core.daily_row GROUP BY ALL),
+l AS (SELECT *, lag(ttl) OVER (PARTITION BY customer, factory_code, style_no ORDER BY report_date) AS prev_ttl FROM d)
 SELECT customer, brand, season, factory_code, style_no, report_date,
-       CASE WHEN n_today > 0 THEN today_sum
-            ELSE greatest(ttl - lag(ttl) OVER (PARTITION BY customer, factory_code, style_no ORDER BY report_date), 0) END
-         AS output_day, ttl AS output_ttl, input_day, cut_day
-FROM d;
+       CASE WHEN n_ttl > 0 AND prev_ttl IS NOT NULL THEN greatest(ttl - prev_ttl, 0)
+            WHEN n_today > 0 THEN today_sum ELSE ttl END AS output_day,
+       today_sum AS output_today_reported, ttl AS output_ttl, input_day, cut_day
+FROM l;
 
 -- Forecast (§4.3): rolling rate of the last 3 days with output within 10 days before the last report
 CREATE TABLE mart.style_forecast AS
@@ -97,7 +102,7 @@ rep AS (SELECT customer, season, factory_code, max(report_date) AS last_report F
 SELECT coalesce(r.customer, p.customer) AS customer, coalesce(r.season, p.season) AS season,
        coalesce(r.factory_code, p.factory_code) AS factory_code, p.last_report, r.styles_running,
        core.today() AS today,
-       mart.weekdays_between(p.last_report, core.today()) AS weekdays_since,
+       CASE WHEN p.last_report IS NOT NULL THEN mart.weekdays_between(p.last_report, core.today()) END AS weekdays_since,
        mart.freshness_level(p.last_report, core.today()) AS freshness
 FROM running r FULL JOIN rep p ON p.customer = r.customer AND p.season = r.season AND p.factory_code = r.factory_code;
 -- note: a factory with running styles and no report at all is DARK (last_report NULL)
@@ -164,3 +169,9 @@ CREATE TABLE core.qc_defect AS
 SELECT d.*, c.code_group, c.name_ko FROM raw.qc_defect d JOIN core.current_file f USING (file_id)
 LEFT JOIN raw.defect_code c ON c.code = d.code;
 CREATE TABLE core.defect_code AS SELECT c.code, c.name_ko, c.code_group FROM raw.defect_code c JOIN core.current_file f USING (file_id);
+
+-- TODAY that does not match the change of TTL (stale TODAY after a style is finished, or typing errors)
+INSERT INTO etl.data_issue
+SELECT NULL, 'INFO', 'DAILY_TODAY_STALE', factory_code || ' ' || style_no,
+       count(*) || ' report day(s) where OUT PUT TODAY differs from the change of TTL; TTL change used', min(report_date)::VARCHAR
+FROM core.daily_output_series WHERE output_today_reported IS NOT NULL AND output_today_reported <> output_day GROUP BY ALL;

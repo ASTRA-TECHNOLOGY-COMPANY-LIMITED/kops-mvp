@@ -90,9 +90,13 @@ UPDATE mart.mgr_style SET risk_reason = CASE
     WHEN etd IS NOT NULL AND etd < core.today() THEN 'ETD_PASSED_NOT_SHIPPED' END;
 
 -- ---------------------------------------------------------------- weekly: ETD plan vs shipped vs output
+-- ETDs far outside the season window (typed year) are left out of the weekly view; they stay in mgr_style.
 CREATE TABLE mart.mgr_weekly AS
 SELECT customer, season, factory_code, CAST(date_trunc('week', etd) AS DATE) AS week_start, 'ETD_PLAN' AS measure,
-       sum(order_qty) AS qty, style_syn AS is_synthetic FROM mart.mgr_style WHERE is_active AND etd IS NOT NULL GROUP BY ALL
+       sum(order_qty) AS qty, style_syn AS is_synthetic FROM mart.mgr_style m
+WHERE is_active AND etd IS NOT NULL
+  AND etd BETWEEN make_date(2000 + CAST(left(season, 2) AS INT) - 1, 6, 1) AND make_date(2001 + CAST(left(season, 2) AS INT), 3, 31)
+GROUP BY ALL
 UNION ALL
 SELECT s.customer, s.season, s.factory_code, CAST(date_trunc('week', l.lot_etd) AS DATE), 'SHIPPED', sum(l.qty), l.is_synthetic
 FROM m_lot l JOIN m_style s USING (style_nk) WHERE l.lot_etd IS NOT NULL GROUP BY ALL
@@ -125,7 +129,9 @@ FROM daily GROUP BY ALL;
 CREATE TABLE mart.mgr_quality AS             -- factory x month: inspected / passed / defects / rejects (KLMAS orders)
 SELECT factory_code, CAST(date_trunc('month', inspect_date) AS DATE) AS month, 'KLMAS' AS source, sum(inspected_qty) AS inspected,
        sum(passed_qty) AS passed, sum(defect_qty) AS defects, 0 AS rejects, count(*) AS inspections, false AS is_synthetic,
-       NULL::VARCHAR AS customer, NULL::VARCHAR AS season
+       -- the tracker has no season: the customer / season most of its inspected styles belong to
+       (SELECT mode(s.customer) FROM fact.inspection i JOIN dim.style s USING (style_key) WHERE i.source = 'KLMAS') AS customer,
+       (SELECT mode(s.season) FROM fact.inspection i JOIN dim.style s USING (style_key) WHERE i.source = 'KLMAS') AS season
 FROM fact.inspection_day GROUP BY ALL
 UNION ALL
 SELECT factory_code, CAST(date_trunc('month', fact_date) AS DATE), 'KLMAS', sum(inspected_qty), sum(passed_qty), sum(defect_qty),
@@ -146,7 +152,8 @@ FROM sim.defect x LEFT JOIN core.defect_code c USING (code) GROUP BY x.code;
 
 CREATE TABLE mart.mgr_buyer_complaint AS     -- quality complaints from buyers in e-mail (subject words), real only
 SELECT e.msg_key, e.sent_at, e.subject, p.party_type, (SELECT string_agg(DISTINCT s.style_no, ', ') FROM bridge.email_style b
-       JOIN dim.style s USING (style_key) WHERE b.msg_key = e.msg_key) AS styles
+       JOIN dim.style s USING (style_key) WHERE b.msg_key = e.msg_key) AS styles,
+       (SELECT mode(s.customer) FROM bridge.email_style b JOIN dim.style s USING (style_key) WHERE b.msg_key = e.msg_key) AS customer
 FROM fact.email e LEFT JOIN bridge.email_party bp ON bp.msg_key = e.msg_key AND bp.role = 'FROM'
 LEFT JOIN dim.party p USING (party_key)
 WHERE NOT e.is_sample AND (e.category = 'QUALITY' OR upper(e.subject) LIKE '%QUALITY%' OR e.subject LIKE '%품질%'
@@ -164,14 +171,14 @@ WITH s AS (
          sum(n_qty_changes + n_factory_changes + n_etd_changes + n_assort_changes) AS changes,
          count(*) FILTER (WHERE risk_reason IS NOT NULL) AS risk_styles
   FROM mart.mgr_style WHERE factory_code IS NOT NULL GROUP BY ALL),
-q AS (SELECT factory_code, sum(inspected) FILTER (WHERE NOT is_synthetic) AS insp_real,
+q AS (SELECT customer, season, factory_code, sum(inspected) FILTER (WHERE NOT is_synthetic) AS insp_real,
              sum(defects) FILTER (WHERE NOT is_synthetic) AS def_real,
              sum(inspected) FILTER (WHERE is_synthetic) AS insp_syn, sum(defects) FILTER (WHERE is_synthetic) AS def_syn
-      FROM mart.mgr_quality WHERE source = 'KLMAS' GROUP BY 1),
-f AS (SELECT factory_code, max(last_report) AS last_report, any_value(freshness) AS freshness
-      FROM mart.factory_freshness GROUP BY 1)
+      FROM mart.mgr_quality WHERE source = 'KLMAS' GROUP BY ALL),
+f AS (SELECT customer, season, factory_code, max(last_report) AS last_report, any_value(freshness) AS freshness
+      FROM mart.factory_freshness GROUP BY ALL)
 SELECT s.*, q.insp_real, q.def_real, q.insp_syn, q.def_syn, f.last_report, f.freshness
-FROM s LEFT JOIN q USING (factory_code) LEFT JOIN f USING (factory_code);
+FROM s LEFT JOIN q USING (customer, season, factory_code) LEFT JOIN f USING (customer, season, factory_code);
 
 -- ---------------------------------------------------------------- changes, e-mail, data health
 CREATE TABLE mart.mgr_changes AS

@@ -32,9 +32,9 @@ FIELDS = [  # (output column, row-5 label fragments (any), exact?)
     ("fabric_etd", ["원단 선적"]),
     ("accs_etd", ["부자재 선적"]),
     ("accs_eta_factory", ["부자재 공장도착"]),
-    ("cut_plan", ["재단 예정"]),
-    ("input_plan", ["투입 예정"]),
-    ("finish_plan", ["완료 예정"]),
+    ("cut_plan", ["재단 예정", "재단예정", "재단 에정"]),      # layouts write it with / without the space (and a typo)
+    ("input_plan", ["투입 예정", "투입예정"]),
+    ("finish_plan", ["완료 예정", "완료예정"]),
     ("exf_plan", ["A)"]),
     ("etd_plan", ["B)"]),
     ("eta_plan", ["C)"]),

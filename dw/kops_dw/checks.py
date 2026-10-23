@@ -173,6 +173,10 @@ CHECKS = [
         || ' = ' || (SELECT sum(order_qty) || ' / ' || sum(output_ttl) FROM raw.daily_prod_row r
                 JOIN etl.source_file f USING (file_id) WHERE f.file_name LIKE '261015. DHG-HAGACO%' AND r.sheet = '10.15')""",
      "8 / 12740 / 10230 = 12740 / 10230"),
+    ("Daily output: per factory the daily series adds up to no more than the last-seen TTL", ("file", "261016  26FW (CHALLENGER - TBM) DAILY"),
+     """SELECT count(*) FROM (SELECT s.factory_code, sum(s.output_day) AS days,
+                                   (SELECT sum(output_ttl) FROM core.daily_progress p WHERE p.factory_code = s.factory_code) AS ttl
+                            FROM core.daily_output_series s GROUP BY s.factory_code) WHERE days > ttl""", 0),
     ("G9 inspection rows dropped: sheet factory differs from ORDER RECAP", ("file", "260727 HOA) 26SS CHALLENGER"),
      "SELECT count(DISTINCT (sheet, row_no)) FROM core.inspection_cell WHERE factory_mismatch", 12),
     ("G10 PASSED_GT_ORDER", ("file", "260727 HOA) 26SS CHALLENGER"),
