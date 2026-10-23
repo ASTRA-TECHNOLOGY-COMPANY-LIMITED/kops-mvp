@@ -188,7 +188,7 @@ SELECT s.customer, s.season, s.factory_code, CAST(date_trunc('month', c.fact_dat
             WHEN c.change_type IN ('VERSION_ETD', 'VERSION_RDD') THEN 'ETD'
             WHEN c.change_type LIKE 'EMAIL_%' THEN 'EMAIL_PROPOSAL' ELSE c.change_type END AS change_kind,
        c.review_status, count(*) AS n
-FROM fact.change c JOIN dim.style s USING (style_key) GROUP BY ALL
+FROM fact.change c JOIN dim.style s USING (style_key) WHERE c.change_type <> 'FACTORY_FIXED' GROUP BY ALL
 UNION ALL
 SELECT s.customer, s.season, s.factory_code, CAST(date_trunc('month', m.event_date) AS DATE), 'ASSORT', m.review_status, count(*)
 FROM fact.milestone m JOIN dim.style s USING (style_key) WHERE m.milestone = 'ASSORT_CHANGE' GROUP BY ALL;

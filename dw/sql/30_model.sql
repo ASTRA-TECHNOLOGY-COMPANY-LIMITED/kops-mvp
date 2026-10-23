@@ -188,7 +188,8 @@ SELECT 'CHALLENGER' AS customer, q.season, q.style_no AS style_code, NULL::VARCH
        'IN_FILE' AS review_status
 FROM core.qty_change q
 UNION ALL
-SELECT 'CHALLENGER', e.season, e.style_no, e.factory_code, e.factory_hint, e.event_date, 'FACTORY_MOVE', NULL::VARCHAR,
+SELECT 'CHALLENGER', e.season, e.style_no, e.factory_code, e.factory_hint, e.event_date,
+       CASE WHEN upper(e.action) = 'FIXED' THEN 'FACTORY_FIXED' ELSE 'FACTORY_MOVE' END, NULL::VARCHAR,   -- FIXED = first assignment
        coalesce(e.factory_code, e.factory_hint), e.note_raw, 'ORDER RECAP note', e.file_id, e.location, 'IN_FILE'
 FROM core.factory_event e
 UNION ALL

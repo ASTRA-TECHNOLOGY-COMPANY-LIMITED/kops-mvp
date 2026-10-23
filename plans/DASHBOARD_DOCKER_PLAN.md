@@ -153,3 +153,34 @@ BÁO CÁO LẠI (tiếng Việt, ngắn)
 | 2 | `mail_allow.local.txt` (8 domain, 65 địa chỉ) | Giữ đối tác và Gmail cá nhân của nhân viên KLMAS đang dùng cho công việc; `leeintl.co.kr` để chờ Q18 |
 | 3 | Mọi tab lọc theo mùa, chi tiết cắt 2.000 dòng / mùa | Giữ; thêm lựa chọn "Tất cả" và phân trang thay vì cắt cứng (D-06) |
 | 4 | Benchmark 10 mùa | Chưa cần; 7 mùa đủ cho giai đoạn này |
+
+## Trạng thái D-00..D-08 (Claude Code, 23/10/2026, commit trực tiếp trên `dev`)
+
+| ID | Trạng thái | Kết quả |
+|---|---|---|
+| D-00 | DONE | Server cũ đã tắt; 14 commit trước đã push `origin dev` (không có thay đổi file → không commit) |
+| D-01 | DONE | 9 bảng `dim`, 14 `fact`, 3 `bridge`; style master = mọi bản ORDER RECAP, 603 alias (9 mã trỏ 2 style → không dùng). Tỉ lệ nối: CHALLENGER 26FW 100%, DHG 95,6%, DKM 99,8%, JBEE / KOFA 100%. `dw/docs/data_model.md` |
+| D-02 | DONE | Báo cáo ngày (7 file), bảng kiểm KLMAS, INPUT DATA; G1–G12 của spec đúng; xem `MVP_PHASE1_PLAN.md` §Trạng thái |
+| D-03 | NOT DONE | Không có `ANTHROPIC_API_KEY` (`.env` không tồn tại) → bỏ qua theo đặc tả. `fact.milestone` / `fact.shipment_event` vẫn `extractor = rule`, `PENDING_REVIEW` |
+| D-04 | DONE | `mart.cycle_coverage` (bảng dưới); dữ liệu giả định schema `sim` (seed cố định, ASM-SIM-01..05), `dw/docs/assumptions.md` |
+| D-05 | DONE | `mart.mgr_*`, `dw/docs/metrics.md` |
+| D-06 | DONE | `manager.html` 8 trang, lọc mùa / khách / brand / nhà máy, công tắc giả định, drill-down Style 360; tự kiểm 32 ảnh (sáng / tối × desktop / mobile, lưu ngoài repo) |
+| D-07 | DONE | `dw/Dockerfile`, `docker-compose.yml`, `Makefile`; image 1,24 GB / 58 s; build lạnh trong container 80 s; 80/80 check trong = ngoài container |
+| D-08 | DONE | README, CLAUDE.md, plan này, MVP_PHASE1_PLAN |
+
+**Độ phủ cycle (dữ liệu thật, 23/10):**
+
+| Khách · mùa | ORDER | PLAN | DAILY_OUTPUT | INSPECTION | SHIPMENT | EMAIL | HISTORY | Cycle đủ |
+|---|---|---|---|---|---|---|---|---|
+| CHALLENGER 26FW | REAL | REAL | REAL | REAL (98%) | REAL (97,1%) | REAL | REAL | **Có** |
+| CHALLENGER 27SS | REAL | REAL (77%) | NONE | NONE | PARTIAL | NONE | REAL | Không (chưa sản xuất) |
+| DHG 26FW | REAL | NONE | PARTIAL (31%) | NONE | NONE | REAL | REAL | Không |
+| DHG 27SS | REAL | PARTIAL | NONE | NONE | NONE | REAL | REAL | Không |
+| DKM 26FW | REAL | REAL | NONE | NONE | REAL (96,9%) | REAL | PARTIAL | Không |
+| DKM 27SS | REAL | NONE | NONE | NONE | PARTIAL | NONE | PARTIAL | Không |
+| JBEE 27SS | REAL | PARTIAL | NONE | NONE | NONE | REAL | REAL | Không |
+| KOFA 27SS | REAL | REAL | NONE | NONE | NONE | NONE | PARTIAL | Không |
+
+**Khác với đặc tả:** sản lượng ngày lấy từ chênh lệch luỹ kế (không phải cột TODAY); docker dùng biến `KOPS_SIM` (`make up` /
+`make up-real`) thay vì profile `demo`, vì profile không đổi được biến môi trường của cùng một service mà không nhân đôi cổng;
+dashboard quản lý là trang mới, dashboard phân tích 12 tab giữ nguyên ở `/dashboard.html`.

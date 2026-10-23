@@ -24,9 +24,10 @@ Next step (data model, manager dashboard, Docker): `plans/DASHBOARD_DOCKER_PLAN.
 # macOS: dw/.venv was created in a Linux VM and does not run on the Mac -> use a Mac venv
 python3 -m venv .venv-mac && .venv-mac/bin/pip install -r requirements.txt   # once
 brew install --cask libreoffice                                            # needed for .xlsb
-.venv-mac/bin/python -m kops_dw            # build + test (53 checks) + dashboard -> build/dashboard.html + build/data/<season>.json
+.venv-mac/bin/python -m kops_dw            # build + test (80 checks) + dashboards -> build/manager.html, dashboard.html, data/
 .venv-mac/bin/python -m kops_dw test       # golden / structural checks only (golden pinned to file versions, snapshot DBs)
-.venv-mac/bin/python -m kops_dw serve --open   # dashboard on http://127.0.0.1:8765/ (loads one season at a time)
+.venv-mac/bin/python -m kops_dw serve --open   # http://127.0.0.1:8765/ manager dashboard (8 pages), /dashboard.html analyst
+make up / make up-real / make check / make logs / make down   # from the repo root: whole stack in Docker (dw/README.md)
 .venv-mac/bin/python -m kops_dw fetch-imap --host … --user … --folder … --since YYYY-MM-DD   # read-only, KOPS_IMAP_PASSWORD env
 .venv-mac/bin/python -m kops_dw attachments  # .eml attachments -> raw-docs/EMAIL_ATTACHMENTS/
 .venv-mac/bin/python -m kops_dw ocr          # OCR queued scanned PDF pages (tesseract kor+vie+eng), then rebuild
@@ -34,6 +35,8 @@ brew install --cask libreoffice                                            # nee
 .venv-mac/bin/python -m kops_dw mail-allow suggest --write   # dw/mail_allow.local.txt (git-ignored) from loaded emails; `report`
 .venv-mac/bin/python -m kops_dw bench accept --out /tmp/kops-bench   # history-scale acceptance (data outside repo)
 ```
+Linked model `dim` / `fact` / `bridge` (dw/docs/data_model.md); synthetic demo data only in schema `sim`, always labelled
+(dw/docs/assumptions.md, KOPS_SIM=0 to drop it); manager metrics `mart.mgr_*` (dw/docs/metrics.md).
 Builds are incremental (manifest + Parquet lake in `dw/build/lake`, parallel parse, quarantine in
 `dw/build/quarantine.csv`); deleting `dw/build/lake` forces a full re-parse. Details: `dw/README.md`.
 Emails: drop `.pdf` / `.eml` / `.msg` / `.mbox` anywhere under `raw-docs/inbox/`; Gmail threads saved as `.mhtml` are read

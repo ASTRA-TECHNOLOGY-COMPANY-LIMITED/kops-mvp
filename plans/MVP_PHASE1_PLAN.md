@@ -48,6 +48,19 @@ M1-01 ─┬─ M1-02 ── M1-03 ─┬─ M1-04 ─┐
                               M1-09 ──────────┘
 ```
 
+### Trạng thái (23/10/2026, D-02 của `plans/DASHBOARD_DOCKER_PLAN.md`)
+
+| Task | Trạng thái | Đã làm |
+|---|---|---|
+| M1-02 | DONE | `ingest/daily_production.py`: 7 file nạp, header theo nhãn (2 bố cục), ngày từ tên sheet (dd.mm / m.d, sửa tháng TBM 13.01 → 13/10), `SHEET_SKIPPED`, `EXCEL_ERROR`, GRAND TOTAL giữ để đối chiếu. G1, G2, G3, G12 đúng |
+| M1-03 | DONE | `core.daily_row`, `daily_progress` (last-seen), `daily_output_series`; alias Q06 (CHE→CHF). Khác spec §4.2: sản lượng ngày = chênh lệch TTL (TODAY bị để nguyên sau khi may xong, TRUONG PHUC cộng trùng 33.188 so với 10.610) — `DAILY_TODAY_STALE`. Dòng style mùa cũ còn trong sheet HAGACO (LEV-24xxx) chỉ ở raw. G4 đúng |
+| M1-04 | DONE | `mart.style_forecast` (rolling 3 ngày / 10 ngày, T2–T7, +5 ngày). G6, G7 đúng. `mart.style_360` (W33 = 49) **giữ nguyên** vì golden cũ ghim theo bản file; dự báo mới dùng ở dashboard quản lý |
+| M1-05 | DONE | `mart.factory_freshness`, `style_freshness`, `KOPS_TODAY`. Đếm ngày T2–T6 (ASM-FRESH-01) để khớp G8 và "TBM / TRUONG PHUC FRESH". G5 = 9 đúng |
+| M1-06 | DONE | `ingest/inspection_tracker.py`, `core.inspection_passed` / `inspection_day` / `inspection_proposal`; không lưu tên kiểm viên (check). G9, G10, G11 đúng. Tỉ lệ lỗi hiển thị trên dashboard quản lý theo giả định ASM-QC-01 (Q26), có nhãn |
+| M1-07 | PARTIAL | Funnel đặt → ra chuyền → đạt kiểm → xuất trong Style 360 (dashboard quản lý); `mart.style_funnel` theo màu × size và cờ CUT_SHORT / OUTPUT_GT_CUT chưa làm |
+| M1-08 | PARTIAL | Thay bằng dashboard quản lý (D-06): độ tươi, dự báo, funnel, sản lượng ngày trong Style 360; chưa thêm vào dashboard phân tích cũ |
+| M1-12 | DONE | `ingest/qc_third_party.py`: 3.124 lần kiểm, 315.745 / 68.678, 68.653 điểm lỗi, A08 + A37 = 42,9%, 285 lần lệch tổng (đúng số nghiệm thu); Pareto và xu hướng trên trang Chất lượng |
+
 ## 3. Chi tiết và tiêu chí nghiệm thu
 
 ### M1-01 — Metadata file (không phụ thuộc thư mục)

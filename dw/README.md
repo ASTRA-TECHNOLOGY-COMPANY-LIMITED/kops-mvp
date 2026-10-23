@@ -18,7 +18,7 @@ cd dw
 python3 -m venv .venv-mac && .venv-mac/bin/pip install -r requirements.txt   # một lần (trên macOS dùng .venv-mac)
 .venv-mac/bin/python -m kops_dw            # build + check + dashboard
 .venv-mac/bin/python -m kops_dw test       # chỉ chạy check (golden cũ chạy trên snapshot ghim file, xem "Test")
-.venv-mac/bin/python -m kops_dw serve --open   # mở dashboard: http://127.0.0.1:8765/ (chỉ máy này)
+.venv-mac/bin/python -m kops_dw serve --open   # http://127.0.0.1:8765/ : dashboard quản lý; /dashboard.html: dashboard phân tích
 ```
 
 Kết quả nằm trong `dw/build/` (đã `.gitignore`):
@@ -73,7 +73,9 @@ make logs        # xem log; make down: dừng; make rebuild: dựng lại image;
 | Email: hộp thư (Gmail, Outlook 365, Naver, Hiworks…) | `KOPS_IMAP_PASSWORD=… .venv/bin/python -m kops_dw fetch-imap --host imap.gmail.com --user … --folder KLMAS --since 2026-01-01` (chỉ đọc, không đánh dấu đã đọc). Hoặc agent dùng connector Gmail/Drive lưu `.eml`/PDF vào `raw-docs/inbox/gmail/` |
 | File đính kèm của email `.eml` | `.venv/bin/python -m kops_dw attachments` → `raw-docs/EMAIL_ATTACHMENTS/<yyyy-mm>/`, build sau sẽ nạp như file thường (trùng nội dung thì bỏ qua) |
 | Biên bản họp | Thả `.docx` vào `raw-docs/MEETINGS/` |
-| Báo cáo sản xuất ngày, bảng kiểm, dữ liệu kiểm bên thứ ba | Đã được nhận diện và đăng ký (trạng thái SKIPPED: parser nằm trong kế hoạch Phase 1, `plans/MVP_PHASE1_PLAN.md`) |
+| Báo cáo sản xuất ngày | `PRODUCTION/…/<NHÀ MÁY>/`, tên có `DAILY PRODUCTION REPORT` (`daily_production`, D-02): mỗi sheet một ngày, ngày lấy từ tên sheet; sản lượng ngày = chênh lệch luỹ kế (TODAY nhà máy hay để nguyên sau khi may xong) |
+| Bảng kiểm KLMAS | Tên có `KLMAS INSPECTION REPORT` (`inspection_tracker`): SL đạt theo style × món × màu × ngày, tổng ngày A/C/D/F; **không đọc tên kiểm viên**; `REQUEST ETD` → đề xuất chờ duyệt |
+| Dữ liệu kiểm bên thứ ba | `INSPECTION/THIRD_PARTY/INPUT DATA.xlsx` (`qc_third_party`): mỗi lần kiểm + mã lỗi; không đọc cột QC NAME |
 
 Biến môi trường: `KOPS_RAW_DOCS` (thư mục nguồn, có thể ở ổ ngoài hoặc thư mục Google Drive), `KOPS_INBOX` (nhiều thư mục, ngăn bằng `:`), `KOPS_BUILD`, `KOPS_LAKE` (mặc định `build/lake`), `KOPS_SOFFICE` (đường dẫn `soffice` nếu không nằm trong PATH), `KOPS_WORKERS` (số tiến trình parse, mặc định min(8, số CPU); `1` = không song song, dễ debug), `KOPS_PARSE_TIMEOUT` (giây/file, mặc định 600), `KOPS_TEMPLATE_CHECK` (`0` = tắt kiểm tra template), `KOPS_MAIL_SINCE` / `KOPS_MAIL_UNTIL` (YYYY-MM-DD), `KOPS_MAIL_EXCLUDE_FOLDERS`, `KOPS_MAIL_ALLOW` (người gửi/tên miền không bao giờ bị lọc, ngăn bằng dấu phẩy; cộng với danh sách trong `dw/mail_allow.local.txt`, file local không commit, mẫu ở `mail_allow.example.txt`; tạo từ email đã nạp: `mail-allow suggest --write`, xem số thư bị lọc trước/sau: `mail-allow report`; không nhận cả tên miền Gmail/Naver/Daum), `KOPS_MAX_PARSE_MB` (mặc định 30), `KOPS_KLMAS_DOMAINS` (mặc định `klmasvn.com`, để biết thư do KLMAS gửi).
 
@@ -103,7 +105,9 @@ Lệnh khác: `python -m kops_dw lake-compact` (viết lại lake bỏ các bả
 | `raw` | Dữ liệu gần nguyên văn theo từng template, **mọi phiên bản**: `order_recap_style/color`, `order_line_ext` (khách khác), `production_plan`, `shipment_block/cell`, `production_status(_total)`, `doc_block`, `email` (mỗi thư một dòng, `msg_key` nhận ra cùng một thư ở nhiều file) | Python parser |
 | `stg` | Sự kiện trích từ text tự do: `qty_change`, `factory_event`, `email_change`, `email_event` (mốc / lô hàng đọc từ tiêu đề thư), `document` (metadata tài liệu kỹ thuật), `requirement`, `action_item`, `decision`; cùng dữ liệu tham chiếu từ `config.py` | Python |
 | `core` | Mô hình chuẩn, chỉ lấy bản hiện hành: `style_order`, `order_color`, `shipment_detail`, `production_snapshot`, `meeting`, `requirement`… (`10_core`); `order_portfolio` (mọi khách), `production_plan`, `style_dictionary` (`11_core_customers`); `email` (đã gộp trùng), `email_thread`, `email_mention` (khớp mã bằng token, N-07), `email_reply`, `change_proposal`, `proposal_file_status` (`12_core_email`); `document` (`13`); `shipment_event`, `style_milestone` (`14`); `shipping_schedule`, `buyer_order_status` (`16`) | `sql/1x_*.sql` |
-| `mart` | Bảng cho dashboard: `style_360`, `season_kpi`, `factory_kpi`, `supplier_styles`, `shipment_*`, `assortment`, `reconciliation`, `change_log`, `source_lineage` (`20_mart`); `customer_portfolio`, `factory_load_all`, `etd_weekly_all`, `plan_risk`, `file_version`, `version_change`, `email_*` (`25_mart_ext`); `style_timeline`, `style_event`, `material_delay`, `schedule_vs_recap`, `plan_vs_buyer_view` (`26_mart_milestone`) | `sql/2x_*.sql` |
+| `dim`, `fact`, `bridge` | Mô hình liên kết (D-01): khách, brand, mùa, ngày, nhà máy (+ alias), style (+ alias), bên liên lạc; fact đơn, kế hoạch, sản lượng ngày, kiểm, lỗi, lô xuất, mốc, thay đổi, email, tài liệu; bridge nhà máy theo thời gian, email ↔ style / người. Chi tiết: `docs/data_model.md` | `sql/30_model.sql` |
+| `sim` | Dữ liệu **giả định** cho bản demo (D-04): mùa 25SS / 25FW, sản lượng / kiểm / lô xuất cho chỗ thiếu; seed cố định, `assumption_id` (`docs/assumptions.md`); không vào core / fact / check golden; `KOPS_SIM=0` để tắt | `kops_dw/sim.py` |
+| `mart` | Bảng cho dashboard: `style_360`, `season_kpi`, `factory_kpi`, `supplier_styles`, `shipment_*`, `assortment`, `reconciliation`, `change_log`, `source_lineage` (`20_mart`); `customer_portfolio`, `factory_load_all`, `etd_weekly_all`, `plan_risk`, `file_version`, `version_change`, `email_*` (`25_mart_ext`); `style_timeline`, `style_event`, `material_delay`, `schedule_vs_recap`, `plan_vs_buyer_view` (`26_mart_milestone`); `cycle_coverage` (`32`); `mgr_*` chỉ số quản lý, tách phần thật / giả định (`40_mgr`, định nghĩa `docs/metrics.md`) | `sql/2x–4x_*.sql` |
 
 Mỗi lần build dựng lại file DuckDB từ đầu (đơn giản, idempotent), nhưng chỉ **parse** file mới hoặc đổi; kết quả parse của các file khác được đọc lại từ lake Parquet (mục "Nạp tăng dần" ở trên).
 
@@ -122,6 +126,15 @@ Mỗi lần build dựng lại file DuckDB từ đầu (đơn giản, idempotent
 | Yêu cầu, việc cần làm, nội dung thống nhất | Biên bản họp `.docx` | Nhận diện bảng theo dòng tiêu đề |
 
 ## Dashboard
+
+**Dashboard quản lý** (trang đầu của `serve`, `templates/manager.html`, D-06): 8 trang — Tổng quan, Tiến độ sản xuất (S-curve
+kế hoạch / thực tế, dự báo xong so với ETD, tải nhà máy), Xuất hàng, Chất lượng (tỉ lệ lỗi, Pareto, phàn nàn buyer), Nhà máy
+(scorecard), Thay đổi & email, Style 360 (mốc, funnel, sản lượng ngày, lô, email, thay đổi, tài liệu), Sức khoẻ dữ liệu (độ phủ
+cycle, độ tươi, dòng không nối được, chênh lệch file). Lọc mùa (có "Tất cả"), khách, brand, nhà máy; công tắc "Hiện dữ liệu giả
+định" — phần giả định luôn có nhãn **Giả định** và mã giả định khi rê chuột. Biểu đồ: ECharts 5.5.1 lưu trong
+`templates/vendor/` (không CDN). Dữ liệu `build/data/mgr/<mùa>.json`.
+
+**Dashboard phân tích** (`/dashboard.html`, 12 tab) như dưới đây.
 
 Gồm 12 tab, sáng/tối, chạy tốt trên điện thoại. **Bộ lọc mùa áp cho mọi tab** (H-11): trang chỉ tải dữ liệu của mùa đang xem (`data/<mùa>.json`) cùng phần chung; đổi mùa thì tải thêm mùa đó. Mở bằng `python -m kops_dw serve` (máy chủ tĩnh chỉ nghe 127.0.0.1, chỉ phục vụ `dashboard.html` và `data/*.json`); `?season=27SS` mở thẳng một mùa. Email được xếp vào mùa của style mà thư nhắc tới; thư không nhắc style nào hiện ở mọi mùa. Bấm vào mã style ở bất kỳ đâu để mở **Style 360**: toàn bộ chỉ số, assortment màu × size, từng lô, thay đổi, vấn đề dữ liệu và vị trí dòng gốc.
 
@@ -142,14 +155,15 @@ Gồm 12 tab, sáng/tối, chạy tốt trên điện thoại. **Bộ lọc mùa
 
 ## Test
 
-`.venv-mac/bin/python -m kops_dw test` chạy 53 golden number và quy tắc (danh sách trong `kops_dw/checks.py`; các số gốc ở trong `GUIDELINES.md` §7), gồm cả ORDER RECAP khách khác, kế hoạch sản xuất, lịch sử phiên bản, email thật (.mhtml: mốc CHF3WJK6701, lô ABKHPH2608058 / JAKEHPH2609051) và email mẫu.
+`.venv-mac/bin/python -m kops_dw test` chạy 80 golden number và quy tắc (danh sách trong `kops_dw/checks.py`; các số gốc ở trong `GUIDELINES.md` §7), gồm cả ORDER RECAP khách khác, kế hoạch sản xuất, lịch sử phiên bản, email thật (.mhtml: mốc CHF3WJK6701, lô ABKHPH2608058 / JAKEHPH2609051) và email mẫu.
 
 **Golden theo bản file (N-05):** mỗi số golden thuộc về một phiên bản file. Check golden ghi rõ các file nó được đo (`GOLDEN_2210`: bản hiện hành ngày 22/10; `GOLDEN_2310`: ORDER RECAP 261022, PRODUCTION STATUS 261021) và chạy trên một kho snapshot dựng lại từ lake (không parse lại, ~1 s) trong đó các file ghim là bản hiện hành của family của chúng. Bản mới tới sau không làm đỏ golden cũ; bản mới có golden riêng lấy từ ô tổng của chính file đó (tên check ghi sheet/ô). Ví dụ quy tắc: không có thay đổi nào từ email bị tự áp dụng; mọi style đều truy được về file nguồn; email mẫu chứa prompt injection không làm thay đổi dữ liệu. Thiếu file nguồn nào thì bài test tương ứng được SKIP.
 
 ## Giới hạn của MVP
 
 - **Email:** dùng bộ trích xuất rule-based (regex cho mã style, %, ETD, màu; mốc / lô hàng từ tiêu đề). Email trong `samples/inbox/` (gồm một luồng `.mhtml` tổng hợp) là **dữ liệu mẫu** (gắn `X-KOPS-Sample: true`, hiển thị nhãn SAMPLE). Bước tiếp theo là thay bằng LLM, vẫn giữ đúng output contract và bước duyệt (P-05).
-- **Chưa nạp:** sheet FAB (vật tư, định mức), báo cáo kiểm, báo cáo sản xuất ngày, minimap. Các tab liên quan ghi rõ "chưa có nguồn".
+- **Chưa nạp:** sheet FAB (vật tư, định mức), minimap. Bóc tách email bằng AI (D-03) chưa chạy: cần `ANTHROPIC_API_KEY`.
+- **Dữ liệu giả định** chỉ để PO đánh giá giao diện và chỉ số; luôn có nhãn; thay bằng file thật khi KLMAS gửi (`docs/assumptions.md`).
 - **Quy tắc nghiệp vụ** (RDD = ETD + 12, buffer 5 ngày, 45 pcs/ngày mặc định, dung sai 5%) nằm ở `config.py`, chờ KLMAS xác nhận (`analys-docs/open_questions.md`).
 - **Alias mã style** cho 3 cặp mã lệch giữa các file (Q05) đang tạm map và đánh dấu `STYLE_ALIAS_UNCONFIRMED`.
 - **DuckDB** dùng cho MVP. SQL viết theo lớp `raw → core → mart` nên chuyển sang PostgreSQL + dbt (kiến trúc đã chốt) chủ yếu là việc đổi dialect.
@@ -174,9 +188,13 @@ dw/
 │   ├── docmeta.py         # tài liệu kỹ thuật chỉ đọc tên (N-02)
 │   ├── milestones.py      # mốc style + lô hàng từ tiêu đề email (N-03)
 │   ├── mailallow.py       # danh sách người gửi không lọc (N-06)
+│   ├── sim.py             # dữ liệu giả định schema sim (D-04)
+│   ├── mgr_dashboard.py   # dữ liệu + trang dashboard quản lý (D-06)
 │   ├── checks.py          # golden tests (ghim theo bản file)
 │   └── dashboard.py       # xuất mart → data/<mùa>.json + HTML; serve
-├── sql/                   # 00_raw (DDL) · 10–16 core · 20–26 mart
+├── sql/                   # 00_raw (DDL) · 10–17 core · 20–26 mart · 30 model · 32 coverage · 40 mgr
+├── docs/                  # data_model.md, assumptions.md, metrics.md
+├── Dockerfile             # + docker-compose.yml, Makefile ở gốc repo (D-07)
 ├── templates/dashboard.html
 └── samples/inbox/         # email mẫu (SAMPLE)
 ```
