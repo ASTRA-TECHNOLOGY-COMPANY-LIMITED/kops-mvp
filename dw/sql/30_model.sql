@@ -158,16 +158,16 @@ SELECT customer, season, style_no AS style_code, factory_code, factory_raw, exf_
 FROM core.production_plan;
 
 CREATE TEMP TABLE f_production_status AS -- grain: style x status snapshot (current PRODUCTION AND SHIPPING STATUS)
-SELECT 'CHALLENGER' AS customer, season, style_no AS style_code, factory_code, factory_raw, as_of AS fact_date,
+SELECT coalesce(sf.family, 'CHALLENGER') AS customer, p.season, p.style_no AS style_code, p.factory_code, p.factory_raw, p.as_of AS fact_date,
        order_qty_reported, daily_output, output_qty, inspected_qty, shipped_qty_reported, cutting_plan, input_plan,
        sewing_finish_plan, exfact_est, etd_vn, rdd, file_id AS source_file_id, 'R' || row_no AS source_ref
-FROM core.production_snapshot;
+FROM core.production_snapshot p JOIN etl.source_file sf USING (file_id);
 
 CREATE TEMP TABLE f_shipment_line AS     -- grain: lot (label) x style x colour x size, SHIPMENT and SAMPLE sections
-SELECT 'CHALLENGER' AS customer, season, style_no AS style_code, factory_code, NULL::VARCHAR AS factory_raw, lot_etd AS fact_date,
+SELECT coalesce(sf.family, 'CHALLENGER') AS customer, d.season, d.style_no AS style_code, d.factory_code, NULL::VARCHAR AS factory_raw, d.lot_etd AS fact_date,
        section, label AS lot_label, color, size_code, qty, lot_etd, lot_eta, ship_mode, sample_type,
        file_id AS source_file_id, sheet || '!R' || row_no || 'C' || col_no AS source_ref
-FROM core.shipment_detail WHERE section IN ('SHIPMENT', 'SAMPLE');
+FROM core.shipment_detail d JOIN etl.source_file sf USING (file_id) WHERE d.section IN ('SHIPMENT', 'SAMPLE');   -- customer = file family
 
 CREATE TEMP TABLE f_shipment_lot AS      -- grain: lot x style
 SELECT customer, season, style_code, factory_code, NULL::VARCHAR AS factory_raw, any_value(lot_etd) AS fact_date, lot_label,

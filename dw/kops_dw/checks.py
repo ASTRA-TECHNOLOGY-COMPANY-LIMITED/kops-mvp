@@ -194,6 +194,19 @@ CHECKS = [
                 FROM core.qc_defect) || ' / ' ||
                (SELECT regexp_extract(message, '^(\\d+)', 1) FROM etl.data_issue WHERE code = 'QC_DEFECT_SUM_MISMATCH')
         FROM core.qc_inspection""", "3124 / 315745 / 68678 / 68653 / 42.9 / 285"),
+    # ---- cycle coverage and synthetic data (D-04) ----
+    ("Cycle coverage: CHALLENGER 26FW is a complete cycle (real data)", _R26,
+     "SELECT is_complete FROM mart.cycle_complete WHERE customer = 'CHALLENGER' AND season = '26FW'", True),
+    ("Synthetic data never in fact tables (is_synthetic = false everywhere)", None,
+     """SELECT (SELECT count(*) FROM fact.order_line WHERE is_synthetic) + (SELECT count(*) FROM fact.shipment_lot WHERE is_synthetic)
+        + (SELECT count(*) FROM fact.inspection WHERE is_synthetic) + (SELECT count(*) FROM fact.daily_output WHERE is_synthetic)""", 0),
+    ("Every synthetic row has a documented assumption_id (dw/docs/assumptions.md)", None,
+     """SELECT count(*) FROM (SELECT assumption_id FROM sim.style UNION ALL SELECT assumption_id FROM sim.shipment_lot
+          UNION ALL SELECT assumption_id FROM sim.daily_output UNION ALL SELECT assumption_id FROM sim.inspection
+          UNION ALL SELECT assumption_id FROM sim.defect)
+        WHERE assumption_id NOT IN ('ASM-SIM-01', 'ASM-SIM-02', 'ASM-SIM-03', 'ASM-SIM-04', 'ASM-SIM-05')""", 0),
+    ("Synthetic styles never reuse a real style code", None,
+     "SELECT count(*) FROM sim.style s JOIN dim.style_alias a ON a.alias_code = s.style_code", 0),
     # ---- linked model (D-01): style link rate, no fuzzy match ----
     ("Linked model: CHALLENGER 26FW fact rows linked to dim.style >= 98%", _R26,
      """SELECT CASE WHEN link_pct >= 98 THEN 'OK' ELSE link_pct::VARCHAR END FROM mart.link_rate

@@ -225,8 +225,16 @@ def build(verbose=True, retry_failed=False, pins: list[str] | None = None, db_pa
              pages=results[r["parse_key"]]["ocr_pages"], status="DONE" if ocr.is_done(r["sha256"]) else "PENDING")
         for r, e in zip(registry, entries) if r["parse_key"] in results and results[r["parse_key"]]["ocr_pages"]])
     t_sql = time.time()
+    sim_done = False
     for f in sorted(SQL_DIR.glob("[1-9]*.sql")):
+        if f.name >= "40" and not sim_done:      # synthetic data (D-04) needs the linked model, marts 4x read it
+            from . import sim
+            sim.generate(con)
+            sim_done = True
         con.execute(f.read_text())
+    if not sim_done:
+        from . import sim
+        sim.generate(con)
     t_sql = time.time() - t_sql
     run = dict(run_id=run_id, started_at=dt.datetime.fromtimestamp(t0), seconds=round(time.time() - t0, 2),
                n_files=len(entries), n_new=sum(e.change == "NEW" for e in entries),

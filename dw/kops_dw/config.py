@@ -40,6 +40,8 @@ RULES = {
     "rate_window": 3,                  # forecast: mean of the last N days with output (spec §4.3)
     "rate_lookback_days": 10,          # ... within N days before the last report
 }
+# Synthetic demo data in schema sim (D-04, kops_dw/sim.py); KOPS_SIM=0 builds without it.
+SIM = os.environ.get("KOPS_SIM", "1") == "1"
 # 'Today' for data freshness (spec §4.4): KOPS_TODAY=YYYY-MM-DD fixes it for tests; default the build day.
 TODAY = os.environ.get("KOPS_TODAY") or dt.date.today().isoformat()
 
