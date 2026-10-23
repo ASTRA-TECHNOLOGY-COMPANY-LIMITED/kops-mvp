@@ -207,6 +207,17 @@ CHECKS = [
         WHERE assumption_id NOT IN ('ASM-SIM-01', 'ASM-SIM-02', 'ASM-SIM-03', 'ASM-SIM-04', 'ASM-SIM-05')""", 0),
     ("Synthetic styles never reuse a real style code", None,
      "SELECT count(*) FROM sim.style s JOIN dim.style_alias a ON a.alias_code = s.style_code", 0),
+    # ---- manager metrics (D-05): same numbers as the existing marts where they overlap ----
+    ("Manager metrics: CHALLENGER 26FW shipped real = Shipment Status lots (no synthetic)", _R26,
+     """SELECT shipped_real || ' / ' || order_qty || ' / ' || coalesce(shipped_syn, 0) FROM mart.mgr_season
+        WHERE customer = 'CHALLENGER' AND season = '26FW'""", "60357 / 62131 / 0"),
+    ("Manager metrics: on time with +7 days = mart.season_kpi (current version)", _R26,
+     """SELECT (SELECT round(100.0 * on_time_tol_real / judged_real, 1) FROM mart.mgr_season
+                WHERE customer = 'CHALLENGER' AND season = '26FW')
+              = (SELECT ontime_pct FROM mart.season_kpi WHERE season = '26FW')""", True),
+    ("Manager metrics: synthetic seasons carry no real measure", None,
+     """SELECT coalesce(sum(coalesce(shipped_real, 0) + coalesce(inspected_real, 0) + judged_real), 0)
+        FROM mart.mgr_season WHERE season_syn""", 0),
     # ---- linked model (D-01): style link rate, no fuzzy match ----
     ("Linked model: CHALLENGER 26FW fact rows linked to dim.style >= 98%", _R26,
      """SELECT CASE WHEN link_pct >= 98 THEN 'OK' ELSE link_pct::VARCHAR END FROM mart.link_rate
