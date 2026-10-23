@@ -38,6 +38,9 @@ def main(argv=None):
     if cmd == "mail-allow":
         from .mailallow import cli as mail_allow
         sys.exit(mail_allow(argv[1:]))
+    if cmd == "report":        # PDF of the action list / overview (headless Chromium, local only)
+        from .report import run as report
+        sys.exit(report(argv[1:]))
     if cmd == "i18n":          # rewrite templates/i18n/vi.json from manager.html, list keys without Korean text
         from .i18n import sync
         missing = sync()

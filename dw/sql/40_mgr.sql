@@ -87,7 +87,9 @@ UPDATE mart.mgr_style SET risk_reason = CASE
     WHEN NOT is_active OR order_qty IS NULL OR shipped >= order_qty * (1 - mart.rule_int('qty_tolerance_pct') / 100.0) THEN NULL
     WHEN ready_date IS NOT NULL AND rdd IS NOT NULL AND ready_date + mart.rule_int('rdd_offset_days') > rdd THEN 'FORECAST_AFTER_RDD'
     WHEN plan_bal < 0 THEN 'PLAN_BAL_NEGATIVE'
-    WHEN etd IS NOT NULL AND etd < core.today() THEN 'ETD_PASSED_NOT_SHIPPED' END;
+    -- an ETD more than 120 days before the season starts is a mistyped year (Q46), reported in mart.mgr_action instead
+    WHEN etd IS NOT NULL AND etd < core.today()
+         AND etd >= (SELECT start_date - 120 FROM dim.season n WHERE n.season = mart.mgr_style.season) THEN 'ETD_PASSED_NOT_SHIPPED' END;
 
 -- ---------------------------------------------------------------- weekly: ETD plan vs shipped vs output
 -- ETDs far outside the season window (typed year) are left out of the weekly view; they stay in mgr_style.

@@ -5,12 +5,12 @@
 FROM python:3.13-slim-bookworm
 
 # LibreOffice Calc: .xlsb -> .xlsx with cell fills; tesseract (kor, vie, eng) + poppler: OCR queue and PDF text;
-# pst-utils (readpst): Outlook .pst mailboxes.
+# pst-utils (readpst): Outlook .pst mailboxes; chromium: PDF reports (kops_dw report) and UI tests (make check-ui).
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       libreoffice-calc-nogui \
       tesseract-ocr tesseract-ocr-kor tesseract-ocr-vie tesseract-ocr-eng \
-      poppler-utils pst-utils \
+      poppler-utils pst-utils chromium \
       fonts-noto-cjk tzdata \
  && rm -rf /var/lib/apt/lists/*
 
@@ -20,6 +20,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 TZ=Asia/Ho_Chi_Minh \
     KOPS_INBOX=/data/raw-docs/inbox:/app/samples/inbox \
     KOPS_BUILD=/app/build \
     KOPS_SOFFICE=/usr/bin/soffice \
+    KOPS_CHROME=/usr/bin/chromium \
     HOME=/app/build/home
 
 WORKDIR /app

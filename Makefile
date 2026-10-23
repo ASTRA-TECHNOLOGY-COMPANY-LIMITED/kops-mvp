@@ -6,9 +6,13 @@
 #   make down      stop (the build volume is kept)
 #   make rebuild   rebuild the image without cache and start again
 #   make clean     stop and delete the build volume (next `make up` parses everything again)
+#   make report SEASON=27SS REPORT_LANG=ko   PDF of the action list + overview into ./reports (git-ignored, KLMAS data)
 COMPOSE = docker compose
 
-.PHONY: up up-real down rebuild check logs clean
+SEASON ?=
+REPORT_LANG ?= vi
+
+.PHONY: up up-real down rebuild check logs clean report
 
 up:
 	KOPS_SIM=1 $(COMPOSE) up -d --build
@@ -27,6 +31,11 @@ rebuild:
 
 check:
 	$(COMPOSE) run --rm --no-deps kops-build python -m kops_dw test
+
+report:
+	mkdir -p reports
+	$(COMPOSE) run --rm --no-deps -v "$(CURDIR)/reports:/out" kops-build \
+	  python -m kops_dw report $(if $(SEASON),--season $(SEASON)) --lang $(REPORT_LANG) --out /out
 
 logs:
 	$(COMPOSE) logs -f --tail=100
