@@ -23,6 +23,9 @@ WORKERS = int(os.environ.get("KOPS_WORKERS", min(8, os.cpu_count() or 2)))
 PARSE_TIMEOUT = int(os.environ.get("KOPS_PARSE_TIMEOUT", 600))      # seconds per file, 0 = no limit
 # Excel files whose header layout is not in dw/templates/known_templates.json are quarantined (templates.py).
 TEMPLATE_CHECK = os.environ.get("KOPS_TEMPLATE_CHECK", "1") == "1"
+# Report files above this size are not opened (metadata only, quarantined as TOO_LARGE); technical documents
+# (work sheets, comments, CAD...) are never opened whatever their size (docmeta.py). Emails/mailboxes are exempt.
+MAX_PARSE_MB = float(os.environ.get("KOPS_MAX_PARSE_MB", 30))
 DB_PATH = BUILD_DIR / "kops.duckdb"
 DASHBOARD_PATH = BUILD_DIR / "dashboard.html"
 

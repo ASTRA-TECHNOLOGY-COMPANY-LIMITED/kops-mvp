@@ -85,6 +85,11 @@ CREATE TABLE raw.email (
   folder VARCHAR,    -- mailbox folder (.pst) or Gmail labels (.mbox)
   text_source VARCHAR);   -- PDF exports: 'text' (text layer) or 'ocr' (scanned page read by tesseract, H-08)
 
+-- Documents recorded from their name only, never opened (N-02, docmeta.py): work sheets, comments, CAD patterns.
+CREATE TABLE stg.document (
+  file_id INTEGER, path_hash VARCHAR, file_name VARCHAR, ext VARCHAR, size_bytes BIGINT, sha256 VARCHAR,
+  customer VARCHAR, style_candidates VARCHAR, factory VARCHAR, season VARCHAR, stage VARCHAR, doc_kind VARCHAR,
+  doc_date DATE, meta_source VARCHAR);
 -- Attachments listed in a message (.mhtml: names only, the files are not in the page). Big-file links expire.
 CREATE TABLE raw.email_attachment (
   file_id INTEGER, msg_key VARCHAR, part_no INTEGER, file_name VARCHAR, size_text VARCHAR, size_bytes BIGINT,

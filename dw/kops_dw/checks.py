@@ -80,6 +80,16 @@ CHECKS = [
      "CHG1MPT7131:ETD"),
     ("History JBEE 261006 -> 261019: factory assignments", ("file", "261006 MJ) 27SS JBEE"),
      "SELECT count(*) FROM mart.version_change WHERE family='JBEE|NEPA' AND kind='FACTORY'", 8),
+    # ---- technical documents: name only (N-02) ----
+    ("No report above KOPS_MAX_PARSE_MB was opened", None,
+     f"""SELECT count(*) FROM etl.source_file WHERE size_bytes > {config.MAX_PARSE_MB} * 1e6
+         AND parser NOT IN ('emails', 'mailbox') AND status IN ('LOADED', 'FAILED', 'UNKNOWN_TEMPLATE')""", 0),
+    ("No technical document is quarantined", None,
+     """SELECT count(*) FROM etl.quarantine q JOIN etl.source_file f USING (file_id) WHERE f.source_type = 'document'""", 0),
+    ("Document CHF3WJK6701 FPP CFMD: style / factory / stage / date", ("doc", "260629 (CHALLENGER - TRUONG PHUC) CHF3WJK6701"),
+     """SELECT any_value(style_no || ' / ' || factory || ' / ' || stage || ' / ' || doc_date) FROM core.document
+        WHERE file_name LIKE '260629 (CHALLENGER - TRUONG PHUC) CHF3WJK6701%' AND ext = '.xlsx'""",
+     "CHF3WJK6701 / TRUONG PHUC / FPP_CFMD / 2026-06-29"),
     # ---- emails (SAMPLE files in dw/samples/inbox) ----
     ("Email: same message in .eml and quoted in a PDF counted once", ("file", "08_buyer_original_duplicate"),
      "SELECT count(*) || ' / ' || max(n_copies) FROM core.email WHERE thread_key='[sample] 26fw chf4mpt6444 delivery'", "2 / 2"),
@@ -101,11 +111,12 @@ def run_checks(db_path=None) -> bool:
     loaded = {(p, s) for p, s in con.execute(
         "SELECT parser, season FROM etl.source_file WHERE is_current").fetchall()}
     names = [n for (n,) in con.execute("SELECT file_name FROM etl.source_file WHERE status='LOADED'").fetchall()]
+    docs = [n for (n,) in con.execute("SELECT file_name FROM core.document").fetchall()]
     ok = True
     print("Golden / structural checks")
     for name, need, sql, expected in CHECKS:
-        if need and need[0] == "file":
-            if not any(n.startswith(need[1]) for n in names):
+        if need and need[0] in ("file", "doc"):
+            if not any(n.startswith(need[1]) for n in (names if need[0] == "file" else docs)):
                 print(f"  SKIP  {name}  (source not loaded)")
                 continue
         elif need and need not in loaded:

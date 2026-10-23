@@ -18,7 +18,7 @@ from pathlib import Path
 
 import duckdb
 
-from . import config, lake, manifest, ocr, parse, templates
+from . import config, docmeta, lake, manifest, ocr, parse, templates
 from .util import nfc, norm_key
 
 SQL_DIR = config.DW_DIR / "sql"
@@ -31,6 +31,7 @@ PENDING = [
     ("INSPECTION REPORT", "inspection_tracker", "Parser planned in Phase 1 (M1-06)"),
     ("INPUT DATA", "qc_third_party", "Third-party QC database; parser proposed (M1-12)"),
 ]
+DOC_MESSAGE = "Metadata only: technical document / pattern (name read, file not opened)"
 # CHALLENGER ORDER RECAPs use the detailed fixed-column parser; other customers the header-driven one.
 CHALLENGER_KEYS = ("CHALLENGER", "CLGR")
 EMAIL_EXT = (".eml", ".pdf", ".msg", ".mhtml")
@@ -50,6 +51,8 @@ def classify(path: Path):
         return "email", "mailbox", season
     if _in_inbox(path) and ext in EMAIL_EXT:
         return "email", "emails", season
+    if ext in docmeta.META_ONLY_EXT:            # CAD patterns, archives, pictures, links: never opened
+        return "document", None, season
     if ext in (".xlsx", ".xlsb", ".xlsm"):
         if "ORDER RECAP" in name and any(k in name for k in CHALLENGER_KEYS):
             return "excel", "order_recap", season
@@ -64,11 +67,15 @@ def classify(path: Path):
         for key, stype, _ in PENDING:
             if stype and key in name:
                 return stype, None, season
+        if docmeta.is_meta_only(path):           # work sheets, comments, markers ... (name only, not opened)
+            return "document", None, season
         return "excel", None, season
     if ext == ".docx":
         return "meeting_note", "meeting_notes", season
     if ext in (".eml", ".mhtml"):           # .mhtml: Gmail threads saved inside style packages (STYLES/...)
         return "email", "emails", season
+    if ext in docmeta.OFFICE_EXT and docmeta.is_meta_only(path):
+        return "document", None, season
     if ext in (".pdf", ".jpg", ".jpeg", ".png"):
         return "reference", None, None
     return "other", None, None
@@ -115,7 +122,7 @@ def build(verbose=True, retry_failed=False) -> Path:
 
     versions, results = parse.parser_versions(), lake.read_results()
     check_templates, known_templates = templates.enabled(), templates.known()
-    seen, registry, extra_issues, tasks = {}, [], [], []
+    seen, registry, extra_issues, tasks, documents = {}, [], [], [], []
     for i, entry in enumerate(entries, start=1):
         path, digest = entry.path, entry.sha256
         name = nfc(path.name)                    # macOS stores names decomposed (NFD); compare and store NFC
@@ -134,7 +141,12 @@ def build(verbose=True, retry_failed=False) -> Path:
         elif parser is None:
             pending = next((m for _, s, m in PENDING if s == stype), None)
             rec.update(status="SKIPPED", message=pending or ("Reference document - not parsed" if stype == "reference"
+                                                             else DOC_MESSAGE if stype == "document"
                                                              else "Unknown template"))
+        elif parser in parse.EXCEL_PARSERS and entry.size_bytes > config.MAX_PARSE_MB * 1e6:
+            rec.update(status="SKIPPED", message=f"Too large: {entry.size_bytes / 1e6:.0f} MB > KOPS_MAX_PARSE_MB="
+                                                 f"{config.MAX_PARSE_MB:g}; not opened (metadata only)")
+            ctx.issue("WARN", "FILE_TOO_LARGE", name, rec["message"], name)
             if stype == "excel":
                 ctx.issue("WARN", "UNKNOWN_TEMPLATE", name, "Excel file not matched to a parser", name)
         else:
@@ -152,6 +164,9 @@ def build(verbose=True, retry_failed=False) -> Path:
                                   size=entry.size_bytes))
         registry.append(rec)
         extra_issues += ctx.issues
+        if stype == "document" or rec["message"] and rec["message"].startswith("Too large"):
+            documents.append(dict(docmeta.describe(path, config.RAW_DOCS_DIR), file_id=i, size_bytes=entry.size_bytes,
+                                  sha256=digest))
 
     t_parse = time.time()
     metas = _parse_all(tasks, run_id, verbose)
@@ -190,6 +205,7 @@ def build(verbose=True, retry_failed=False) -> Path:
     t_load = time.time() - t_load
     _insert(con, "etl.data_issue", extra_issues)
     _insert(con, "etl.source_file", registry)
+    _insert(con, "stg.document", documents)
     quarantine = _quarantine(registry)
     _insert(con, "etl.quarantine", quarantine)
     _insert(con, "etl.ocr_queue", [
@@ -214,6 +230,8 @@ def build(verbose=True, retry_failed=False) -> Path:
     lock.close()
     _write_quarantine(quarantine, verbose)
     if verbose:
+        big = sum(1 for d in documents if d["size_bytes"] > config.MAX_PARSE_MB * 1e6)
+        print(f"Metadata only (not opened): {len(documents)} file(s), {big} of them > {config.MAX_PARSE_MB:g} MB")
         print(f"Built {config.DB_PATH} in {time.time() - t0:.1f}s ({run['n_files']} files: {run['n_new']} new, "
               f"{run['n_changed']} changed, {n_hashed} hashed; parsed {run['n_parsed']}, cached {run['n_cached']})")
     return config.DB_PATH
@@ -317,6 +335,8 @@ QUARANTINE_HINT = {
     "UNKNOWN_TEMPLATE": "Bố cục cột chưa biết: so nhãn với parser; đọc đúng thì `python -m kops_dw templates accept "
                         "<fp>`, sai thì cần sửa/viết parser (H-05)",
     "MISSING_TOOL": "Cài công cụ ghi trong message (vd. brew install libpst / tesseract); build sau tự đọc lại",
+    "TOO_LARGE": "File báo cáo lớn hơn KOPS_MAX_PARSE_MB: kiểm tra có đúng là báo cáo không; nếu đúng thì tăng "
+                 "KOPS_MAX_PARSE_MB rồi build",
     "UNKNOWN_FILE": "Tên file không khớp loại báo cáo nào: kiểm tra, thêm quy tắc vào pipeline.classify nếu cần",
 }
 
@@ -333,6 +353,8 @@ def _quarantine(registry: list[dict]) -> list[dict]:
             code = "UNKNOWN_TEMPLATE"
         elif r["status"] == "SKIPPED" and msg.startswith("Missing tool"):
             code = "MISSING_TOOL"
+        elif r["status"] == "SKIPPED" and msg.startswith("Too large"):
+            code = "TOO_LARGE"
         elif r["status"] == "SKIPPED" and r["source_type"] == "excel" and r["parser"] is None:
             code = "UNKNOWN_FILE"
         else:
