@@ -103,7 +103,23 @@ MAIL_EXCLUDE_FOLDERS = _env_list("KOPS_MAIL_EXCLUDE_FOLDERS", [
     "Spam", "Junk", "Junk E-mail", "Junk Email", "Trash", "Deleted Items", "Deleted Messages", "Bin", "Drafts",
     "Outbox", "RSS Feeds", "Sync Issues", "Conflicts", "Calendar", "Contacts", "Tasks", "Notes", "Journal",
     "스팸", "스팸메일함", "휴지통", "지운 편지함", "임시 보관함", "임시보관함", "Thư rác", "Thùng rác", "Nháp"])
-MAIL_ALLOW = [x.lower() for x in _env_list("KOPS_MAIL_ALLOW", [])]     # senders/domains never filtered
+# Senders / domains never filtered: KOPS_MAIL_ALLOW (comma list) + the git-ignored list file (mailallow.py).
+# A whole free-mail domain is refused (it would let every sender on it through).
+FREE_MAIL = {"gmail.com", "googlemail.com", "naver.com", "daum.net", "hanmail.net", "kakao.com", "nate.com",
+             "yahoo.com", "yahoo.co.kr", "hotmail.com", "outlook.com", "live.com", "icloud.com", "me.com",
+             "yandex.com", "qq.com", "163.com", "126.com", "zoho.com", "proton.me", "protonmail.com"}
+MAIL_ALLOW_FILE = Path(os.environ.get("KOPS_MAIL_ALLOW_FILE", DW_DIR / "mail_allow.local.txt"))
+
+
+def _allow_file(path: Path) -> list[str]:
+    if not path.exists():
+        return []
+    entries = (line.split("#", 1)[0].strip().lower().lstrip("@") for line in path.read_text(encoding="utf-8").splitlines())
+    return [e for e in entries if e and e not in FREE_MAIL]
+
+
+MAIL_ALLOW = sorted({x.lower().lstrip("@") for x in _env_list("KOPS_MAIL_ALLOW", []) if x.lower() not in FREE_MAIL}
+                    | set(_allow_file(MAIL_ALLOW_FILE)))
 MAIL_SINCE, MAIL_UNTIL = _env_date("KOPS_MAIL_SINCE"), _env_date("KOPS_MAIL_UNTIL")
 
 # Optional LLM extractor (off by default; needs PO decision P2 in plans/EMAIL_READINESS_PLAN.md).

@@ -88,6 +88,24 @@ def _stream(sources, path, ctx, is_sample):
     ctx.report_date = first.date() if first else None
 
 
+def iter_messages(path: Path, digest: str | None = None):
+    """(message, normalised record) of every decodable message of a mailbox (mail-allow report)."""
+    from ..util import sha256
+    sources = _pst_folders(path, digest or sha256(path)) if path.suffix.lower() == ".pst" else [(path, None)]
+    for mbox_path, folder in sources:
+        box = mailbox.mbox(str(mbox_path), create=False)
+        try:
+            for key in box.iterkeys():
+                try:
+                    msg = email.message_from_bytes(box.get_bytes(key), policy=policy.default)
+                    yield msg, from_message(msg, False, "pst" if folder is not None else "mbox",
+                                            folder or _gmail_labels(msg))
+                except Exception:
+                    continue
+        finally:
+            box.close()
+
+
 def _part(emails, filtered, ctx, path):
     return dict(email=emails, stg_email_change=proposals_for(emails, ctx, path.name), email_filtered=filtered,
                 stg_email_event=milestones.events_for(emails))

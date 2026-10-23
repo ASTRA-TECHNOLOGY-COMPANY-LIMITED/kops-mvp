@@ -1,0 +1,14 @@
+# KOPS mail allow-list (format example; placeholders only).
+# Copy to dw/mail_allow.local.txt (git-ignored) or generate it: python -m kops_dw mail-allow suggest --write
+# Senders listed here are never dropped by the mailbox filters (no-reply, mailing list, folder, date range).
+# One entry per line; '#' starts a comment.
+
+# Whole company domains: KLMAS, buyers, factories, forwarders
+klmas-sample.vn
+buyer-sample.kr
+factory-sample.com.vn
+forwarder-sample.com
+
+# Single addresses on free mail services (gmail.com / naver.com / daum.net ... as a whole domain are refused)
+factory.owner.sample@gmail.com
+buyer.md.sample@naver.com

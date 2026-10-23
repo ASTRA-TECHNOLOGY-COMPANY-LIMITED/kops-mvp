@@ -12,3 +12,4 @@ __pycache__/
 *.pyc
 dw/.venv-mac/
 dw/lake/
+dw/mail_allow.local.txt

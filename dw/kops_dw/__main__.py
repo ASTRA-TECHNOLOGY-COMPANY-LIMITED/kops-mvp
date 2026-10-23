@@ -1,4 +1,4 @@
-"""CLI: python -m kops_dw [build|test|dashboard|all|fetch-imap|attachments|lake-compact|templates|ocr|bench]
+"""CLI: python -m kops_dw [build|test|dashboard|all|fetch-imap|attachments|lake-compact|mail-allow|templates|ocr|bench]
 
   all           build + test + dashboard (default)
   build         incremental build: only new/changed files are parsed, the rest is read from the lake
@@ -6,6 +6,7 @@
   fetch-imap    read-only download of a mailbox folder into raw-docs/inbox/imap/ (see kops_dw/inbox.py)
   attachments   save .eml attachments to raw-docs/EMAIL_ATTACHMENTS/ so they are parsed by the next build
   lake-compact  rewrite the Parquet lake without rows of superseded parses (run when no build is running)
+  mail-allow    allow-list of partner senders for mailbox filters: `suggest [--write]`, `report [mbox ...]`
   templates     Excel layouts not yet known (quarantined); `templates accept <fp>` after checking them
   ocr           OCR the scanned PDF pages queued by the last build (tesseract kor+vie+eng), then rebuild
   bench         acceptance checks / synthetic data / benchmark outside the repo (see kops_dw/bench.py)
@@ -32,6 +33,9 @@ def main(argv=None):
     if cmd == "ocr":
         from .ocr import run
         sys.exit(run(argv[1:]))
+    if cmd == "mail-allow":
+        from .mailallow import cli as mail_allow
+        sys.exit(mail_allow(argv[1:]))
     if cmd == "templates":
         from .templates import cli
         return cli(args[1:] + sorted(flags))
