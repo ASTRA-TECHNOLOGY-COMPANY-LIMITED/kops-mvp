@@ -112,10 +112,10 @@ def render(db_path=None, build_dir=None) -> dict:
                              GROUP BY season ORDER BY min(etd) LIMIT 1""").fetchone()
     con.close()
     seasons = sorted(by_season, key=lambda s: (s[:2], s[2:] == "FW"))
-    ddir = build / "data" / "mgr"
-    ddir.mkdir(parents=True, exist_ok=True)
-    for old in ddir.glob("*.json"):
-        old.unlink()
+    # written to data/mgr.new and swapped in at the end, so an open page polling index.json (E-08) never reads a half-written set
+    ddir, final = build / "data" / "mgr.new", build / "data" / "mgr"
+    shutil.rmtree(ddir, ignore_errors=True)
+    ddir.mkdir(parents=True)
     sizes = {}
     dump = lambda o: json.dumps(o, default=_default, ensure_ascii=False, separators=(",", ":"))   # noqa: E731
     for name, obj in [("_common", common), *by_season.items()]:
@@ -125,11 +125,19 @@ def render(db_path=None, build_dir=None) -> dict:
     real = [s for s in seasons if not s.startswith("25")]
     current = current[0] if current and current[0] in seasons else None
     default = current or ("26FW" if "26FW" in seasons else (real[-1] if real else seasons[-1] if seasons else None))
-    index = dict(built_at=dt.datetime.now().strftime("%Y-%m-%d %H:%M"), today=today[0] if today else None,
+    now = dt.datetime.now()
+    index = dict(built_at=now.strftime("%Y-%m-%d %H:%M"), build_id=now.isoformat(timespec="microseconds"), today=today[0] if today else None,
                  seasons=seasons, default=default, current=current, sizes=sizes, sim=config.SIM, questions=questions.for_dashboard(),
                  weights=config.SCORECARD_WEIGHTS, ontime_tol_days=config.RULES["ontime_tolerance_days"],
-                 ready_buffer=config.RULES["ready_buffer_days"])
+                 ready_buffer=config.RULES["ready_buffer_days"],
+                 latest_file=max((str(r[2]) for r in common["sources"]["rows"] if r[2]), default=None))
     (ddir / "index.json").write_text(dump(index), encoding="utf-8")
+    old = build / "data" / "mgr.old"
+    shutil.rmtree(old, ignore_errors=True)
+    if final.exists():
+        final.rename(old)
+    ddir.rename(final)
+    shutil.rmtree(old, ignore_errors=True)
     (build / "vendor").mkdir(exist_ok=True)
     for f in VENDOR.glob("*.js"):
         shutil.copyfile(f, build / "vendor" / f.name)

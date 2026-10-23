@@ -7,6 +7,7 @@
 #   make rebuild   rebuild the image without cache and start again
 #   make clean     stop and delete the build volume (next `make up` parses everything again)
 #   make report SEASON=27SS REPORT_LANG=ko   PDF of the action list + overview into ./reports (git-ignored, KLMAS data)
+#   make refresh   add new KLMAS files: incremental build + checks + dashboards, the open page picks it up (no restart)
 #   make check-ui  UI test (Playwright + Chromium): every page x theme x desktop/mobile x VI/KO x synthetic off/on;
 #                  screenshots into UI_OUT (default /tmp/kops-ui, outside the repo)
 COMPOSE = docker compose
@@ -15,7 +16,7 @@ SEASON ?=
 REPORT_LANG ?= vi
 UI_OUT ?= /tmp/kops-ui
 
-.PHONY: up up-real down rebuild check check-ui logs clean report
+.PHONY: up up-real down rebuild refresh check check-ui logs clean report
 
 up:
 	KOPS_SIM=1 $(COMPOSE) up -d --build
@@ -31,6 +32,10 @@ down:
 rebuild:
 	$(COMPOSE) build --no-cache
 	$(COMPOSE) up -d --force-recreate
+
+refresh:
+	$(COMPOSE) run --rm --no-deps kops-build
+	@echo "Dashboard updated: http://127.0.0.1:8765/ (the open page reloads its data within a minute)"
 
 check:
 	$(COMPOSE) run --rm --no-deps kops-build python -m kops_dw test

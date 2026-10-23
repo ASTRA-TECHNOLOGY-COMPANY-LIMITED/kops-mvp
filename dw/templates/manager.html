@@ -43,6 +43,7 @@ main{max-width:1360px;margin:0 auto;padding:18px 20px 60px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
 .card h3{margin:0 0 2px;font-size:14.5px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}.card .sub{margin:0 0 8px;color:var(--text-2);font-size:12.5px}
 .chart{width:100%;height:300px}.chart.nodata{height:auto}.chart.tall{height:420px}.chart.small{height:150px}
+#built.fresh{color:var(--good);font-weight:600}
 .qref{text-decoration:underline dotted;cursor:help}
 .syn{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;background:color-mix(in srgb,var(--syn) 18%,transparent);color:var(--syn);border:1px solid color-mix(in srgb,var(--syn) 40%,transparent);cursor:help}
 .tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px}
@@ -606,6 +607,23 @@ function render() {
   const sp = $('#stylePick'); if (sp) sp.onchange = () => openStyle(sp.value);
   document.querySelectorAll('nav button').forEach(b => b.setAttribute('aria-selected', b.dataset.t === STATE.tab));
 }
+/* New data (E-08): `make refresh` rebuilds while this page stays open; every minute the page checks index.json and,
+   when the build changed, reloads the data in place (filters and tab kept). */
+function showBuilt() {
+  $('#built').textContent = L('dữ liệu tới {d} · file mới nhất {f} · build {b}', {d: IDX.today || '–', f: IDX.latest_file || '–', b: IDX.built_at});
+}
+async function pollNewData() {
+  try {
+    const idx = await getJSON('data/mgr/index.json');
+    if (idx.build_id === IDX.build_id) return;
+    const common = await getJSON('data/mgr/_common.json');
+    IDX = idx; COMMON = common; CACHE = {};
+    COMMON_ROWS = Object.fromEntries(Object.entries(COMMON).map(([k, t]) => [k, rowsOf(t)]));
+    if (STATE.season !== ALL && !IDX.seasons.includes(STATE.season)) STATE.season = IDX.default;
+    await refresh(); showBuilt();
+    const b = $('#built'); b.classList.add('fresh'); setTimeout(() => b.classList.remove('fresh'), 8000);
+  } catch (e) { /* rebuild in progress or server restarting: try again next minute */ }
+}
 function showTab(t) { STATE.tab = t; try { localStorage.setItem('kops.mgr.tab', t); } catch {} render(); window.scrollTo(0, 0); }
 async function refresh() {
   if (!STATE.syn && STATE.season !== ALL && STATE.season.startsWith('25')) STATE.season = IDX.default;
@@ -640,7 +658,8 @@ $('#themeBtn').onclick = () => { const r = document.documentElement, dark = r.da
     $('#main').innerHTML = `<div class="banner">${L('Trang này tải dữ liệu từ <b>data/mgr/</b>: chạy <code>python -m kops_dw serve</code> (hoặc <code>make up</code>) rồi mở <b>http://127.0.0.1:8765/</b>.')}<br><span class="note">${esc(err.message)}</span></div>`; return;
   }
   COMMON_ROWS = Object.fromEntries(Object.entries(COMMON).map(([k, t]) => [k, rowsOf(t)]));
-  $('#built').textContent = 'build ' + IDX.built_at;
+  showBuilt();
+  setInterval(pollNewData, 60000);
   STATE.syn = q.get('syn') != null ? q.get('syn') === '1' : !!IDX.sim;
   let saved = null; try { saved = localStorage.getItem('kops.mgr.season'); } catch {}
   const want = q.get('season') === 'all' ? ALL : q.get('season') || saved;    // URL, then this viewer's last choice, then the running season

@@ -115,6 +115,17 @@ def run(argv: list[str]) -> int:
                 for k in keys:
                     got = float(kpi.get(k) or "nan")
                     check(f"KPI {q['tab']} {q['season']} {k} = mart", abs(got - exp[k]) < 0.05, f"page {got} / mart {exp[k]:.2f}")
+            # new data while the page stays open (E-08): render again, the page picks it up without a reload
+            from .mgr_dashboard import render
+            page.goto(f"http://127.0.0.1:{port}/?tab=overview&noanim=1")
+            page.wait_for_selector("body[data-load-ms]", timeout=30000)
+            before = page.evaluate("() => [IDX.build_id, performance.getEntriesByType('navigation').length]")
+            render()
+            page.evaluate("() => pollNewData()")
+            page.wait_for_timeout(500)
+            after = page.evaluate("() => [IDX.build_id, performance.getEntriesByType('navigation').length, document.querySelector('#built.fresh') != null]")
+            check("New build picked up by the open page without reload", after[0] != before[0] and after[1] == before[1] and after[2],
+                  f"{before} -> {after}")
             browser.close()
     finally:
         httpd.shutdown()

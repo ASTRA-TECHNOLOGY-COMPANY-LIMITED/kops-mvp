@@ -184,6 +184,7 @@
  "cột: SL theo ETD VN (RECAP); đường: SL đã xuất theo ETD lô (Shipment Status)": "막대: ETD VN 기준 수량 (RECAP); 선: 선적 ETD 기준 선적 수량 (Shipment Status)",
  "dung sai {q}": "허용 오차 {q}",
  "dữ liệu giả định": "가정 데이터",
+ "dữ liệu tới {d} · file mới nhất {f} · build {b}": "데이터 기준일 {d} · 최신 파일 {f} · 빌드 {b}",
  "dự báo sau RDD, BAL < 0, hoặc quá ETD chưa xuất": "예상 완료 > RDD, BAL < 0, 또는 ETD 경과 미선적",
  "dự báo từ báo cáo ngày / Production Status": "일일 보고서 / Production Status 기반 예측",
  "email + tên tài liệu (luật trên tiêu đề, chờ duyệt), kế hoạch, dự báo, lô xuất; rê chuột để xem nguồn": "이메일 + 문서명 (제목 규칙, 승인 대기), 계획, 예측, 선적; 마우스를 올리면 출처 표시",

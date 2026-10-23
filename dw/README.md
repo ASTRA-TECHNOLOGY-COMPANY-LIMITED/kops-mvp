@@ -55,7 +55,26 @@ make logs        # xem log; make down: dừng; make rebuild: dựng lại image;
 - Đo ngày 23/10/2026 (MacBook Apple Silicon 8 CPU): dựng image 58 s, image 1,24 GB; build kho lạnh trong container 80 s, lần sau
   12 s; `make up` từ đầu khoảng 1 phút 45 giây; 80/80 check trong container = ngoài container.
 
-### Thêm dữ liệu
+### Thêm file KLMAS mới (hằng ngày)
+
+1. **Tải file** từ Google Drive của KLMAS, **giữ nguyên tên file** (không đổi tên, không ghi đè bản cũ: bản mới có ngày mới ở
+   đầu tên, kho tự lấy bản mới nhất).
+2. **Đặt vào `raw-docs/`** theo bảng "Quy ước khi thêm file" trong `raw-docs/README.md`. Hay gặp nhất:
+   - báo cáo sản xuất ngày → `PRODUCTION/<BRAND>/<MÙA>/<NHÀ MÁY>/` (vd. `PRODUCTION/CHALLENGER/27SS/NATEXCO/`);
+   - ORDER RECAP → `ORDER/<KHÁCH>/<MÙA>/`; kế hoạch sản xuất → `PRODUCTION PLAN/<KHÁCH>/<MÙA>/`;
+   - Shipment / Production Status → `TRACKING/<BRAND>/<MÙA>/`; bảng kiểm KLMAS → `INSPECTION/ORDER_TRACKING/<BRAND>/<MÙA>/`;
+   - email (`.mhtml`, `.eml`, PDF) không thuộc style nào → `inbox/`.
+   Chỉ copy file chưa có (so tên file); copy lại cả thư mục Drive sẽ sinh bản trùng.
+3. **Chạy** ở gốc repo: `make refresh` (Docker; build tăng dần chỉ đọc file mới / đổi, chạy toàn bộ check, dựng lại dashboard).
+   Không dùng Docker: `cd dw && .venv-mac/bin/python -m kops_dw`.
+4. **Xem kết quả**:
+   - trang đang mở ở http://127.0.0.1:8765/ tự nạp dữ liệu mới trong vòng 1 phút, không cần tải lại; dòng đầu trang ghi
+     "dữ liệu tới … · file mới nhất … · build …" (chữ chuyển xanh khi vừa nạp);
+   - check phải `ALL PASS`. Check đỏ thì dashboard **giữ bản cũ** (`make logs` xem check nào đỏ);
+   - file không đọc được nằm trong `dw/build/quarantine.csv` (Docker: volume build), file mẫu Excel lạ: `python -m kops_dw templates`;
+   - trang "Sức khoẻ dữ liệu": độ phủ cycle, độ tươi báo cáo ngày, dòng không nối được với style.
+
+### Thêm dữ liệu (chi tiết theo loại)
 
 | Muốn thêm | Làm gì |
 |---|---|
