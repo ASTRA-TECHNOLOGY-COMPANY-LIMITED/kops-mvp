@@ -27,15 +27,17 @@ TEMPLATE_CHECK = os.environ.get("KOPS_TEMPLATE_CHECK", "1") == "1"
 # (work sheets, comments, CAD...) are never opened whatever their size (docmeta.py). Emails/mailboxes are exempt.
 MAX_PARSE_MB = float(os.environ.get("KOPS_MAX_PARSE_MB", 30))
 DB_PATH = BUILD_DIR / "kops.duckdb"
+# Open questions to KLMAS (read only): codes used in code / dashboard are checked against it (questions.py)
+QUESTIONS_FILE = Path(os.environ.get("KOPS_QUESTIONS_FILE", REPO_DIR / "analys-docs" / "open_questions.md"))
 DASHBOARD_PATH = BUILD_DIR / "dashboard.html"
 
 # --- Business rules (configurable, pending KLMAS confirmation; see analys-docs/open_questions.md) ---
 RULES = {
-    "rdd_offset_days": 12,             # RDD = ETD VN + 12 (Q17)
+    "rdd_offset_days": 12,             # RDD = ETD VN + 12 (Q26)
     "ready_buffer_days": 5,            # finishing + inspection after sewing
     "default_daily_output": 45,        # pcs/day when factory has not reported (meeting example)
     "ontime_tolerance_days": 7,        # first lot ETD <= style ETD + 7 => on time
-    "qty_tolerance_pct": 5,            # Q12
+    "qty_tolerance_pct": 5,            # Q13
     "as_of_fallback": "2026-10-12",    # when a file carries no report date
     "rate_window": 3,                  # forecast: mean of the last N days with output (spec §4.3)
     "rate_lookback_days": 10,          # ... within N days before the last report
@@ -57,20 +59,20 @@ FACTORY_ALIASES = {
     "HUY HOANG": "HUY HOANG", "MINH TUAN": "MINH TUAN", "THANH VAN": "THANH VAN", "AYM": "AYM",
 }
 FACTORY_ALIASES.update({
-    # factories seen in other customers' ORDER RECAP / PRODUCTION PLAN (20-21/10/2026; names pending Q08)
+    # factories seen in other customers' ORDER RECAP / PRODUCTION PLAN (20-21/10/2026; names pending Q09)
     "SON HA": "SON HA", "SON HA GLOBAL": "SON HA", "JM": "JM", "HAGACO": "HAGACO", "HGC": "HAGACO",
     "B85": "B85", "XT": "XUAN THANH", "WISER MAX": "WISER MAX", "HA THANH": "HA THANH",
     "HA THANH PLAN": "HA THANH", "GIA NGUYEN": "GIA NGUYEN", "TRI DUC": "TRI DUC", "FG": "FG VINA",
     "SH": "SON HA",
 })
 
-# Factory names seen in new files but not confirmed by KLMAS (Q08): used only by the linked model (dim_factory_alias),
+# Factory names seen in new files but not confirmed by KLMAS (Q09): used only by the linked model (dim_factory_alias),
 # never by the parsers, so core numbers do not move. alias -> (factory code, confidence, open question)
 FACTORY_ALIAS_REVIEW = {
-    "HD2": ("HAGACO", "MEDIUM", "Q08"),            # 'HAGACO = May Hai Duong 2 (HD2)' in mails, not confirmed
-    "HAGACO HD2": ("HAGACO", "MEDIUM", "Q08"),
-    "FG BG": ("FG BAC GIANG", "LOW", "Q08"),       # SHIPPING SCHEDULE 'NATEXCO>FG BG'
-    "CHI ANH": ("CHI ANH", "LOW", "Q08"),          # SHIPPING SCHEDULE 'TP>> CHI ANH': new factory?
+    "HD2": ("HAGACO", "MEDIUM", "Q09"),            # 'HAGACO = May Hai Duong 2 (HD2)' in mails, not confirmed
+    "HAGACO HD2": ("HAGACO", "MEDIUM", "Q09"),
+    "FG BG": ("FG BAC GIANG", "LOW", "Q09"),       # SHIPPING SCHEDULE 'NATEXCO>FG BG'
+    "CHI ANH": ("CHI ANH", "LOW", "Q09"),          # SHIPPING SCHEDULE 'TP>> CHI ANH': new factory?
 }
 # Daily production reports of a vendor name the vendor, not the brand (spec §2): vendor -> brand (DHG files seen so far
 # are 8 SECONDS, folder PRODUCTION/DHG/8 SECONDS; assumption ASM-DAILY-01).

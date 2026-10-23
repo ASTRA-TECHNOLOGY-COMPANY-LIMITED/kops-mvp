@@ -6,7 +6,7 @@ SELECT o.* FROM raw.order_line_ext o JOIN core.current_file f USING (file_id);
 -- One row per style for every customer. CHALLENGER comes from the detailed model (core.style_order).
 CREATE TABLE core.order_portfolio AS
 SELECT 'CHALLENGER' AS customer, 'CHALLENGER' AS brand, season, style_no, NULL AS file_no, factory_code, factory_raw,
-       order_qty, etd_vn AS etd, rdd_kr AS rdd, status, is_active, 'RDD-12/-14 (Q17)' AS etd_rule, file_id
+       order_qty, etd_vn AS etd, rdd_kr AS rdd, status, is_active, 'RDD-12/-14 (Q26)' AS etd_rule, file_id
 FROM core.style_order
 UNION ALL
 SELECT coalesce(customer, '?'), coalesce(brand, '?'), season, style_no, file_no, factory_code, factory_raw,

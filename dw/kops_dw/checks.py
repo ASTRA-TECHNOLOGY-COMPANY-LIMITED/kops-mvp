@@ -130,7 +130,7 @@ CHECKS = [
         (SELECT any_value(exf_plan) FROM raw.production_plan WHERE style_no = '7N30613')""", "2 / 2026-02-08"),
     ("SHIPPING SCHEDULE: SHIPPED STYLES order qty = total row (SHIPPED STYLES!G134)", ("file", "261015) 26FW CHALLENGER SHIPPING SCHEDULE"),
      "SELECT sum(order_qty) FROM core.shipping_schedule WHERE status = 'SHIPPED'", 74447),
-    ("SHIPPING SCHEDULE: styles with RDD = ETD VN + 12 (Q20 evidence)", ("file", "261015) 26FW CHALLENGER SHIPPING SCHEDULE"),
+    ("SHIPPING SCHEDULE: styles with RDD = ETD VN + 12 (Q26 evidence)", ("file", "261015) 26FW CHALLENGER SHIPPING SCHEDULE"),
      "SELECT count(*) FILTER (WHERE rdd_minus_etd = 12) || ' of ' || count(*) FROM core.shipping_schedule", "137 of 138"),
     ("Buyer order status PDF: styles / pcs = page totals ('이 장 합계')", ("file", "오더리캡 현황"),
      """SELECT string_agg(brand || ' ' || n || ' / ' || q, ', ' ORDER BY brand) FROM (
@@ -308,6 +308,10 @@ def run_checks(db_path=None) -> bool:
     for f, m in failed:
         ok = False
         print(f"  FAIL  source failed to parse: {f}: {m}")
+    from .questions import check as question_check
+    for name, good, detail in question_check():
+        ok &= good
+        print(f"  {'PASS' if good else 'FAIL'}  {name}: {detail}")
     print("ALL PASS" if ok else "SOME CHECKS FAILED")
     return ok
 

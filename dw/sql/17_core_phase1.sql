@@ -137,7 +137,7 @@ SELECT style_key_no AS style_no, piece, color, inspect_date, factory_code, max(p
        any_value(order_qty) AS order_qty
 FROM core.inspection_cell WHERE NOT factory_mismatch GROUP BY ALL;
 
--- Factory x day: passed (A), inspected (C), defects (D, defect points: ASM-QC-01 / Q26), inspectors (F); no names
+-- Factory x day: passed (A), inspected (C), defects (D, defect points: ASM-QC-01 / Q24), inspectors (F); no names
 CREATE TABLE core.inspection_day AS
 SELECT factory_code, inspect_date,
        max(value) FILTER (WHERE measure = 'passed_qty') AS passed_qty,
@@ -152,7 +152,7 @@ SELECT r.file_id, r.sheet, core.style_key(r.style_no) AS style_no, r.piece, r.co
 FROM stg.inspection_remark r JOIN core.current_file f USING (file_id)
 LEFT JOIN (SELECT style_no, any_value(etd) AS etd FROM core.order_portfolio GROUP BY style_no) o ON o.style_no = core.style_key(r.style_no);
 
--- Passed vs ordered per style (and piece): a set counts as many as its scarcer piece (Q10)
+-- Passed vs ordered per style (and piece): a set counts as many as its scarcer piece (Q11)
 CREATE TABLE mart.inspection_style AS
 WITH p AS (SELECT style_no, piece, sum(passed_qty) AS passed FROM core.inspection_passed GROUP BY ALL),
 o AS (SELECT style_no, sum(order_qty) AS ordered FROM core.order_color WHERE is_active GROUP BY ALL)
@@ -163,7 +163,7 @@ FROM p LEFT JOIN o USING (style_no);
 -- ---------------------------------------------------------------- third-party inspections (M1-12)
 CREATE TABLE core.qc_inspection AS
 SELECT q.*, core.factory_code(q.factory_raw) AS factory_code,
-       round(q.defect_qty / nullif(q.inspected_qty, 0), 4) AS defect_rate     -- ASM-QC-01 (Q26): defects / inspected
+       round(q.defect_qty / nullif(q.inspected_qty, 0), 4) AS defect_rate     -- ASM-QC-01 (Q24): defects / inspected
 FROM raw.qc_inspection q JOIN core.current_file f USING (file_id);
 CREATE TABLE core.qc_defect AS
 SELECT d.*, c.code_group, c.name_ko FROM raw.qc_defect d JOIN core.current_file f USING (file_id)

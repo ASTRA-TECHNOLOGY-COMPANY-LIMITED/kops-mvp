@@ -458,7 +458,7 @@ function viewQuality() {
       ${hbars(codes.map(([c, n]) => ({label: c, value: n, color: SEV[sevOf(c)]?.c})))}</div>
     <div class="card"><h3>Đối soát giữa các file</h3><p class="sub">Cùng một style, số lượng ghi khác nhau ở ORDER RECAP, Shipment Status và Production Status</p>
       ${hbars(Object.entries(TB.recon.reduce((a, r) => (a[r.mismatch] = (a[r.mismatch] || 0) + 1, a), {})).map(([k, v]) => ({label: k, value: v})))}
-      <p class="note" style="margin-top:10px">Lệch ORDER thường do đơn bị giảm/tăng ở ORDER RECAP nhưng file khác chưa cập nhật (open question Q04). Lệch SHIPPED thường do cách tính có/không gồm mẫu (Q09).</p></div>
+      <p class="note" style="margin-top:10px">Lệch ORDER thường do đơn bị giảm/tăng ở ORDER RECAP nhưng file khác chưa cập nhật (open question Q04). Lệch SHIPPED thường do cách tính có/không gồm mẫu (Q10).</p></div>
   </div>
   <h2 class="sec">Chi tiết đối soát</h2>
   ${table('t-recon', TB.recon, [{k: 'style_no', l: 'Style', r: styleLink}, {k: 'factory_code', l: 'Nhà máy'},
@@ -466,7 +466,7 @@ function viewQuality() {
     {k: 'shipped_shipment_file', l: 'Xuất (Shipment)', n: 1}, {k: 'shipped_production_file', l: 'Xuất (Production)', n: 1}, {k: 'mismatch', l: 'Lệch'}],
     {filters: [{key: 'mismatch', label: 'Loại lệch'}]})}
   <h2 class="sec">SHIPPING SCHEDULE so với ORDER RECAP (${TB.sched_recap.length})</h2>
-  <p class="note">Kế hoạch xuất chính thức (FIXED EX-FACT / ETD / ETA) đối chiếu với ORDER RECAP hiện hành. RDD − ETD VN: quy tắc đang dùng là 12 ngày (Q20).</p>
+  <p class="note">Kế hoạch xuất chính thức (FIXED EX-FACT / ETD / ETA) đối chiếu với ORDER RECAP hiện hành. RDD − ETD VN: quy tắc đang dùng là 12 ngày (Q26).</p>
   ${table('t-sch', TB.sched_recap, [{k: 'style_no', l: 'Style', r: styleLink}, {k: 'status', l: 'Trạng thái'}, {k: 'factory_raw', l: 'Nhà máy (file)'}, {k: 'factory_recap', l: 'Nhà máy (Recap)'},
     {k: 'order_qty', l: 'SL (schedule)', n: 1}, {k: 'order_qty_recap', l: 'SL (Recap)', n: 1}, {k: 'etd_vn', l: 'ETD VN'}, {k: 'etd_recap', l: 'ETD (Recap)'},
     {k: 'rdd_minus_etd', l: 'RDD−ETD', n: 1}, {k: 'fixed_etd', l: 'FIXED ETD'}, {k: 'fixed_eta', l: 'FIXED ETA'}, {k: 'remark', l: 'Ghi chú'}, {k: 'recap_check', l: 'Lệch'}],

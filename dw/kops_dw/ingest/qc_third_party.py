@@ -3,8 +3,8 @@
 Sheet DATA: one inspection = one row with ORDER Q'TY / INSPECTION Q'TY / PASS / DEFECT QTY, followed by rows that only
 add a defect code (their information columns hold '-'). Every row (the first one too) carries CODE + MINOR + MAJOR.
 Sheet CODE: defect codes A01.. with Korean names; group = first letter (A-G).
-The inspection result is not a column: REMARK 'REJECT ...' -> REJECT, otherwise PASS (assumption ASM-QC-02, Q31).
-DEFECT QTY counts defect points; the rate is defects / inspected (ASM-QC-01, Q26). An inspection whose code counts do
+The inspection result is not a column: REMARK 'REJECT ...' -> REJECT, otherwise PASS (assumption ASM-QC-02, Q25).
+DEFECT QTY counts defect points; the rate is defects / inspected (ASM-QC-01, Q24). An inspection whose code counts do
 not add up to DEFECT QTY is reported (QC_DEFECT_SUM_MISMATCH). The QC NAME column (inspectors) is never read.
 """
 from __future__ import annotations

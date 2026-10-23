@@ -48,7 +48,7 @@ FROM generate_series(DATE '2024-01-01', DATE '2028-12-31', INTERVAL 1 DAY) AS g(
 
 CREATE OR REPLACE MACRO dim.date_key(d) AS CAST(strftime(d, '%Y%m%d') AS INT);
 
--- Factories: canonical codes of the parsers' alias table + unconfirmed aliases (Q08) + codes seen in the data.
+-- Factories: canonical codes of the parsers' alias table + unconfirmed aliases (Q09) + codes seen in the data.
 CREATE TABLE dim.factory_alias AS
 SELECT alias_key, factory_code, 'CONFIRMED' AS confidence, NULL AS question, 'config.FACTORY_ALIASES' AS source
 FROM stg.factory_alias

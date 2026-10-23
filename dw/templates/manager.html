@@ -42,6 +42,7 @@ main{max-width:1360px;margin:0 auto;padding:18px 20px 60px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
 .card h3{margin:0 0 2px;font-size:14.5px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}.card .sub{margin:0 0 8px;color:var(--text-2);font-size:12.5px}
 .chart{width:100%;height:300px}.chart.tall{height:420px}.chart.small{height:150px}
+.qref{text-decoration:underline dotted;cursor:help}
 .syn{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;background:color-mix(in srgb,var(--syn) 18%,transparent);color:var(--syn);border:1px solid color-mix(in srgb,var(--syn) 40%,transparent);cursor:help}
 .tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px}
 th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--text-2);font-weight:600;white-space:nowrap;position:sticky;top:0;background:var(--surface)}
@@ -93,9 +94,15 @@ let IDX = null, COMMON = null, CACHE = {}, D = {};
 const STATE = {season: null, customer: ALL, brand: ALL, factory: ALL, syn: true, tab: 'overview', style: null};
 const ASM = {'ASM-SIM-01': '2 mùa trước giả định từ 26FW/27SS', 'ASM-SIM-02': 'sản lượng ngày giả định (nhà máy không gửi báo cáo)',
   'ASM-SIM-03': 'kết quả kiểm giả định', 'ASM-SIM-04': 'lô xuất giả định (khách chưa gửi Shipment Status)',
-  'ASM-SIM-05': 'mã lỗi giả định theo Pareto INPUT DATA', 'ASM-QC-01': 'lỗi = điểm lỗi, tỉ lệ = lỗi ÷ SL kiểm (Q26)',
-  'ASM-QC-02': 'REJECT khi REMARK ghi REJECT (Q31)', 'ASM-FRESH-01': 'độ tươi tính theo ngày T2–T6'};
-const synChip = (ids, share) => `<span class="syn" title="${esc((ids || []).map(i => i + ': ' + (ASM[i] || '')).join('\n') || 'dữ liệu giả định')}">Giả định${share != null ? ' ' + nf1.format(share) + '%' : ''}</span>`;
+  'ASM-SIM-05': 'mã lỗi giả định theo Pareto INPUT DATA', 'ASM-QC-01': 'lỗi = điểm lỗi, tỉ lệ = lỗi ÷ SL kiểm',
+  'ASM-QC-02': 'REJECT khi REMARK ghi REJECT', 'ASM-FRESH-01': 'độ tươi tính theo ngày T2–T6'};
+/* question code + title come from analys-docs/open_questions.md at render time (index.json, kops_dw/questions.py) */
+const qOf = i => IDX?.questions?.assumptions?.[i];
+const qTitle = c => c ? c + (IDX?.questions?.questions?.[c] ? '. ' + IDX.questions.questions[c] : '') : '';
+const qref = c => `<span class="qref" title="${esc(qTitle(c))}">${esc(c)}</span>`;
+const synChip = (ids, share) => { const qs = uniq((ids || []).map(qOf));
+  const tip = (ids || []).map(i => i + ': ' + (ASM[i] || '') + (qOf(i) ? ' — câu hỏi KLMAS ' + qTitle(qOf(i)) : '')).join('\n') || 'dữ liệu giả định';
+  return `<span class="syn" title="${esc(tip)}">Giả định${share != null ? ' ' + nf1.format(share) + '%' : ''}${qs.length ? ' · ' + qs.join(', ') : ''}</span>`; };
 
 async function getJSON(u) { const r = await fetch(u, {cache: 'no-cache'}); if (!r.ok) throw new Error(u + ': HTTP ' + r.status); return r.json(); }
 async function loadSeasons(list) {
@@ -249,7 +256,7 @@ function pageOverview() {
     ${kpiTile('Đúng hạn (lô đầu ≤ ETD)', ot == null ? '–' : nf1.format(ot) + '%', `≤ ETD + 7 ngày: ${otTol == null ? '–' : nf1.format(otTol) + '%'} · ${delta(ot, prevOt)} ${prevNote}`, 'Lô đầu tiên có ETD ≤ ETD VN trong ORDER RECAP (quy tắc chặt). Dòng dưới: quy tắc cũ của Control Tower, ETD VN + 7 ngày', synJ)}
     ${kpiTile('Trễ ETD trung bình', k.delay == null ? '–' : nf1.format(k.delay) + ' ngày', `${fmt(k.judged)} style đã xuất`, 'ETD lô đầu − ETD VN (âm = xuất sớm)', synJ)}
     ${kpiTile('Style rủi ro', fmt(k.risk), 'dự báo sau RDD, BAL < 0, hoặc quá ETD chưa xuất', 'Còn hiệu lực, chưa xuất đủ và: ngày sẵn sàng dự báo + 12 ngày > RDD, hoặc BAL kế hoạch < 0, hoặc đã qua ETD — xem metrics.md', '')}
-    ${kpiTile('Tỉ lệ lỗi kiểm', defR == null ? '–' : nf1.format(defR) + '%', `${fmt(k.defects)} lỗi / ${fmt(k.insp)} pcs kiểm`, 'Điểm lỗi ÷ SL đã kiểm (bảng kiểm KLMAS dòng D ÷ C) — giả định ASM-QC-01 (Q26)', synI || synChip(['ASM-QC-01']))}
+    ${kpiTile('Tỉ lệ lỗi kiểm', defR == null ? '–' : nf1.format(defR) + '%', `${fmt(k.defects)} lỗi / ${fmt(k.insp)} pcs kiểm`, 'Điểm lỗi ÷ SL đã kiểm (bảng kiểm KLMAS dòng D ÷ C) — giả định ASM-QC-01', synI || synChip(['ASM-QC-01']))}
     ${kpiTile('Đề xuất chờ duyệt', fmt(k.pending), 'từ email, chưa áp vào số liệu', 'Thay đổi đọc từ email: luôn PENDING_REVIEW')}
   </div>
   <div class="grid">
@@ -339,7 +346,7 @@ function pageQuality() {
   const comp = D.complaints || [];
   const tpMonths = uniq(tp.map(r => r.month));
   return `
-  <div class="banner">Tỉ lệ lỗi = điểm lỗi ÷ SL đã kiểm ${synChip(['ASM-QC-01'])} (Q26 chờ KLMAS). Bảng kiểm KLMAS có số theo nhà máy × ngày; kiểm bên thứ ba (INPUT DATA) là mảng kinh doanh khác, hiển thị riêng.</div>
+  <div class="banner">Tỉ lệ lỗi = điểm lỗi ÷ SL đã kiểm ${synChip(['ASM-QC-01'])} (${qref('Q24')} chờ KLMAS). Bảng kiểm KLMAS có số theo nhà máy × ngày; kiểm bên thứ ba (INPUT DATA) là mảng kinh doanh khác, hiển thị riêng.</div>
   <div class="grid">
     <div class="card"><h3>Tỉ lệ lỗi theo nhà máy (đơn KLMAS) ${STATE.syn && q.some(r => r.is_synthetic) ? synChip(['ASM-SIM-01', 'ASM-SIM-03']) : ''}</h3><p class="sub">bấm để lọc nhà máy</p>
       ${chart('cQF', {grid: {left: 52, right: 16, top: 30, bottom: 64}, xAxis: {type: 'category', data: facs, axisLabel: {rotate: 30, color: css('--text-2')}}, yAxis: {type: 'value', name: '%'}, series: [{name: 'Tỉ lệ lỗi %', type: 'bar', data: facs.map(rate)}],

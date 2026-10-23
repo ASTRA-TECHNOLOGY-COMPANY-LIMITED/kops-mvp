@@ -14,6 +14,7 @@ x-common: &common
     context: ./dw
   volumes:
     - ./raw-docs:/data/raw-docs:ro
+    - ./analys-docs/open_questions.md:/data/open_questions.md:ro   # question codes / titles (read only)
     - kops_build:/app/build
   env_file:
     - path: .env
@@ -21,6 +22,7 @@ x-common: &common
   environment:
     KOPS_SIM: ${KOPS_SIM:-1}
     KOPS_TODAY: ${KOPS_TODAY:-}
+    KOPS_QUESTIONS_FILE: /data/open_questions.md
 
 services:
   kops-build:

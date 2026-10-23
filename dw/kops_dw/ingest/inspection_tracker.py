@@ -7,7 +7,7 @@ piece of a two-piece set) is followed by colour rows; a row without colour is th
 bottom, rows A-G per day: A passed, B pass / inspector, C inspected, D defects, E defect rate, F number of inspectors,
 G inspector names. A, C, D and F are kept per factory and day; **G (names) is never read** (personal data).
 'REQUEST ETD m/d' in the remark column becomes a change proposal (PENDING_REVIEW, source INSPECTION).
-Defects (row D) are read as defect points and the rate as defects / inspected (assumption ASM-QC-01, question Q26).
+Defects (row D) are read as defect points and the rate as defects / inspected (assumption ASM-QC-01, question Q24).
 """
 from __future__ import annotations
 
