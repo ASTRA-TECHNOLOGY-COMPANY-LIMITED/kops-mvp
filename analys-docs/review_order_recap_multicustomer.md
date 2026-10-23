@@ -32,7 +32,7 @@ Số style và tổng SL của khách khác lấy theo ô tổng của chính fi
 - **[Q]** Có 5 khách đặt hàng: CHALLENGER (đặt trực tiếp), DHG / Daehan Global, JBEE, KOFA, DKM (다경물산, trong file Mizuno ghi `DaKyungMulsan`). Các khách này đặt hàng cho 8 brand.
 - **[Q]** Một brand có thể đến qua nhiều khách: NEPA có trong file của JBEE và của KOFA (sheet DETAIL ô P5: `BLACYAK+NEPA - KOFA`).
 - **[Q]** 8 SECONDS mùa 26FW có **119.392 sản phẩm / 59 style**, gần gấp đôi CHALLENGER 26FW (62.131 / 110). Buyer cuối của DHG ghi là SAMSUNG (sheet RECAP cột C).
-- **[S]** Câu Q14 ("Dữ liệu của Daehan Global / 8 SECONDS có nằm trong giai đoạn 1 không?") quan trọng hơn ta đánh giá. Nếu dashboard chỉ có CHALLENGER thì chỉ phủ khoảng 1/3 sản lượng KLMAS đang theo dõi.
+- **[S]** Câu Q15 ("Dữ liệu của Daehan Global / 8 SECONDS có nằm trong giai đoạn 1 không?") quan trọng hơn ta đánh giá. Nếu dashboard chỉ có CHALLENGER thì chỉ phủ khoảng 1/3 sản lượng KLMAS đang theo dõi.
 - **[R]** Mô hình dữ liệu cần thêm cấp **khách** (customer, đơn vị đặt hàng với KLMAS) đứng trên **brand**. Hiện `brand` đang làm luôn vai trò khách.
 
 ## 2. Cùng một họ template, nhưng vị trí cột khác nhau
@@ -60,7 +60,7 @@ Số style và tổng SL của khách khác lấy theo ô tổng của chính fi
 
 | Khách / brand | Nhãn cột ETD trong file | Ghi chú |
 |---|---|---|
-| CHALLENGER | `RDD (-12DAY)` ở trang đầu, `RDD (-14DAY)` từ trang 4 | Đã hỏi ở Q20 |
+| CHALLENGER | `RDD (-12DAY)` ở trang đầu, `RDD (-14DAY)` từ trang 4 | Đã hỏi ở Q26 |
 | DHG 8 SECONDS | `RDD (-20DAY)`; DETAIL ghi `ETD VN (RDD-20 DAYS)` | |
 | DHG BEANPOLE KIDS | `RDD (-14DAY)`, có thêm cột `실제납기` (ngày giao thực tế) | Sheet DETAIL lại ghi `ETD VN (RDD-20 DAYS)`: mâu thuẫn ngay trong một file |
 | DHG XEXYMIX | `RDD (-10DAY)` | |
@@ -69,13 +69,13 @@ Số style và tổng SL của khách khác lấy theo ô tổng của chính fi
 
 - **[Q]** Mọi file đều có cột `BUYER DEL (RDD-10)`, kể cả CHALLENGER.
 - **[S]** Không có một quy tắc RDD chung. Cấu hình `rdd_offset_days = 12` hiện đang dùng chung cho mọi khách là sai khi mở rộng sang khách khác.
-- **[R]** Chuyển quy tắc này thành cấu hình theo khách (và brand nếu cần). Bổ sung bằng chứng này vào Q20 khi hoàn thiện bộ câu hỏi.
+- **[R]** Chuyển quy tắc này thành cấu hình theo khách (và brand nếu cần). Bổ sung bằng chứng này vào Q26 khi hoàn thiện bộ câu hỏi.
 
 ## 4. Lỗi gõ năm và mùa là lỗi lặp lại, không phải trường hợp lẻ
 
 - **[Q]** CHALLENGER 27SS bản `261005`: **97 style** có ETD và RDD ghi năm 2026. Bản `261015` đã sửa thành 2027.
-  - 5 style trong Q40 là phần còn sót lại, đều đã huỷ.
-  - **[S]** KLMAS đã tự sửa đúng hướng, nên Q40 gần như đã có câu trả lời là "2027".
+  - 5 style trong Q46 là phần còn sót lại, đều đã huỷ.
+  - **[S]** KLMAS đã tự sửa đúng hướng, nên Q46 gần như đã có câu trả lời là "2027".
 - **[Q]** Các file 27SS khác cũng có ETD năm 2026, có thể cùng lỗi:
   - JBEE 27SS: ETD sớm nhất 17/01/2026.
   - KOFA 27SS: ETD 30/01 đến 05/02/2026.
@@ -96,7 +96,7 @@ Số style và tổng SL của khách khác lấy theo ô tổng của chính fi
 
 - **[S]** `B85` xuất hiện nhiều nhất ở khách DHG nhưng không giống tên nhà máy. Có thể là mã nội bộ của một nhà máy, hoặc mã chuyền hay đội may. Cần KLMAS xác nhận.
 - **[S]** Sheet MIZUNO dùng màu ô để đánh dấu nhà máy (ô W1:Y1 là chú thích màu cho DONG MY, MINH TUAN, TRI DUC). Màu ô ở file này mang nghĩa khác với CHALLENGER (ở CHALLENGER màu là trạng thái).
-- **[R]** Danh mục nhà máy (Q08) phải chung cho mọi khách. Scorecard nhà máy chỉ có ý nghĩa khi gộp tất cả khách mà nhà máy đó làm.
+- **[R]** Danh mục nhà máy (Q09) phải chung cho mọi khách. Scorecard nhà máy chỉ có ý nghĩa khi gộp tất cả khách mà nhà máy đó làm.
 
 ## 6. Ba phiên bản CHALLENGER: thay đổi giữa các lần cập nhật
 
@@ -128,24 +128,24 @@ So sánh bằng parser của DW, theo các trường: trạng thái màu, nhà m
 | # | Đề xuất | Ảnh hưởng | Gợi ý |
 |---|---|---|---|
 | 1 | Thêm cấp **khách** (customer) trên brand: CHALLENGER, DHG, JBEE, KOFA, DKM | Dashboard lọc theo khách; phân quyền theo khách sau này | Phase 1: cột `customer` + bảng ánh xạ trong config |
-| 2 | Parser ORDER RECAP đọc theo nhãn header cho mọi khách | Phủ 5 khách thay vì 1 | Backlog D-14; chờ PO quyết phạm vi (Q14) |
+| 2 | Parser ORDER RECAP đọc theo nhãn header cho mọi khách | Phủ 5 khách thay vì 1 | Backlog D-14; chờ PO quyết phạm vi (Q15) |
 | 3 | Quy tắc RDD/ETD theo khách trong config | Dự báo trễ đúng cho từng khách | Làm cùng #2 |
 | 4 | Báo cáo "thay đổi so với bản trước" | Giá trị thấy ngay ở buổi demo | Backlog D-15; làm được ngay với CHALLENGER |
 | 5 | Mùa lấy từ tiêu đề trong file; kiểm tra năm ETD theo mùa cho mọi khách | Tránh lỗi XEXYMIX (25FW/26FW) và lỗi năm 2026/2027 | Thuộc M1-01 |
-| 6 | Danh mục nhà máy chung cho mọi khách | Scorecard nhà máy đúng | Thuộc Q08 |
+| 6 | Danh mục nhà máy chung cho mọi khách | Scorecard nhà máy đúng | Thuộc Q09 |
 
 ## 8. Câu hỏi bổ sung
 
-*Ngày 21/10 đã đưa vào `open_questions.md`: ý 1 → Q08; ý 2 và 7 → Q14; ý 3 → Q20; ý 4 → Q40; ý 5 → Q05; ý 6 → Q15.*
+*Ngày 21/10 đã đưa vào `open_questions.md`: ý 1 → Q09; ý 2 và 7 → Q15; ý 3 → Q26; ý 4 → Q46; ý 5 → Q05; ý 6 → Q16.*
 
 
 1. **B85** trong cột nhà máy của các file DHG, JBEE là nhà máy nào? Là mã nội bộ hay tên một xưởng?
 2. **Vai trò của DHG, JBEE, KOFA, DKM:** đây là khách đặt hàng với KLMAS (vendor của brand Hàn), còn 8 SECONDS, NEPA, MIZUNO… là brand, đúng không? Vì sao NEPA có ở cả JBEE và KOFA?
-3. **RDD theo khách:** khoảng cách ETD → RDD ghi trong file (−20, −14, −10, ETA = ETD + 10) có đúng là quy tắc riêng của từng khách không? Cột `BUYER DEL (RDD-10)` là mốc gì? (Bổ sung vào Q20.)
-4. **Năm ETD của JBEE và KOFA 27SS** (01–02/2026): đáng lẽ là 2027, đúng không? (Gộp với Q40.)
+3. **RDD theo khách:** khoảng cách ETD → RDD ghi trong file (−20, −14, −10, ETA = ETD + 10) có đúng là quy tắc riêng của từng khách không? Cột `BUYER DEL (RDD-10)` là mốc gì? (Bổ sung vào Q26.)
+4. **Năm ETD của JBEE và KOFA 27SS** (01–02/2026): đáng lẽ là 2027, đúng không? (Gộp với Q46.)
 5. **CHG2WSK6979 → CHG2WSK7970, và CHF2WSK6979 mới:** là gõ nhầm hay đổi mã thật?
 6. **Thư mục `PRODUCTION PLAN` trên Drive** đã có file kế hoạch sản xuất chưa, hay mới tạo thư mục? (Liên quan yêu cầu D1: kế hoạch sản xuất chưa nhận.)
-7. **Phạm vi giai đoạn 1:** ngoài CHALLENGER, KLMAS muốn theo dõi khách nào trước? (Mở rộng Q14 và Q44.)
+7. **Phạm vi giai đoạn 1:** ngoài CHALLENGER, KLMAS muốn theo dõi khách nào trước? (Mở rộng Q15 và Q51.)
 
 ---
 
@@ -194,7 +194,7 @@ So sánh bằng parser của DW, theo các trường: trạng thái màu, nhà m
 - **[Q]** Tiêu đề cột T khác nhau ngay trong một file: sheet `HGC` ghi `ETA / ETD +7DAYS`, các sheet khác ghi `ETA / RDD-3 DAYS`. Cột V ghi `ETA+2` ở BPK nhưng `ETA+1` ở NEPA.
 - **[Q]** File NEPA lặp lại lỗi năm: dòng 8 có ngày cắt 05/01/2026 trong khi dòng 7 là 21/12/2026; các ngày xuất (cột P–U) ghi tháng 02/**2026**, đáng lẽ là 2027.
 - **[Q]** Tổng SL kế hoạch BPK = 9.270, khác cả bản ORDER RECAP 03/10 (9.250) lẫn bản 21/10 (10.380). Kế hoạch có LBV-27016 = 1.020 (khớp bản 21/10) nhưng LBV-27014 = 900 (khớp bản 03/10), và chưa có 2 style mới. Các file được cập nhật lệch nhịp với nhau.
-- **[Q]** B85 có sheet kế hoạch riêng (`27SS [DHG BPK-B85] PRODUCTION PLAN`), tức KLMAS coi B85 là một nhà máy. Vẫn cần tên chính thức (Q08).
+- **[Q]** B85 có sheet kế hoạch riêng (`27SS [DHG BPK-B85] PRODUCTION PLAN`), tức KLMAS coi B85 là một nhà máy. Vẫn cần tên chính thức (Q09).
 
 ## 11. Beanpole Kids: bản 03/10 → bản 21/10
 
@@ -215,9 +215,9 @@ So sánh bằng parser của DW, theo các trường: trạng thái màu, nhà m
 
 | # | Đề xuất | Gợi ý |
 |---|---|---|
-| 7 | Parser kế hoạch sản xuất (đọc theo nhãn header; mỗi sheet một nhà máy) → `core.production_plan` (ngày cắt/vào chuyền/may xong, mục tiêu/ngày, BAL) | Backlog D-16, khoảng 6 giờ. Chờ Q15 |
+| 7 | Parser kế hoạch sản xuất (đọc theo nhãn header; mỗi sheet một nhà máy) → `core.production_plan` (ngày cắt/vào chuyền/may xong, mục tiêu/ngày, BAL) | Backlog D-16, khoảng 6 giờ. Chờ Q16 |
 | 8 | Dự báo: style chưa có báo cáo ngày dùng mục tiêu/ngày của kế hoạch thay cho 45 cái/ngày; có báo cáo ngày thì so với kế hoạch | Làm sau D-16 |
 | 9 | Kiểm tra bản mới trước khi thay bản cũ: ngày ngoài mùa, ô tổng lỗi, ngày UP DATE lùi | Gộp vào D-14 và D-15 |
 | 10 | Thống nhất cách đưa file từ Drive về (mục 9) | PO quyết |
 
-Câu hỏi mới đã thêm vào `open_questions.md`: **Q15** (kế hoạch sản xuất, ưu tiên 2) và **Q41** (Beanpole Kids bản 21/10, ưu tiên 3). Bằng chứng mới cũng được bổ sung vào Q05, Q08, Q14, Q20 và Q40.
+Câu hỏi mới đã thêm vào `open_questions.md`: **Q16** (kế hoạch sản xuất, ưu tiên 2) và **Q48** (Beanpole Kids bản 21/10, ưu tiên 3). Bằng chứng mới cũng được bổ sung vào Q05, Q09, Q15, Q26 và Q46.

@@ -72,7 +72,7 @@ Phạm vi: 10 file `.xlsx` mới trong `raw-docs/INSPECTION/` và `raw-docs/PROD
 - **[Q] Sheet ẩn là các đợt cũ chồng lên nhau:** `TP (2)`, `(3)`, `(4)` lặp lại cùng style.
 - **[Q] Bộ 2 món:** CHF4WJK6801 được kiểm riêng VEST và JACKET (mỗi món 350). ORDER RECAP chỉ có 1 dòng style.
 - **[Q]** Cột Remark chứa **yêu cầu đổi ETD** dạng tự do: "REQUEST ETD 10/15" (5 style NATEXCO), "10/20" và "10/25" (3 style TRUONG PHUC).
-- **[R]** MVP chỉ nạp **SL đạt theo ngày**, mỗi (style, màu, món, ngày) lấy một lần. Chỉ nhận style khi khớp nhà máy theo ORDER RECAP, nếu không thì ghi issue `INSPECTION_STYLE_FACTORY_MISMATCH`. Chưa tính tỷ lệ lỗi cho tới khi KLMAS định nghĩa lại (câu hỏi mới Q26). Trích "REQUEST ETD" thành đề xuất đổi ETD đưa vào cùng hàng chờ duyệt với email.
+- **[R]** MVP chỉ nạp **SL đạt theo ngày**, mỗi (style, màu, món, ngày) lấy một lần. Chỉ nhận style khi khớp nhà máy theo ORDER RECAP, nếu không thì ghi issue `INSPECTION_STYLE_FACTORY_MISMATCH`. Chưa tính tỷ lệ lỗi cho tới khi KLMAS định nghĩa lại (câu hỏi mới Q24). Trích "REQUEST ETD" thành đề xuất đổi ETD đưa vào cùng hàng chờ duyệt với email.
 
 ### 2.8 Đa khách hàng là thật, không phải chuyện tương lai
 
@@ -105,8 +105,8 @@ Không nên làm ngay: tỷ lệ lỗi và scorecard chất lượng kiểm viê
 |---|---|---|---|
 | Q02 | P1 | Báo cáo sản xuất ngày có phải nguồn chính thức cho SL cắt / vào chuyền / ra chuyền không? Production Status lấy số từ đâu, cập nhật lúc nào? | Báo cáo ngày là nguồn chính; Production Status dùng để đối soát |
 | Q03 | P1 | Vì sao NATEXCO ngừng gửi báo cáo ngày sau 08/09 và HA HIEU chỉ có 2 ngày? Còn file nào chưa gửi không? | Thiếu file, xin bổ sung |
-| Q26 | P1 | "DEFECT QTY" trong bảng kiểm là số sản phẩm lỗi hay số điểm lỗi? Tỷ lệ lỗi chính thức tính trên SL kiểm hay SL đạt? | Số điểm lỗi; tỷ lệ = lỗi ÷ SL kiểm |
-| Q10 | P2 | Style bộ (VEST + JACKET như CHF4WJK6801): SL đặt 350 là 350 bộ hay 350 mỗi món? Xuất hàng tính theo bộ hay theo món? | 350 bộ = 350 mỗi món |
+| Q24 | P1 | "DEFECT QTY" trong bảng kiểm là số sản phẩm lỗi hay số điểm lỗi? Tỷ lệ lỗi chính thức tính trên SL kiểm hay SL đạt? | Số điểm lỗi; tỷ lệ = lỗi ÷ SL kiểm |
+| Q11 | P2 | Style bộ (VEST + JACKET như CHF4WJK6801): SL đặt 350 là 350 bộ hay 350 mỗi món? Xuất hàng tính theo bộ hay theo món? | 350 bộ = 350 mỗi món |
 | Q06 | P1 | 4 mã `CHE…` trong báo cáo ngày TBM có phải gõ sai của `CHF…` cùng số trong ORDER RECAP? | Gõ sai; map sang `CHF…`, đánh dấu chưa xác nhận |
-| Q14 | P2 | Dữ liệu DHG / 8 SECONDS có nằm trong phạm vi KOPS giai đoạn 1 không? Buyer DHG có được xem dashboard không? | Có nạp vào DW, ẩn khỏi buyer CHALLENGER |
-| Q35 | P3 | Có số SMV (standard minute value) theo style hoặc theo nhóm hàng để chuẩn hoá năng suất không? | Chưa có |
+| Q15 | P2 | Dữ liệu DHG / 8 SECONDS có nằm trong phạm vi KOPS giai đoạn 1 không? Buyer DHG có được xem dashboard không? | Có nạp vào DW, ẩn khỏi buyer CHALLENGER |
+| Q41 | P3 | Có số SMV (standard minute value) theo style hoặc theo nhóm hàng để chuẩn hoá năng suất không? | Chưa có |

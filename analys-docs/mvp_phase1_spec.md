@@ -4,7 +4,7 @@ Tài liệu này là **đặc tả** cho các đề xuất trong `review_inspect
 
 - Nền tảng hiện có: `dw/` (DuckDB, các lớp `etl → raw → stg → core → mart`, dashboard HTML, 19 golden test). Xem `dw/README.md`.
 - Quy tắc chung: `GUIDELINES.md`. Đặc biệt: file nguồn chỉ đọc; tổng luôn tính từ chi tiết; mọi bất thường ghi vào `etl.data_issue` kèm vị trí; không tự quyết câu hỏi nghiệp vụ.
-- Câu hỏi còn mở liên quan: Q01, Q02, Q03, Q05, Q06, Q10, Q14 (`open_questions.md`, Ưu tiên 1–2). Code theo giả định ghi ở đó, để cấu hình được.
+- Câu hỏi còn mở liên quan: Q01, Q02, Q03, Q05, Q06, Q11, Q15 (`open_questions.md`, Ưu tiên 1–2). Code theo giả định ghi ở đó, để cấu hình được.
 
 ## 1. Mục tiêu và phạm vi
 
@@ -12,14 +12,14 @@ Tài liệu này là **đặc tả** cho các đề xuất trong `review_inspect
 
 | Trong Phase 1 | Ngoài Phase 1 |
 |---|---|
-| Nạp báo cáo sản xuất ngày (template CHALLENGER và HAGACO) | Tỷ lệ lỗi, scorecard kiểm viên (chờ Q26) |
-| Nạp SL kiểm đạt theo ngày từ bảng kiểm | Năng suất theo công nhân / xếp hạng nhà máy theo năng suất (chờ Q35) |
+| Nạp báo cáo sản xuất ngày (template CHALLENGER và HAGACO) | Tỷ lệ lỗi, scorecard kiểm viên (chờ Q24) |
+| Nạp SL kiểm đạt theo ngày từ bảng kiểm | Năng suất theo công nhân / xếp hạng nhà máy theo năng suất (chờ Q41) |
 | Dự báo ngày xong bằng sản lượng các ngày gần nhất | Lịch T&A, cảnh báo qua Zalo/email |
 | Độ tươi dữ liệu theo nhà máy và theo style | Nạp sheet FAB, checklist vật tư |
 | Funnel đặt → cắt → vào chuyền → ra chuyền → kiểm đạt → xuất | App nhập liệu, đăng nhập, RLS thật |
 | Chiều khách/brand (CHALLENGER, 8 SECONDS) | Buyer portal |
 | Yêu cầu đổi ETD trong ghi chú bảng kiểm → hàng chờ duyệt | Áp thay đổi tự động |
-| Metadata file lấy từ nội dung và tên file (không phụ thuộc thư mục cục bộ) + kiểm tra file đặt nhầm | Tự đồng bộ từ Google Drive của KLMAS (backlog D-13, chờ Q07) |
+| Metadata file lấy từ nội dung và tên file (không phụ thuộc thư mục cục bộ) + kiểm tra file đặt nhầm | Tự đồng bộ từ Google Drive của KLMAS (backlog D-13, chờ Q08) |
 
 ## 2. Nguồn file và metadata
 
@@ -99,9 +99,9 @@ Thuật toán:
 | `core.inspection_day` | (nhà máy, ngày) → SL kiểm (dòng C), số kiểm viên (dòng F) | **Không nạp tên kiểm viên** (dữ liệu cá nhân, chưa cần ở Phase 1) |
 | `stg.inspection_remark` | `REQUEST ETD m/d` → đề xuất đổi ETD | Đưa vào `core.change_proposal`, nguồn `INSPECTION`, trạng thái `PENDING_REVIEW` |
 
-**Không nạp** dòng D (SL lỗi) và E (tỷ lệ lỗi) vào core/mart cho tới khi có câu trả lời Q26; chỉ giữ ở raw.
+**Không nạp** dòng D (SL lỗi) và E (tỷ lệ lỗi) vào core/mart cho tới khi có câu trả lời Q24; chỉ giữ ở raw.
 
-Style bộ (Q10): SL đạt của style = **min** theo món (một bộ chỉ đủ khi có cả 2 món); vẫn hiển thị từng món trong Style 360.
+Style bộ (Q11): SL đạt của style = **min** theo món (một bộ chỉ đủ khi có cả 2 món); vẫn hiển thị từng món trong Style 360.
 
 ### 3.4 Mã style
 
@@ -179,7 +179,7 @@ Cờ (issue hoặc cột trong mart):
 | mart | `style_funnel`, `funnel_assortment` | §4.5 |
 | mart | `style_360` | thêm cột từ `style_forecast` và `style_funnel`; `health` dùng dự báo mới |
 
-Mọi bảng mới có `brand`. Truy vấn mart cho dashboard nhận tham số brand; mặc định CHALLENGER (Q14).
+Mọi bảng mới có `brand`. Truy vấn mart cho dashboard nhận tham số brand; mặc định CHALLENGER (Q15).
 
 ## 6. Thay đổi dashboard
 

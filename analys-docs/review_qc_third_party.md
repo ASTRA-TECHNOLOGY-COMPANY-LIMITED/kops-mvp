@@ -57,7 +57,7 @@ SAMPLES/REPORT.jpg (đã điền)     sheet DATA (1 dòng = 1 mã lỗi)     9 t
 Cao nhất: SON HA GLOBAL 56,2%, FG 42,2% (cả hai thuộc vendor **DAEHAN GLOBAL KOREA**), IVY 38,6%, HUNG THINH PHAT 36,9%, HAI DUONG 2 (DAEHAN) 36,6%, HOA HONG 35,0%.
 Thấp nhất: NAM THUAN 10,3%, THO XUAN 15,6%, SEYANG 15,9%, GEU LIM THAI BINH 18,2%, DAC TRAN 18,6%.
 
-**[S]** Tên SON HA và FG cũng xuất hiện ở phía sản xuất CHALLENGER (ORDER RECAP 27SS có nhà máy SON HA; 26FW có FG VINA). Hai mảng kinh doanh đang **dùng chung nhà máy**. Kho dữ liệu có thể cho ra một scorecard nhà máy chung (tiến độ từ mảng sản xuất, chất lượng từ mảng kiểm hàng). Đây là bằng chứng cho Q08.
+**[S]** Tên SON HA và FG cũng xuất hiện ở phía sản xuất CHALLENGER (ORDER RECAP 27SS có nhà máy SON HA; 26FW có FG VINA). Hai mảng kinh doanh đang **dùng chung nhà máy**. Kho dữ liệu có thể cho ra một scorecard nhà máy chung (tiến độ từ mảng sản xuất, chất lượng từ mảng kiểm hàng). Đây là bằng chứng cho Q09.
 
 ### 2.3 Kết quả PASS / REJECT
 
@@ -78,17 +78,17 @@ Thấp nhất: NAM THUAN 10,3%, THO XUAN 15,6%, SEYANG 15,9%, GEU LIM THAI BINH 
 | 8 | Mã lỗi viết thường | 1 dòng ghi `a23` | Chuẩn hoá chữ hoa |
 | 9 | Tên kiểm viên là chuỗi nhiều người | "Hoai, Yen, Ngoc, Nguyet" | Tách theo dấu phẩy nếu cần đếm theo người |
 
-Bảng mã lỗi (sheet CODE): 296 mã, chia 7 nhóm A–G. **[S]** A = may mặc (dữ liệu hiện chỉ dùng nhóm A, 51 mã), B = túi (có "기리메" sơn cạnh, "자석" nam châm), C = giày ("앞코" mũi giày), G = mũ ("꼭지단추" nút đỉnh mũ). Cần KLMAS xác nhận (Q32).
+Bảng mã lỗi (sheet CODE): 296 mã, chia 7 nhóm A–G. **[S]** A = may mặc (dữ liệu hiện chỉ dùng nhóm A, 51 mã), B = túi (có "기리메" sơn cạnh, "자석" nam châm), C = giày ("앞코" mũi giày), G = mũ ("꼭지단추" nút đỉnh mũ). Cần KLMAS xác nhận (Q38).
 
 ## 4. Ý nghĩa cho MVP và các giai đoạn sau
 
 1. **Dữ liệu sạch nhất và nhiều nhất hiện có.** Một bảng phẳng, có mã lỗi chuẩn, 4,5 tháng lịch sử, 23 vendor. Đưa vào kho dữ liệu rất rẻ (khoảng 1 ngày) và cho ngay một dashboard chất lượng có giá trị: Pareto lỗi, tỷ lệ lỗi theo nhà máy, vendor, tháng, loại hàng; số lần kiểm và năng suất kiểm viên.
 2. **Đặc tả có sẵn cho app kiểm hàng (P3).** Phiếu FORM 2026 là bố cục màn hình nhập; sheet CODE là danh mục mã lỗi; báo cáo FNJWD8411 là mẫu PDF đầu ra. App chỉ cần thay bước "giấy → nhập lại Excel → dựng PDF".
-3. **Scorecard nhà máy dùng chung cho 2 mảng** (§2.2), sau khi chuẩn hoá tên nhà máy (Q08).
-4. **Đơn vị "lỗi" ở đây đã rõ hơn:** với DISCOVERY và FILA, SL lỗi = tổng số đếm theo mã, và tỷ lệ = lỗi ÷ SL kiểm. Đây là gợi ý trả lời Q26 cho bảng theo dõi của HOA, nhưng vẫn cần KLMAS xác nhận vì bảng của HOA cho số rất khác.
+3. **Scorecard nhà máy dùng chung cho 2 mảng** (§2.2), sau khi chuẩn hoá tên nhà máy (Q09).
+4. **Đơn vị "lỗi" ở đây đã rõ hơn:** với DISCOVERY và FILA, SL lỗi = tổng số đếm theo mã, và tỷ lệ = lỗi ÷ SL kiểm. Đây là gợi ý trả lời Q24 cho bảng theo dõi của HOA, nhưng vẫn cần KLMAS xác nhận vì bảng của HOA cho số rất khác.
 
 **[R] Đề xuất:** thêm task **M1-12** (tuỳ chọn, khoảng 8 giờ) vào Phase 1: nạp INPUT DATA + bảng mã lỗi và thêm tab "Chất lượng kiểm hàng" vào dashboard. Đây là phần demo được ngay cho mảng kiểm hàng mà không phải chờ app. Cần PO quyết định có đưa vào Phase 1 không (chi tiết ở `plans/MVP_PHASE1_PLAN.md`).
 
 ## 5. Câu hỏi mới cho KLMAS
 
-Đã thêm vào `open_questions.md` (Q27–Q34, Ưu tiên 3; chỉ cần nếu làm M1-12).
+Đã thêm vào `open_questions.md` (Q34–Q40, Ưu tiên 3; chỉ cần nếu làm M1-12).

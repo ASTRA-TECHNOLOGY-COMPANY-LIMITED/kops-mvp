@@ -36,7 +36,7 @@ D-01 Mô hình dữ liệu liên kết (schema `dim`, `fact`, `bridge`; giữ ng
     dim_customer, dim_brand (thuộc customer), dim_season (code, năm, mùa, ngày bắt đầu/kết thúc), dim_date,
     dim_factory (tên chuẩn + bảng alias dim_factory_alias: TBM/TAN BINH MINH (PLAN), TP/TRUONG PHUC, DM/DONG MY, HGC/HAGACO/HD2,
       SH/SON HA, XT/XUAN THANH, NTC/NATEXCO, HH/HA HIEU, FG/FG VINA/FG BAC GIANG/FG BG, B85, CHI ANH…; alias chưa chắc ghi
-      confidence + câu hỏi Q08),
+      confidence + câu hỏi Q09),
     dim_style (khoá = customer + season + style_no chuẩn; bảng dim_style_alias gom file no LEV-/LBV- ↔ mã buyer 357311WM1 / BI7139UE1,
       lỗi gõ đã biết CHE→CHF, mã thiếu số như CHFMJK6406; nguồn alias: ORDER RECAP, kế hoạch, PDF DHG, tên thư mục STYLES),
     dim_party (bên liên lạc trong email: KLMAS / buyer / nhà máy / forwarder, từ mail_allow + domain).
@@ -55,7 +55,7 @@ D-02 Ba parser còn thiếu (theo spec có sẵn, golden từ ô tổng trong fi
     (rolling rate), độ tươi dữ liệu theo nhà máy.
   - inspection_tracker (M1-06): SL kiểm, đạt, lỗi, style bộ, REQUEST ETD; không lưu tên kiểm viên vào core/mart.
   - qc_third_party (M1-12): INPUT DATA.xlsx + bảng mã lỗi A–G → fact_inspection / fact_defect (nguồn = THIRD_PARTY).
-  Câu hỏi nghiệp vụ chưa có trả lời (Q26 cách đếm lỗi, Q31 PASS/REJECT…): áp "ASTRA đang hiểu" trong open_questions.md, ghi
+  Câu hỏi nghiệp vụ chưa có trả lời (Q24 cách đếm lỗi, Q25 PASS/REJECT…): áp "ASTRA đang hiểu" trong open_questions.md, ghi
   assumption_id, không chặn việc.
 
 D-03 Bóc tách email bằng AI (phần còn thiếu của N-03, P2 đã duyệt; làm khi có ANTHROPIC_API_KEY trong .env, thiếu thì bỏ qua task
@@ -150,7 +150,7 @@ BÁO CÁO LẠI (tiếng Việt, ngắn)
 | # | Mục | Đề xuất |
 |---|---|---|
 | 1 | Push dev bị chặn | PO tự chạy `git push origin dev`, hoặc thêm `Bash(git push origin dev)` vào danh sách allow của Claude Code |
-| 2 | `mail_allow.local.txt` (8 domain, 65 địa chỉ) | Giữ đối tác và Gmail cá nhân của nhân viên KLMAS đang dùng cho công việc; `leeintl.co.kr` để chờ Q18 |
+| 2 | `mail_allow.local.txt` (8 domain, 65 địa chỉ) | Giữ đối tác và Gmail cá nhân của nhân viên KLMAS đang dùng cho công việc; `leeintl.co.kr` để chờ Q19 |
 | 3 | Mọi tab lọc theo mùa, chi tiết cắt 2.000 dòng / mùa | Giữ; thêm lựa chọn "Tất cả" và phân trang thay vì cắt cứng (D-06) |
 | 4 | Benchmark 10 mùa | Chưa cần; 7 mùa đủ cho giai đoạn này |
 

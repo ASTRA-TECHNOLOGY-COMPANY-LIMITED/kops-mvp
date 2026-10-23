@@ -1,7 +1,7 @@
 # CLAUDE.md — kops-mvp (KOPS · KLMAS Order & Production System)
 
 Project context for Claude Code. Team-wide rules live in `GUIDELINES.md`; read it before changing anything.
-Next step (data model, manager dashboard, Docker): `plans/DASHBOARD_DOCKER_PLAN.md`. Latest hand-off: `plans/HANDOFF_2026-10-23.md` (decisions 23/10, new-docs + emails, prompt for the next Claude Code run); before that `plans/HANDOFF_2026-10-22.md`.
+Next step: `plans/DASHBOARD_V2_PLAN.md` (27SS operations, VI/KO, export, UI tests); done before: `plans/DASHBOARD_DOCKER_PLAN.md`. Latest hand-off: `plans/HANDOFF_2026-10-23.md` (decisions 23/10, new-docs + emails, prompt for the next Claude Code run); before that `plans/HANDOFF_2026-10-22.md`.
 
 ## What this is
 - Customer: **KLMAS** (Korean garment sourcing office in Vietnam: production management + third-party QC).

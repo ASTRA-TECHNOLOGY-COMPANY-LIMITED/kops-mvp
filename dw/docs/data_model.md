@@ -48,7 +48,7 @@ erDiagram
 | `dim.season` | season_key | season (`26FW`) + năm, nửa mùa, ngày bắt đầu/kết thúc theo mùa bán (giả định ASM-SEASON-01) | mọi nguồn có mùa | 2 |
 | `dim.date` | date_key (`yyyymmdd`) | ngày; tuần (thứ hai), tháng, Chủ nhật | sinh 2024–2028 | 1.827 |
 | `dim.factory` | factory_key | factory_code chuẩn | `config.FACTORY_ALIASES` + mã trong dữ liệu + bí danh chờ xác nhận | 25 |
-| `dim.factory_alias` | — | alias_key (viết hoa, bỏ dấu) | CONFIRMED (config) 37; chờ Q08: HD2 / HAGACO HD2 → HAGACO (MEDIUM), FG BG → FG BAC GIANG, CHI ANH (LOW) | 41 |
+| `dim.factory_alias` | — | alias_key (viết hoa, bỏ dấu) | CONFIRMED (config) 37; chờ Q09: HD2 / HAGACO HD2 → HAGACO (MEDIUM), FG BG → FG BAC GIANG, CHI ANH (LOW) | 41 |
 | `dim.style` | style_key | `customer|season|style_no` | **master = mọi phiên bản ORDER RECAP** (style bị bỏ ở bản mới vẫn là style); thuộc tính lấy từ bản hiện hành | 410 |
 | `dim.style_alias` | — | alias_code + season → style_key | xem "Quy tắc alias" | 603 |
 | `dim.party` | party_key | địa chỉ email | KLMAS theo `KOPS_KLMAS_DOMAINS`; file local `dw/party_map.local.txt` (không commit) cho BUYER / FACTORY / FORWARDER; Gmail, Naver… = INDIVIDUAL; còn lại EXTERNAL | 132 |
