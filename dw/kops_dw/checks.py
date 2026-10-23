@@ -90,6 +90,27 @@ CHECKS = [
      """SELECT any_value(style_no || ' / ' || factory || ' / ' || stage || ' / ' || doc_date) FROM core.document
         WHERE file_name LIKE '260629 (CHALLENGER - TRUONG PHUC) CHF3WJK6701%' AND ext = '.xlsx'""",
      "CHF3WJK6701 / TRUONG PHUC / FPP_CFMD / 2026-06-29"),
+    # ---- style milestones / shipment events from real emails (N-03; event date = day the mail was sent) ----
+    ("Milestones CHF3WJK6701 from emails", ("file", "KLMAS CO., LTD 메일 - 0514) CHF3WJK6701"),
+     """SELECT string_agg(milestone || ':' || strftime(d, '%m-%d'), ',' ORDER BY d, milestone) FROM (
+          SELECT DISTINCT milestone, event_date AS d FROM core.style_milestone
+          WHERE style_no = 'CHF3WJK6701' AND source_kind = 'email' AND milestone <> 'FINAL_INSPECTION')""",
+     "FPP_REQUEST:05-14,FPP_REQUEST:05-18,FPP_CMT:06-24,FPP_CFMD:06-29,FABRIC_INSPECTION:07-07,ASSORT_CHANGE:07-20,"
+     "DM_APPROVAL:08-10,INLINE_CMT:08-12,SHIPMENT:08-17"),
+    ("Milestone CHF3WJK6701 ASSORT_CHANGE: buyer mail then KLMAS -> factory", ("file", "KLMAS CO., LTD 메일 - 0720) CHF3WJK6701"),
+     """SELECT string_agg(strftime(event_at, '%H:%M') || ' ' || sender_side, ', ' ORDER BY event_at) FROM core.style_milestone
+        WHERE style_no = 'CHF3WJK6701' AND milestone = 'ASSORT_CHANGE' AND source_kind = 'email'""", "07:27 EXTERNAL, 09:33 KLMAS"),
+    ("Shipment event ABKHPH2608058: direction / ETD / factory / customer", ("file", "KLMAS CO., LTD 메일 - 260819ETD"),
+     "SELECT any_value(direction || ' / ' || etd_new || ' / ' || factory || ' / ' || customer) FROM core.shipment_event WHERE booking = 'ABKHPH2608058'",
+     "outbound / 2026-08-19 / TRUONG PHUC / CHALLENGER"),
+    ("Shipment event JAKEHPH2609051 (9/27->9/29 ETD): direction / old / new / factory / first mail",
+     ("file", "KLMAS CO., LTD 메일 - 9_27-_9_29ETD"),
+     """SELECT any_value(direction || ' / ' || etd_old || ' / ' || etd_new || ' / ' || factory || ' / ' || CAST(first_sent_at AS DATE))
+        FROM core.shipment_event WHERE booking = 'JAKEHPH2609051'""", "inbound_material / 2026-09-27 / 2026-09-29 / B85 / 2026-09-30"),
+    ("Milestones and shipment events cover every customer with emails", ("file", "KLMAS CO., LTD 메일 - 0514) CHF3WJK6701"),
+     """SELECT string_agg(DISTINCT c, ',' ORDER BY c) FROM (
+          SELECT customer AS c FROM core.style_milestone WHERE source_kind = 'email' AND NOT is_sample
+          INTERSECT SELECT customer FROM core.shipment_event WHERE NOT is_sample)""", "CHALLENGER,DHG,DKM,JBEE"),
     # ---- emails (SAMPLE files in dw/samples/inbox) ----
     ("Email: same message in .eml and quoted in a PDF counted once", ("file", "08_buyer_original_duplicate"),
      "SELECT count(*) || ' / ' || max(n_copies) FROM core.email WHERE thread_key='[sample] 26fw chf4mpt6444 delivery'", "2 / 2"),

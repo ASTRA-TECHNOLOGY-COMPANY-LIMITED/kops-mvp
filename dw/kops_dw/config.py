@@ -63,7 +63,7 @@ CUSTOMER_KEYS = [
     ("CHALLENGER", "CHALLENGER"), ("CLGR", "CHALLENGER"),
     ("DAEHAN", "DHG"), ("DHG", "DHG"), ("8SECONDS", "DHG"), ("8 SECONDS", "DHG"), ("BPK", "DHG"),
     ("BEANPOLE", "DHG"), ("XEXYMIX", "DHG"),
-    ("JBEE", "JBEE"), ("KOFA", "KOFA"), ("BLACKYAK", "KOFA"),
+    ("JBEE", "JBEE"), ("JBSC", "JBEE"), ("KOFA", "KOFA"),     # JBSC: JBEE's mail domain jbeesc.com ("BLACKYAK", "KOFA"),
     ("MIZUNO", "DKM"), ("DKMS", "DKM"), ("DKM", "DKM"), ("DAKYUNG", "DKM"), ("다경", "DKM"),
 ]
 BRAND_ALIASES = {"8S": "8 SECONDS", "8SECONDS": "8 SECONDS", "BPK": "BEANPOLE KIDS", "BEANPOLE KIDS": "BEANPOLE KIDS",
@@ -71,7 +71,7 @@ BRAND_ALIASES = {"8S": "8 SECONDS", "8SECONDS": "8 SECONDS", "BPK": "BEANPOLE KI
 
 # --- Email ---
 # Sender domains that belong to KLMAS (used to tell buyer -> KLMAS replies apart). Fill in when known.
-KLMAS_EMAIL_DOMAINS: list[str] = [d for d in os.environ.get("KOPS_KLMAS_DOMAINS", "").split(",") if d]
+KLMAS_EMAIL_DOMAINS: list[str] = [d for d in os.environ.get("KOPS_KLMAS_DOMAINS", "klmasvn.com").split(",") if d]
 # Rule-based categories (first match = primary). Keywords in EN / KO / VI, matched case-insensitively.
 EMAIL_CATEGORIES = [
     ("CANCEL", ["cancel", "취소", "huỷ", "hủy"]),

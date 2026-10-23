@@ -85,6 +85,11 @@ CREATE TABLE raw.email (
   folder VARCHAR,    -- mailbox folder (.pst) or Gmail labels (.mbox)
   text_source VARCHAR);   -- PDF exports: 'text' (text layer) or 'ocr' (scanned page read by tesseract, H-08)
 
+-- Milestone / shipment named by an email subject (N-03, milestones.py; rule-based hints, not facts).
+CREATE TABLE stg.email_event (
+  file_id INTEGER, msg_key VARCHAR, milestone VARCHAR, sent_at TIMESTAMP, factory VARCHAR, style_candidates VARCHAR,
+  direction VARCHAR, etd_old DATE, etd_new DATE, eta DATE, ship_mode VARCHAR, load_type VARCHAR, customer VARCHAR,
+  origin VARCHAR, booking VARCHAR, forwarder VARCHAR, is_delay BOOLEAN);
 -- Documents recorded from their name only, never opened (N-02, docmeta.py): work sheets, comments, CAD patterns.
 CREATE TABLE stg.document (
   file_id INTEGER, path_hash VARCHAR, file_name VARCHAR, ext VARCHAR, size_bytes BIGINT, sha256 VARCHAR,

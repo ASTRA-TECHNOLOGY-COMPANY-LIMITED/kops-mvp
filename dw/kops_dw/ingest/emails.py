@@ -19,7 +19,7 @@ import re
 from email import policy
 from email.utils import parsedate_to_datetime
 
-from .. import config
+from .. import config, milestones
 from ..util import STYLE_IN_TEXT_RE, md_date, nfc
 from . import email_mhtml, email_pdf
 from .email_common import record
@@ -53,7 +53,8 @@ def parse(path, ctx):
     if not d:
         dates = [r["sent_at"] for r in recs if r["sent_at"]]
         d = min(dates).date() if dates else None
-    return dict(email=recs, email_attachment=tables.get("email_attachment", []), stg_email_change=proposals), d
+    return dict(email=recs, email_attachment=tables.get("email_attachment", []), stg_email_change=proposals,
+                stg_email_event=milestones.events_for(recs)), d
 
 
 def proposals_for(recs: list[dict], ctx, file_name: str) -> list[dict]:

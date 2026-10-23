@@ -55,6 +55,11 @@ QUERIES = {
     "email_weekly": "SELECT * FROM mart.email_weekly ORDER BY week_start",
     "threads": "SELECT * EXCLUDE (thread_key) FROM core.email_thread ORDER BY last_at DESC NULLS LAST",
     "pstatus": "SELECT * EXCLUDE (msg_key) FROM core.proposal_file_status ORDER BY sent_at DESC",
+    # style progress (milestones from emails / document names, shipment events)
+    "timeline": "SELECT * FROM mart.style_timeline ORDER BY last_event DESC NULLS LAST",
+    "style_events": "SELECT * FROM mart.style_event ORDER BY style_no, event_date, milestone",
+    "ship_events": "SELECT * EXCLUDE (source_ref) FROM core.shipment_event ORDER BY etd_new DESC",
+    "material_delay": "SELECT * FROM mart.material_delay ORDER BY delayed DESC, shipments DESC",
 }
 
 

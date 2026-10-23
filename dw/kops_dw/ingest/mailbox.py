@@ -29,6 +29,7 @@ from pathlib import Path
 
 from .. import config
 from ..util import MissingTool, norm_key
+from .. import milestones
 from .emails import from_message, proposals_for
 
 PART = 2000            # messages per streamed part
@@ -88,7 +89,8 @@ def _stream(sources, path, ctx, is_sample):
 
 
 def _part(emails, filtered, ctx, path):
-    return dict(email=emails, stg_email_change=proposals_for(emails, ctx, path.name), email_filtered=filtered)
+    return dict(email=emails, stg_email_change=proposals_for(emails, ctx, path.name), email_filtered=filtered,
+                stg_email_event=milestones.events_for(emails))
 
 
 def why_filtered(msg, rec) -> str | None:

@@ -261,6 +261,7 @@ const styleLink = (v, r) => v ? `<a class="link" data-style="${esc(v)}" data-sea
 /* ---------- tabs ---------- */
 const TABS = [
   ['overview', 'Tổng quan'], ['portfolio', 'Khách hàng & kế hoạch'], ['tower', 'Control Tower'], ['ship', 'Xuất hàng'],
+  ['progress', 'Tiến độ style'],
   ['partner', 'Nhà máy & NCC'], ['change', 'Thay đổi'], ['email', 'Email'], ['history', 'Lịch sử phiên bản'],
   ['quality', 'Đối soát & chất lượng'], ['meeting', 'Cuộc họp & yêu cầu'], ['source', 'Nguồn & lineage'],
 ];
@@ -278,7 +279,7 @@ function render() {
   const html = {
     overview: viewOverview(S, K), tower: viewTower(S, K), ship: viewShip(S), partner: viewPartner(),
     change: viewChange(), quality: viewQuality(), meeting: viewMeeting(), source: viewSource(),
-    portfolio: viewPortfolio(), email: viewEmail(), history: viewHistory(),
+    portfolio: viewPortfolio(), email: viewEmail(), history: viewHistory(), progress: viewProgress(),
   };
   $('#main').innerHTML = TABS.map(([k]) => `<section class="tab" id="tab-${k}" role="tabpanel">${html[k]}</section>`).join('');
   Object.keys(TABLES).forEach(drawTable);
@@ -567,6 +568,45 @@ function viewEmail() {
     {k: 'lang', l: 'Ngôn ngữ'}, {k: 'channel', l: 'Nguồn'}, {k: 'n_copies', l: 'Bản', n: 1},
     {k: 'body', l: 'Nội dung', r: v => `<details><summary class="note">xem</summary><pre class="body">${esc(v)}</pre></details>`}],
     {filters: [{key: 'category', label: 'Loại'}, {key: 'channel', label: 'Nguồn'}, {key: 'lang', label: 'Ngôn ngữ'}]})}`;
+}
+
+/* ---------- style progress (milestones from emails + document names) ---------- */
+const MS = [['fpp_request', 'FPP request'], ['fpp_cmt', 'FPP CMT'], ['fpp_cfmd', 'FPP CFMD'], ['fabric_inspection', 'Kiểm vải'],
+  ['dm_approval', 'Định mức'], ['inline_cmt', 'Inline CMT'], ['final_inspection', 'Kiểm hàng'], ['first_shipment', 'Xuất hàng']];
+function viewProgress() {
+  const inSeason = r => !r.season || r.season === SEASON;
+  const TL = TB.timeline.filter(inSeason), EV = TB.style_events.filter(inSeason);
+  const SE = TB.ship_events, MD = TB.material_delay;
+  const inb = SE.filter(e => e.direction === 'inbound_material'), late = inb.filter(e => e.etd_old);
+  const reached = MS.map(([k, l]) => ({label: l, value: TL.filter(r => r[k]).length}));
+  return `
+  <div class="banner">Mốc của từng style lấy từ <b>tiêu đề email</b> (ngày gửi thư) và <b>tên tài liệu kỹ thuật</b> (ngày trong tên file). Tiêu đề viết tự do nên đây là gợi ý theo luật, không phải dữ liệu đã duyệt: mỗi mốc ghi rõ thư / file nguồn. Thư xuất hàng nối với style qua lô trong Shipment Status (cùng nhà máy, ETD ±3 ngày). Style không rõ mùa hiện ở mọi mùa.</div>
+  <div class="kpis">
+    ${kpi('Style có mốc', fmt(TL.length), `mùa ${esc(SEASON)} + chưa rõ mùa`)}
+    ${kpi('Mốc ghi nhận', fmt(EV.length), 'email + tên file')}
+    ${kpi('Lô xuất thành phẩm', fmt(SE.filter(e => e.direction === 'outbound').length), 'theo booking / ETD')}
+    ${kpi('Lô vật tư về nhà máy', fmt(inb.length), `${fmt(late.length)} lô dời ETD`)}
+  </div>
+  <div class="grid g2">
+    <div class="card"><h3>Số style đã qua từng mốc</h3><p class="sub">mốc sớm nhất của mỗi style</p>${hbars(reached)}</div>
+    <div class="card"><h3>Vật tư về nhà máy: dời ETD</h3><p class="sub">số lô dời / tổng lô, theo nhà máy</p>${hbars(MD.map(m => ({label: m.factory || '?', value: m.delayed, tip: `${m.factory}: ${m.delayed}/${m.shipments} lô dời, trung bình ${m.avg_delay_days ?? '–'} ngày, tối đa ${m.max_delay_days ?? '–'}`})))}</div>
+  </div>
+  <h2 class="sec">Timeline theo style (${TL.length})</h2>
+  ${table('t-tl', TL, [{k: 'style_no', l: 'Style', r: (v, r) => r.customer === 'CHALLENGER' ? styleLink(v, r) : esc(v)}, {k: 'customer', l: 'Khách'}, {k: 'factory', l: 'Nhà máy'},
+    ...MS.map(([k, l]) => ({k, l})), {k: 'assort_changes', l: 'Đổi assort', n: 1}, {k: 'n_events', l: 'Mốc', n: 1}, {k: 'last_event', l: 'Gần nhất'}],
+    {filters: [{key: 'customer', label: 'Khách'}, {key: 'factory', label: 'Nhà máy'}]})}
+  <h2 class="sec">Vật tư về nhà máy theo nhà máy</h2>
+  ${table('t-md', MD, [{k: 'factory', l: 'Nhà máy'}, {k: 'customer', l: 'Khách'}, {k: 'shipments', l: 'Lô', n: 1}, {k: 'delayed', l: 'Dời ETD', n: 1},
+    {k: 'avg_delay_days', l: 'TB ngày dời', n: 1}, {k: 'max_delay_days', l: 'Tối đa', n: 1}, {k: 'first_etd', l: 'ETD đầu'}, {k: 'last_etd', l: 'ETD cuối'}], {search: false})}
+  <h2 class="sec">Sự kiện xuất hàng từ email (${SE.length})</h2>
+  ${table('t-se', SE, [{k: 'direction', l: 'Hướng', r: v => v === 'outbound' ? 'Thành phẩm đi' : 'Vật tư về'}, {k: 'etd_new', l: 'ETD'}, {k: 'etd_old', l: 'ETD cũ'},
+    {k: 'eta', l: 'ETA'}, {k: 'ship_mode', l: 'Mode'}, {k: 'load_type', l: 'LCL/FCL'}, {k: 'factory', l: 'Nhà máy'}, {k: 'customer', l: 'Khách'},
+    {k: 'origin', l: 'Từ'}, {k: 'booking', l: 'Booking'}, {k: 'forwarder', l: 'Forwarder'}, {k: 'n_messages', l: 'Thư', n: 1}, {k: 'first_sent_at', l: 'Thư đầu'}, {k: 'subject', l: 'Tiêu đề'}],
+    {filters: [{key: 'direction', label: 'Hướng'}, {key: 'factory', label: 'Nhà máy'}, {key: 'customer', label: 'Khách'}]})}
+  <h2 class="sec">Tất cả mốc (${EV.length})</h2>
+  ${table('t-ev', EV, [{k: 'event_date', l: 'Ngày'}, {k: 'style_no', l: 'Style'}, {k: 'milestone', l: 'Mốc'}, {k: 'source_kind', l: 'Nguồn'},
+    {k: 'sender_side', l: 'Người gửi'}, {k: 'factory', l: 'Nhà máy'}, {k: 'customer', l: 'Khách'}, {k: 'booking', l: 'Booking'}, {k: 'source_title', l: 'Thư / file'}],
+    {filters: [{key: 'milestone', label: 'Mốc'}, {key: 'source_kind', label: 'Nguồn'}, {key: 'customer', label: 'Khách'}]})}`;
 }
 
 /* ---------- version history ---------- */

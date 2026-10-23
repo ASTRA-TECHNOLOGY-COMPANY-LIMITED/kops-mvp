@@ -430,7 +430,8 @@ def _load_reference(con):
                                        for k, v in config.FACTORY_ALIASES.items()])
     _insert(con, "stg.style_alias", [dict(alias_style=k, style_no=v, confirmed=False)
                                      for k, v in config.STYLE_ALIASES.items()])
-    _insert(con, "stg.rule", [dict(rule_key=k, rule_value=str(v)) for k, v in config.RULES.items()])
+    _insert(con, "stg.rule", [dict(rule_key=k, rule_value=str(v)) for k, v in config.RULES.items()]
+            + [dict(rule_key="klmas_domains", rule_value=",".join(config.KLMAS_EMAIL_DOMAINS))])
     _insert(con, "stg.requirement_coverage", [dict(req_no=k, mvp_status=s, where_in_mvp=w, next_step=n)
                                               for k, (s, w, n) in config.REQUIREMENT_COVERAGE.items()])
 
