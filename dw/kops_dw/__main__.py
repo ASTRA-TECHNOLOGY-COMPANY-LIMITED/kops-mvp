@@ -1,4 +1,4 @@
-"""CLI: python -m kops_dw [build|test|dashboard|all|fetch-imap|attachments|lake-compact|mail-allow|templates|ocr|bench]
+"""CLI: python -m kops_dw [build|test|dashboard|serve|all|fetch-imap|attachments|lake-compact|mail-allow|templates|ocr|bench]
 
   all           build + test + dashboard (default)
   build         incremental build: only new/changed files are parsed, the rest is read from the lake
@@ -9,6 +9,8 @@
   mail-allow    allow-list of partner senders for mailbox filters: `suggest [--write]`, `report [mbox ...]`
   templates     Excel layouts not yet known (quarantined); `templates accept <fp>` after checking them
   ocr           OCR the scanned PDF pages queued by the last build (tesseract kor+vie+eng), then rebuild
+  dashboard     build/dashboard.html + build/data/<season>.json (--single: one self-contained HTML file)
+  serve         local static server for the dashboard: http://127.0.0.1:8765/ (--port N, --open)
   bench         acceptance checks / synthetic data / benchmark outside the repo (see kops_dw/bench.py)
 """
 from __future__ import annotations
@@ -54,9 +56,12 @@ def main(argv=None):
         ok = run_checks()
         if not ok and cmd == "test":
             sys.exit(1)
+    if cmd == "serve":
+        from .dashboard import serve
+        sys.exit(serve(argv[1:]))
     if cmd in ("dashboard", "all"):
         from .dashboard import render
-        render()
+        render(single="--single" in flags)
     if cmd not in ("build", "test", "dashboard", "all"):
         print(__doc__)
         sys.exit(2)

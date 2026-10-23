@@ -252,7 +252,7 @@ def query(env: dict, sql: str):
 def main(argv):
     import argparse
     ap = argparse.ArgumentParser(prog="kops_dw bench")
-    ap.add_argument("cmd", choices=["accept", "gen", "run"])
+    ap.add_argument("cmd", choices=["accept", "gen", "run", "dash"])
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--files", type=int, default=5000)
     ap.add_argument("--mails", type=int, default=50000)
@@ -265,6 +265,10 @@ def main(argv):
         return gen(out, a.files, a.mails)
     if a.cmd == "accept":
         return accept(out)
+    if a.cmd == "dash":
+        for line in dash_lines(_env(out)):
+            print(line)
+        return True
     return benchmark(out)
 
 
@@ -390,6 +394,55 @@ def _sql_timings(env) -> list[tuple[str, float]]:
     return out
 
 
+def _chrome() -> str | None:
+    for p in ("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/Applications/Chromium.app/Contents/MacOS/Chromium"):
+        if Path(p).exists():
+            return p
+    return shutil.which("google-chrome") or shutil.which("chromium") or shutil.which("chromium-browser")
+
+
+def page_load_ms(env: dict, season: str | None = None, port: int = 8799) -> int | None:
+    """Open the dashboard through `serve` in headless Chrome; the page writes its time to first render on <body>."""
+    chrome = _chrome()
+    if not chrome:
+        return None
+    import re
+    import tempfile
+    srv = subprocess.Popen([PY, "-m", "kops_dw", "serve", "--port", str(port)], cwd=config.DW_DIR, env=env,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        time.sleep(1.5)
+        with tempfile.TemporaryDirectory() as prof:
+            url = f"http://127.0.0.1:{port}/" + (f"?season={season}" if season else "")
+            p = subprocess.run([chrome, "--headless", "--disable-gpu", f"--user-data-dir={prof}",
+                                "--virtual-time-budget=20000", "--dump-dom", url], capture_output=True, text=True, timeout=120)
+        m = re.search(r'data-load-ms="(\d+)"', p.stdout)
+        return int(m.group(1)) if m else None
+    finally:
+        srv.terminate()
+        srv.wait()
+
+
+def dash_lines(env: dict) -> list[str]:
+    """Render the per-season dashboard and report file sizes and page load time (H-11)."""
+    import json
+    build = Path(env["KOPS_BUILD"])
+    t0 = time.time()
+    p = subprocess.run([PY, "-m", "kops_dw", "dashboard"], cwd=config.DW_DIR, env=env, capture_output=True, text=True)
+    secs = round(time.time() - t0, 1)
+    if p.returncode != 0:
+        return [f"- Dashboard: LỖI {p.stderr.strip().splitlines()[-1][:200]}"]
+    idx = json.loads((build / "data" / "index.json").read_text())
+    sizes = {k: v / 1e6 for k, v in idx["sizes"].items()}
+    seasons = {k: v for k, v in sizes.items() if k != "_common"}
+    big = max(seasons.items(), key=lambda x: x[1]) if seasons else ("-", 0)
+    ms = page_load_ms(env, idx["default"])
+    ms_big = page_load_ms(env, big[0]) if big[0] != idx["default"] else ms
+    return [f"- Dashboard theo mùa (H-11): render {secs} s; {len(seasons)} mùa, file mùa lớn nhất {big[0]} {big[1]:.1f} MB, "
+            f"tổng các mùa {sum(seasons.values()):.1f} MB, _common {sizes.get('_common', 0):.1f} MB; mở trang (mùa "
+            f"{idx['default']}) {ms if ms is not None else 'n/a'} ms, mùa {big[0]} {ms_big if ms_big is not None else 'n/a'} ms"]
+
+
 def benchmark(out: Path) -> bool:
     if not (out / "raw").exists():
         gen(out)
@@ -416,10 +469,7 @@ def benchmark(out: Path) -> bool:
     make_mbox(out / "inbox" / "new_100.mbox", 100, seed=99, tag="new-")
     b3 = run_build(env)
     rows.append(("3. Thêm 10 file + 100 thư", b3))
-    t0 = time.time()
-    p = subprocess.run([PY, "-m", "kops_dw", "dashboard"], cwd=config.DW_DIR, env=env, capture_output=True, text=True)
-    dash_s = round(time.time() - t0, 1)
-    dash_mb = (build / "dashboard.html").stat().st_size / 1e6 if (build / "dashboard.html").exists() else 0
+    dash = dash_lines(env)
     sql = _sql_timings(env)
     stats = query(env, """SELECT parser, count(*), round(sum(parse_seconds), 1), round(max(parse_seconds), 2)
                           FROM etl.source_file WHERE parse_key IS NOT NULL GROUP BY 1 ORDER BY 3 DESC""")
@@ -442,9 +492,7 @@ def benchmark(out: Path) -> bool:
     lines += ["", f"- Lake Parquet: **{lake_mb:.0f} MB** ({n_parquet} file) = {lake_mb / 1e3 / max(raw_gb + inbox_gb, 1e-9):.1%} "
               f"dung lượng nguồn; DuckDB: {db_mb:.0f} MB.",
               f"- Dòng: {counts[0]} file nguồn, {counts[1]} thư raw / {counts[2]} thư sau gộp trùng / {counts[3]} thư bị lọc, "
-              f"{counts[4]} dòng đơn hàng + ô xuất hàng; {counts[5]} file cách ly.",
-              f"- Dashboard (một file HTML nhúng mọi dữ liệu): {dash_s} s, {dash_mb:.1f} MB"
-              + ("" if p.returncode == 0 else f" — LỖI: {p.stderr.strip().splitlines()[-1][:200]}"), "",
+              f"{counts[4]} dòng đơn hàng + ô xuất hàng; {counts[5]} file cách ly.", *dash, "",
               "| Parser | File | Tổng giây parse (CPU, cộng mọi worker) | File chậm nhất |", "|---|---|---|---|"]
     lines += [f"| {a} | {b} | {c} | {d} s |" for a, b, c, d in stats]
     lines += ["", "| File SQL | Giây |", "|---|---|"] + [f"| {a} | {b} |" for a, b in sql]

@@ -136,9 +136,19 @@ h2.sec{font-size:15px;margin:22px 0 10px}
 <div id="tip" role="tooltip"></div>
 <div id="drawer" aria-hidden="true"><div class="bk"></div><div class="pn" id="drawerPn"></div></div>
 <script>
-const D = /*__KOPS_DATA__*/null;
-const T = n => (D[n]?.rows || []).map(r => Object.fromEntries(D[n].cols.map((c, i) => [c, r[i]])));
-const TB = {}; for (const k of Object.keys(D)) if (D[k] && D[k].cols) TB[k] = T(k);
+const D = /*__KOPS_DATA__*/null;   // {lazy:true}: data/index.json, data/_common.json, data/<season>.json (H-11)
+const rowsOf = t => (t?.rows || []).map(r => Object.fromEntries(t.cols.map((c, i) => [c, r[i]])));
+let TB = {}, SEASONS = [], BUILT = '';
+const CACHE = {};
+function setTables(...parts) {
+  TB = {};
+  for (const p of parts) for (const [k, t] of Object.entries(p || {})) if (t && t.cols) (TB[k] = TB[k] || []).push(...rowsOf(t));
+}
+async function getJSON(u) { const r = await fetch(u, {cache: 'no-cache'}); if (!r.ok) throw new Error(`${u}: HTTP ${r.status}`); return r.json(); }
+async function loadSeason(s) {
+  if (!CACHE[s]) CACHE[s] = await getJSON(`data/${encodeURIComponent(s)}.json`);
+  setTables(CACHE._common, CACHE[s]);
+}
 const $ = (s, el = document) => el.querySelector(s);
 const esc = s => s == null ? '' : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nf = new Intl.NumberFormat('vi-VN');
@@ -162,7 +172,7 @@ const MODE_C = {SEA:'--s1', AIR:'--s2', HC:'--s3', UNKNOWN:'--s4'};
 const chip = (o, txt) => `<span class="chip"><i style="background:var(${o.c})"></i>${o.i ? esc(o.i) + ' ' : ''}${esc(txt)}</span>`;
 const healthChip = h => chip(HEALTH[h] || {c:'--neutral'}, (HEALTH[h] || {}).l || h);
 
-let SEASON = (TB.season_kpi.find(s => s.season.endsWith('FW')) || TB.season_kpi[0] || {}).season;
+let SEASON = null;
 
 /* ---------- tooltip ---------- */
 const tip = $('#tip');
@@ -518,7 +528,7 @@ function viewPortfolio() {
     ${kpi('Khách hàng', fmt(custs.length), esc(custs.join(', ')))}
     ${kpi('Brand × mùa', fmt(P.length), `${fmt(brands.size)} brand`)}
     ${kpi('Style đang chạy', fmt(P.reduce((a, p) => a + (p.styles_active || 0), 0)), `${fmt(P.reduce((a, p) => a + (p.styles_cancelled || 0), 0))} style huỷ`)}
-    ${kpi('Số lượng đặt (pcs)', fmt(P.reduce((a, p) => a + (p.order_qty || 0), 0)), 'mọi khách, mọi mùa')}
+    ${kpi('Số lượng đặt (pcs)', fmt(P.reduce((a, p) => a + (p.order_qty || 0), 0)), D.lazy ? `mọi khách, mùa ${esc(SEASON)}` : 'mọi khách, mọi mùa')}
     ${kpi('Kế hoạch: dự kiến trễ', fmt(n('LATE')), `${fmt(n('TIGHT'))} style sát hạn`)}
     ${kpi('ETD ngoài mùa', fmt(P.reduce((a, p) => a + (p.etd_out_of_season || 0), 0)), 'nghi gõ sai năm')}
   </div>
@@ -553,7 +563,7 @@ function viewEmail() {
   const byCat = sumBy(L.map(e => ({c: e.category || 'OTHER', n: 1})), 'c', 'n');
   const cats = Object.keys(byCat).sort((a, b) => byCat[b] - byCat[a]);
   return `
-  <div class="banner">Email từ mọi nguồn (file .eml, PDF export/in từ Outlook, Gmail, Naver…, hộp thư IMAP) được chuẩn hoá về một dạng. Một PDF có thể chứa cả chuỗi thư: mỗi thư thành một dòng, thư trùng (forward, trích dẫn lại, vừa .eml vừa PDF) chỉ tính một lần. Nội dung email là dữ liệu: không có thay đổi nào tự áp vào số liệu.${K.sample_emails ? ` <span class="chip sample">SAMPLE</span> ${fmt(K.sample_emails)}/${fmt(K.emails)} email là dữ liệu mẫu.` : ''}</div>
+  <div class="banner">Email từ mọi nguồn (file .eml, PDF export/in từ Outlook, Gmail, Naver…, hộp thư IMAP) được chuẩn hoá về một dạng. Một PDF có thể chứa cả chuỗi thư: mỗi thư thành một dòng, thư trùng (forward, trích dẫn lại, vừa .eml vừa PDF) chỉ tính một lần. Nội dung email là dữ liệu: không có thay đổi nào tự áp vào số liệu.${D.lazy ? ' Danh sách theo mùa đang chọn (mùa của style được nhắc trong thư); thư không nhắc style nào hiện ở mọi mùa; các ô số bên dưới tính trên mọi mùa.' : ''}${K.sample_emails ? ` <span class="chip sample">SAMPLE</span> ${fmt(K.sample_emails)}/${fmt(K.emails)} email là dữ liệu mẫu.` : ''}</div>
   <div class="kpis">
     ${kpi('Email (không trùng)', fmt(K.emails), `${fmt(K.duplicates_removed)} bản trùng đã gộp`)}
     ${kpi('Luồng trao đổi', fmt(K.threads), K.first_at ? `${esc(K.first_at.slice(0, 10))} → ${esc(K.last_at.slice(0, 10))}` : '')}
@@ -709,18 +719,45 @@ document.addEventListener('click', e => { if (e.target.matches('#drawer .bk') ||
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDr(); });
 
 /* ---------- shell ---------- */
-$('#built').textContent = 'build ' + D.built_at;
 $('#tabs').innerHTML = TABS.map(([k, l]) => `<button role="tab" data-t="${k}">${l}</button>`).join('');
 function drawSeasons() {
-  $('#seasonSeg').innerHTML = TB.season_kpi.map(s => `<button aria-pressed="${s.season === SEASON}" data-s="${s.season}">${s.season}</button>`).join('');
+  $('#seasonSeg').innerHTML = SEASONS.map(s => `<button aria-pressed="${s === SEASON}" data-s="${s}">${s}</button>`).join('');
 }
-$('#seasonSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; SEASON = b.dataset.s; drawSeasons(); render(); });
+$('#seasonSeg').addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b || b.dataset.s === SEASON) return;
+  SEASON = b.dataset.s; drawSeasons();
+  if (D.lazy) { $('#main').setAttribute('aria-busy', 'true'); await loadSeason(SEASON); $('#main').removeAttribute('aria-busy'); }
+  render();
+});
 $('#themeBtn').addEventListener('click', () => {
   const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
   r.dataset.theme = dark ? 'light' : 'dark'; try { localStorage.setItem('kops.theme', r.dataset.theme); } catch {}
 });
 try { const t = localStorage.getItem('kops.theme'); if (t) document.documentElement.dataset.theme = t; } catch {}
-drawSeasons(); render();
+const URL_SEASON = list => { const q = new URLSearchParams(location.search).get('season'); return list.includes(q) ? q : null; };
+async function boot() {
+  if (D.lazy) {
+    try {
+      const idx = await getJSON('data/index.json');
+      BUILT = idx.built_at; SEASONS = idx.seasons; SEASON = URL_SEASON(SEASONS) || idx.default || SEASONS[SEASONS.length - 1];
+      CACHE._common = await getJSON('data/_common.json');
+      await loadSeason(SEASON);
+    } catch (err) {
+      $('#main').innerHTML = `<div class="banner">Dashboard tải dữ liệu theo mùa từ thư mục <b>data/</b> nên cần mở qua máy chủ cục bộ:
+        chạy <code>python -m kops_dw serve</code> trong <code>dw/</code> rồi mở <b>http://127.0.0.1:8765/</b>.
+        Bản một file (mọi mùa trong một HTML): <code>python -m kops_dw dashboard --single</code>.<br><span class="note">${esc(err.message)}</span></div>`;
+      return;
+    }
+  } else {
+    setTables(D); BUILT = D.built_at;
+    SEASONS = [...new Set(TB.season_kpi.map(s => s.season))];
+    SEASON = URL_SEASON(SEASONS) || SEASONS.find(s => s.endsWith('FW')) || SEASONS[0];
+  }
+  $('#built').textContent = 'build ' + BUILT;
+  drawSeasons(); render();
+  document.body.dataset.loadMs = Math.round(performance.now());    // time to first full render (H-11 target < 3 s)
+}
+boot();
 </script>
 </body>
 </html>
