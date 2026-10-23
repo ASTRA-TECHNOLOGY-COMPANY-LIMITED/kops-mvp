@@ -73,6 +73,18 @@ anywhere in `raw-docs/` (`STYLES/…`, `inbox/mhtml/…`). Technical documents /
 - Text for KLMAS cites file names (+ sheet/cell), never local paths; questions follow the priority tiers in
   `analys-docs/open_questions.md` (1 = wrong dashboard numbers, 2 = needed for phase 1, 3 = later).
 
+## Design skills (user level, `~/.claude/skills`, not in the repo; installed 23/10/2026 for G-00)
+| Skill | Source / version | Use for |
+|---|---|---|
+| `impeccable` | github.com/pbakaus/impeccable @ `5cb95ee`, plugin 4.7.0, engine 0.1.16 (`~/.impeccable/bin`, sha256-checked) | `audit` / `critique` / `polish` of the app UI; `scripts/impeccable detect <file>` scans HTML locally. Installed as skill only (no plugin hooks); telemetry off (`~/.impeccable/config.json`); never use its image generation / roll features |
+| `ui-ux-pro-max` | github.com/nextlevelbuilder/ui-ux-pro-max-skill @ `28327f2`, v2.15.0 | checklists and local search (`python3 ~/.claude/skills/ui-ux-pro-max/scripts/search.py "<query>" --domain ux`) for dashboard style, palette, typography, UX rules |
+| `design-taste-frontend` | github.com/Leonxlnx/taste-skill @ `6010f91` (v2; `redesign-existing-projects` is now part of it) | app-screen review rules; never run `scripts/assets.mjs` (fetches pictures from the internet) |
+| `frontend-design` | anthropics/claude-plugins-official (local marketplace copy, 15/10/2026) | aesthetic direction, typography principles |
+| `playwright-cli` | npm `@playwright/cli` 0.1.22 (Microsoft) + its skill (`playwright-cli install --skills -g`) | walking real flows in a browser (login, pages, chatbot, PDF) |
+
+Design guidance never overrides the hard rules above: no CDN, no KLMAS data or screenshots to external services, fonts and libraries
+self-hosted and pinned. Direction and priorities: `dw/docs/design_direction.md`.
+
 ## Conventions
 - Docs and reports in Vietnamese (business terms in English kept); code, identifiers, commits in English.
 - Prefer simple, maintainable solutions; flag risky operations and give a rollback.
