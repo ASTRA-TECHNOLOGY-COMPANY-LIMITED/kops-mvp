@@ -37,27 +37,61 @@ Cần Docker (Docker Desktop trên Mac Apple Silicon, hoặc Docker Engine trên
 `docker-compose.yml`. Không cần Python, LibreOffice hay tesseract trên máy: image có đủ.
 
 ```bash
-make up          # dựng image, build kho + chạy mọi check + dựng dashboard, rồi mở http://127.0.0.1:8765
+make up          # dựng image kops-app, build kho + chạy mọi check + dựng dashboard, rồi chạy app trên http://127.0.0.1:8765
 make up-real     # như trên nhưng không có dữ liệu giả định (KOPS_SIM=0)
 make refresh     # có file KLMAS mới: build tăng dần + check + dựng lại dashboard; trang đang mở tự nạp (không cần restart)
-make check       # chạy toàn bộ check trong container
-make check-ui    # kiểm thử giao diện (Playwright + Chromium), ảnh chụp vào UI_OUT (mặc định /tmp/kops-ui, ngoài repo)
+make check       # chạy toàn bộ check trong container (gồm check bảo mật, chatbot golden)
+make check-ui    # kiểm thử giao diện trong image kops-tools (Playwright + Chromium), ảnh vào UI_OUT (mặc định /tmp/kops-ui)
 make report SEASON=27SS REPORT_LANG=ko   # PDF "Việc cần xử lý" + "Tổng quan" vào ./reports (git-ignored, có dữ liệu KLMAS)
-make logs        # xem log; make down: dừng; make rebuild: dựng lại image; make clean: xoá volume build
+make admin-reset   # đặt lại mật khẩu admin về KOPS_ADMIN_PASSWORD trong .env (phải đổi ở lần đăng nhập sau)
+make backup-state  # sao lưu app.db (người dùng, thông báo, chat, cài đặt) vào ./backups/ (git-ignored)
+make reset-state   # xoá trạng thái app (hỏi gõ YES); make logs / down / rebuild / clean như cũ
 ```
 
-- `kops-build` chạy một lần: build → check → dashboard; check đỏ thì dừng và `kops-dashboard` không chạy.
-- `raw-docs` mount **chỉ đọc**; kết quả build nằm trong volume `kops_build` (không lẫn với `dw/build` của máy). Image chỉ có
-  code và email mẫu tổng hợp, không có file KLMAS (kiểm: `docker run --rm --entrypoint ls kops-dw:local -R /app`).
-- Cổng chỉ mở trên `127.0.0.1:8765` (máy này). Server chỉ phục vụ `manager.html`, `dashboard.html`, `data/**.json`,
-  `vendor/*.js`; file DuckDB, lake không truy cập được qua HTTP.
-- `ANTHROPIC_API_KEY` (khi bật bóc tách email bằng AI) đặt trong `.env` ở gốc repo (không commit), compose đọc lúc chạy, không
+- **Hai image:** `kops-app` (1,27 GB, không có trình duyệt) chạy build kho và app; `kops-tools` (2,36 GB = app + Chromium +
+  Playwright) chỉ dựng khi chạy `make check-ui` / `make report`.
+- **Hai volume:** `kops_build` (kho DuckDB + JSON dashboard, dựng lại được; `make clean` xoá) và `kops_state` (`app.db`:
+  người dùng, phiên, trạng thái thông báo, lịch sử chat, cài đặt — giữ nguyên khi `make rebuild` / `make clean`; chỉ
+  `make reset-state` xoá, có hỏi xác nhận).
+- `kops-build` chạy một lần: build → check → dashboard; check đỏ thì dừng và app không chạy. App có healthcheck `/healthz`.
+- `raw-docs` mount **chỉ đọc**; image chỉ có code và email mẫu tổng hợp, không có file KLMAS. Cổng chỉ mở trên
+  `127.0.0.1:8765` (máy này). Mọi dữ liệu chỉ qua API sau khi đăng nhập; DuckDB, lake, app.db không truy cập được qua HTTP.
+- Bí mật (`KOPS_ADMIN_PASSWORD`, `ANTHROPIC_API_KEY`) đặt trong `.env` ở gốc repo (không commit), compose đọc lúc chạy, không
   đưa vào image. Múi giờ container: Asia/Ho_Chi_Minh; `KOPS_TODAY=YYYY-MM-DD make up` để cố định "hôm nay".
-- Bật / tắt dữ liệu giả định: `make up` (bật, có nhãn "Giả định" trên trang) / `make up-real`; trên trang còn công tắc
-  "Hiện dữ liệu giả định".
-- Đo ngày 23/10/2026 (MacBook Apple Silicon 8 CPU, sau E-07): image 2,32 GB (có Chromium cho PDF và kiểm thử giao diện; trước
-  là 1,24 GB); `make up` với volume trống 2 phút 18 giây (build kho lạnh 106 s); `make refresh` 43 s; `make check-ui` 92 s
-  (153 lượt mở trang, 891 kiểm tra); 92/92 check trong container = ngoài container.
+- Đo ngày 23/10/2026 (MacBook Apple Silicon 8 CPU, sau F-07): `make up` với volume trống 2 phút 50 giây (build kho lạnh 133 s);
+  lần sau khoảng 1 phút; `make refresh` khoảng 45 s; `make check-ui` khoảng 3 phút 40 giây (221 lượt mở trang, 1.276 kiểm tra).
+
+### Đăng nhập lần đầu
+
+1. `make up` ghi `KOPS_ADMIN_USER=admin` và một mật khẩu ngẫu nhiên `KOPS_ADMIN_PASSWORD=…` vào `.env` nếu chưa có (không in
+   ra màn hình hay log). Chạy không Docker (`python -m kops_dw serve`) cũng tự ghi như vậy.
+2. Mở http://127.0.0.1:8765 → trang đăng nhập (VI / 한국어) → nhập tên và mật khẩu trong `.env` → hệ thống **bắt đổi mật khẩu**
+   (ít nhất 10 ký tự) → vào trang Tổng quan.
+3. Tạo tài khoản cho người khác ở **Cài đặt → Người dùng** (vai trò: Quản trị / Quản lý / Chỉ xem); mật khẩu tạm hiện một lần,
+   người dùng phải đổi khi đăng nhập. Quên mật khẩu: quản trị viên bấm "Đặt lại mật khẩu" (không gửi email). Quên mật khẩu
+   admin: `make admin-reset`.
+4. Bảo vệ: phiên 12 giờ, cookie httpOnly + SameSite=Lax, CSRF cho mọi thao tác ghi, khoá 15 phút sau 5 lần sai mật khẩu, nhật ký
+   đăng nhập và thao tác quản trị ở Cài đặt.
+
+### Thay logo
+
+Thay file trong thư mục `branding/` ở gốc repo (`logo.svg`, `logo-dark.svg`, `favicon.svg`, hoặc `.png` cùng tên), tải lại
+trang — không cần build lại (thư mục được mount vào container). Tên công ty ở chân trang: `KOPS_BRAND_NAME` trong `.env`
+(mặc định `KLMAS`), cần `make up` lại để đọc. Chi tiết: `branding/README.md`.
+
+### Thông báo và ngưỡng
+
+Sau mỗi lần build / refresh, app tạo lại thông báo từ "Việc cần xử lý": **Trễ** (qua ETD VN mà chưa xuất đủ), **Nguy cơ trễ**
+(BAL âm, xong + vận chuyển > RDD, thiếu FPP CFMD / DM trước ngày cắt, vật tư về sau ngày cắt, nhà máy không gửi báo cáo ngày),
+**Dữ liệu** (lệch số giữa file, ETD nghi sai năm). Mỗi người có trạng thái riêng: chưa đọc / đã đọc / tạm ẩn 7 ngày / đã xử
+lý (kèm ghi chú); thông báo tự đóng khi hết điều kiện. Ngưỡng (thiếu duyệt mẫu −7…+21 ngày, mức nghiêm trọng, sai năm 240
+ngày, dung sai…) sửa ở **Cài đặt** (chỉ quản trị viên), có lịch sử thay đổi, áp dụng từ lần `make refresh` tiếp theo.
+
+### Sao lưu
+
+`make backup-state` sao lưu `app.db` (SQLite, bản nhất quán) vào `./backups/app-YYYYMMDD-HHMMSS.db`. Kho dữ liệu không cần sao
+lưu: dựng lại được từ `raw-docs`. Khôi phục: dừng stack, chép file sao lưu vào volume `kops_state` thành `app.db`
+(`docker run --rm -v kops_kops_state:/s -v "$PWD/backups:/b" alpine cp /b/<file> /s/app.db`), rồi `make up`.
 
 ### Chatbot hỏi đáp dữ liệu (F-04)
 
@@ -160,14 +194,16 @@ Mỗi lần build dựng lại file DuckDB từ đầu (đơn giản, idempotent
 
 ## Dashboard
 
-**Dashboard quản lý** (trang đầu của `serve`, `templates/manager.html`, D-06, E-04..E-08): 9 trang — **Việc cần xử lý** (trang
-đầu, E-04: kế hoạch / dự báo trễ, vật tư về trễ, thiếu duyệt mẫu trước ngày cắt, nhà máy không gửi báo cáo ngày, đề xuất email
-chờ duyệt, lệch số giữa file; mỗi dòng có lý do, nguồn, hạn và mở Style 360; `mart.mgr_action`), Tổng quan, Tiến độ sản xuất (S-curve
+**Ứng dụng web** (F-00..F-08, `dw/app/` FastAPI + `templates/manager.html`): đăng nhập, header (logo, bộ lọc chung, chuông
+thông báo, chatbot, VI / 한국어, sáng / tối, menu người dùng), menu trái, chân trang (công ty, phiên bản, ngày dữ liệu). Trang:
+Tổng quan (ma trận rủi ro, 10 việc đầu, thông báo mới), **Việc cần xử lý** (E-04: kế hoạch / dự báo trễ, vật tư về trễ, thiếu duyệt mẫu trước ngày cắt, nhà máy không gửi báo cáo ngày, đề xuất email
+chờ duyệt, lệch số giữa file; mỗi dòng có lý do, nguồn, hạn và mở Style 360; `mart.mgr_action`), Thông báo, Xu hướng (size,
+màu, item, vải chính, brand), Hướng dẫn, Cài đặt (quản trị viên), cùng các trang Tiến độ sản xuất (S-curve
 kế hoạch / thực tế, dự báo xong so với ETD, tải nhà máy), Xuất hàng, Chất lượng (tỉ lệ lỗi, Pareto, phàn nàn buyer), Nhà máy
 (scorecard), Thay đổi & email, Style 360 (mốc, funnel, sản lượng ngày, lô, email, thay đổi, tài liệu), Sức khoẻ dữ liệu (độ phủ
 cycle, độ tươi, dòng không nối được, chênh lệch file). Lọc mùa (có "Tất cả"), khách, brand, nhà máy; công tắc "Hiện dữ liệu giả
 định" — phần giả định luôn có nhãn **Giả định** và mã giả định khi rê chuột. Biểu đồ: ECharts 5.5.1 lưu trong
-`templates/vendor/` (không CDN). Dữ liệu `build/data/mgr/<mùa>.json`.
+`templates/vendor/` (không CDN). Dữ liệu `build/data/mgr/<mùa>.json`, chỉ phục vụ qua `/api/data/mgr/<mùa>.json` sau khi đăng nhập.
 - Mùa mặc định = mùa đang chạy (mùa có ETD gần nhất phía trước, hiện là 27SS); lựa chọn mùa, ngôn ngữ, tab được nhớ theo người xem
   (localStorage). 27SS chưa có sản lượng ngày / kiểm: biểu đồ ghi "Chưa có dữ liệu", không sinh giả định.
 - **Song ngữ VI / KO** (E-05): nút ngôn ngữ ở đầu trang. Chuỗi giao diện viết bằng tiếng Việt trong `L('…')`, bản dịch ở
@@ -181,7 +217,7 @@ cycle, độ tươi, dòng không nối được, chênh lệch file). Lọc mù
 
 **Dashboard phân tích** (`/dashboard.html`, 12 tab) như dưới đây.
 
-Gồm 12 tab, sáng/tối, chạy tốt trên điện thoại. **Bộ lọc mùa áp cho mọi tab** (H-11): trang chỉ tải dữ liệu của mùa đang xem (`data/<mùa>.json`) cùng phần chung; đổi mùa thì tải thêm mùa đó. Mở bằng `python -m kops_dw serve` (máy chủ tĩnh chỉ nghe 127.0.0.1, chỉ phục vụ `dashboard.html` và `data/*.json`); `?season=27SS` mở thẳng một mùa. Email được xếp vào mùa của style mà thư nhắc tới; thư không nhắc style nào hiện ở mọi mùa. Bấm vào mã style ở bất kỳ đâu để mở **Style 360**: toàn bộ chỉ số, assortment màu × size, từng lô, thay đổi, vấn đề dữ liệu và vị trí dòng gốc.
+Gồm 12 tab, sáng/tối, chạy tốt trên điện thoại. **Bộ lọc mùa áp cho mọi tab** (H-11): trang chỉ tải dữ liệu của mùa đang xem (`data/<mùa>.json`) cùng phần chung; đổi mùa thì tải thêm mùa đó. Mở `/dashboard.html` trong app (`python -m kops_dw serve`, chỉ nghe 127.0.0.1; dữ liệu qua `/api/data/analyst/*.json` sau đăng nhập); `?season=27SS` mở thẳng một mùa. Email được xếp vào mùa của style mà thư nhắc tới; thư không nhắc style nào hiện ở mọi mùa. Bấm vào mã style ở bất kỳ đâu để mở **Style 360**: toàn bộ chỉ số, assortment màu × size, từng lô, thay đổi, vấn đề dữ liệu và vị trí dòng gốc.
 
 | Tab | Phục vụ ý tưởng / yêu cầu |
 |---|---|

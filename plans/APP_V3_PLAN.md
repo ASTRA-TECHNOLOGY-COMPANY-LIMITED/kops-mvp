@@ -80,6 +80,25 @@
 | Vật tư | Dòng thời gian lô vật tư, ETD bị dời | ✅ |
 | Dữ liệu | Độ tươi theo nhà máy; độ phủ cycle | ✅ |
 
+## Trạng thái (Claude Code, 23/10/2026)
+
+| Task | Commit | Kết quả |
+|---|---|---|
+| F-00 | `e1e1a11` | `dw/app/` FastAPI; DuckDB chỉ đọc; trạng thái trong SQLite `state/app.db` (volume `kops_state`); dữ liệu chỉ qua `/api/data/*` có kiểm phiên; bỏ server tĩnh |
+| F-01 | `a9d94c1` | Đăng nhập VI/KO, buộc đổi mật khẩu lần đầu, argon2id, cookie httpOnly + SameSite=Lax, CSRF, khoá 15 phút sau 5 lần sai, phiên 12 giờ; vai trò admin / manager / viewer, cột `customer_scope` (chưa bật); admin từ `.env` (tự sinh nếu thiếu); quản lý user + audit |
+| F-02 | `be22075` | Header (logo, bộ lọc, chuông, chatbot, VI/KO, sáng/tối, menu user), menu trái thu gọn trên mobile, footer (công ty, phiên bản git, ngày dữ liệu, build); logo trung tính trong `branding/` (mount, thay không cần build) |
+| F-03 | `0db351c` | Thông báo LATE / AT_RISK / DATA tạo lại sau mỗi build, chống trùng, tự đóng / mở lại; trạng thái theo người dùng (đọc / ẩn 7 ngày / đã xử lý + ghi chú); ngưỡng trong Cài đặt có lịch sử; kho build ra file tạm rồi thay nguyên khối |
+| F-04 | `f852c3c` | Chatbot cơ bản offline (27 ý định VI / KO, nguồn + ngày dữ liệu, không đoán), golden `dw/eval/chat_cases.json` 43/43; chế độ AI (tắt mặc định) với tool cố định + `query_mart` có kiểm SQL; lịch sử chat, 👍 / 👎 |
+| F-05 | `f91fcb9` | Ma trận rủi ro, heatmap ETD tuần × nhà máy, phễu mốc, lead time (box plot), tải vs công suất, p-chart + heatmap đạt kiểm, waterfall SL, tuổi đề xuất; trang Xu hướng; bảng màu đã kiểm định |
+| F-06 | `e90fff1` | Image `kops-app` 1,27 GB (không Chromium) + `kops-tools` 2,36 GB; volume `kops_build` / `kops_state`; `make admin-reset`, `backup-state`, `reset-state` (hỏi YES); healthcheck |
+| F-07 | `7cc3058` | Check bảo mật tự liệt kê 22 route; check-ui: đăng nhập thật, chuông = API, chatbot 5 câu, đổi logo |
+| F-08 | (commit này) | `dw/README.md` (đăng nhập lần đầu, thay logo, thông báo, chatbot AI, sao lưu), trang Hướng dẫn VI/KO, `CLAUDE.md` |
+
+Check 102/102, check-ui 1.276/1.276 (máy và Docker), `make up` từ volume trống 2 phút 50 giây.
+
+Còn mở: D-03 và chế độ AI của chatbot (chờ key + xác nhận phạm vi đồng ý); 3 địa chỉ "chưa rõ" (Q19); bản tiếng Hàn chờ người
+Hàn đọc lại; "công suất" nhà máy đang là tuần may cao nhất đã đạt (chưa có số chuyền × target).
+
 ## Prompt cho Claude Code terminal
 
 ```text
