@@ -27,7 +27,7 @@ EXCEL_PARSERS = ("order_recap", "order_recap_ext", "production_plan", "shipment_
 _COMMON = ["parse.py", "util.py"]
 _EXCEL = [*_COMMON, "excel.py", "templates.py"]
 _CUSTOMERS = ["CUSTOMER_KEYS", "BRAND_ALIASES", "FACTORY_ALIASES"]
-_EMAIL = [*_COMMON, "ingest/emails.py", "ingest/email_pdf.py", "ingest/email_common.py", "ingest/email_llm.py", "ocr.py"]
+_EMAIL = [*_COMMON, "ingest/emails.py", "ingest/email_pdf.py", "ingest/email_common.py", "ingest/email_mhtml.py", "ingest/email_llm.py", "ocr.py"]
 _EMAIL_CFG = ["EMAIL_CATEGORIES", "EMAIL_DMY", "EMAIL_LLM", "EMAIL_LLM_MODEL"]
 # parser -> (source files under kops_dw/, config names) whose content defines the parser version
 PARSER_DEPS = {

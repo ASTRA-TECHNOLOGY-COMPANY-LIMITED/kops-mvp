@@ -1,7 +1,7 @@
 """Emails from any channel -> raw.email (one normalised record per message) + stg.email_change (proposals).
 
-Channels: .eml (IMAP/Gmail fetch, Outlook drag-out), .pdf (exports/prints, see email_pdf.py), .msg (Outlook,
-needs the optional `extract-msg` package). Every record carries msg_key so the same message seen twice (a
+Channels: .eml (IMAP/Gmail fetch, Outlook drag-out), .pdf (exports/prints, see email_pdf.py), .mhtml (Gmail
+threads saved from the browser, see email_mhtml.py), .msg (Outlook, needs the optional `extract-msg` package). Every record carries msg_key so the same message seen twice (a
 forward, a quote inside a later export, the .eml and the PDF of one mail) is counted once in core.
 
 The rule-based extractor proposes structured changes (qty %, qty a->b, ETD, colour) per style code. Style
@@ -21,7 +21,7 @@ from email.utils import parsedate_to_datetime
 
 from .. import config
 from ..util import STYLE_IN_TEXT_RE, md_date, nfc
-from . import email_pdf
+from . import email_mhtml, email_pdf
 from .email_common import record
 
 PCT_RE = re.compile(r"(-?\d{1,3})\s*%")
@@ -40,17 +40,20 @@ def parse(path, ctx):
     if suffix == ".pdf":
         tables, d = email_pdf.parse(path, ctx, is_sample=is_sample, channel=channel)
         recs = tables["email"]
+    elif suffix == ".mhtml":
+        tables, d = email_mhtml.parse(path, ctx, is_sample=is_sample)
+        recs = tables["email"]
     elif suffix == ".msg":
-        recs = _parse_msg(path, ctx, is_sample)
+        recs, tables = _parse_msg(path, ctx, is_sample), {}
         d = None
     else:
-        recs = [_parse_eml(path, is_sample, channel)]
+        recs, tables = [_parse_eml(path, is_sample, channel)], {}
         d = None
     proposals = proposals_for(recs, ctx, path.name)
     if not d:
         dates = [r["sent_at"] for r in recs if r["sent_at"]]
         d = min(dates).date() if dates else None
-    return dict(email=recs, stg_email_change=proposals), d
+    return dict(email=recs, email_attachment=tables.get("email_attachment", []), stg_email_change=proposals), d
 
 
 def proposals_for(recs: list[dict], ctx, file_name: str) -> list[dict]:

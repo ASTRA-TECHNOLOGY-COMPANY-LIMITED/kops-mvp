@@ -19,7 +19,7 @@ from pathlib import Path
 import duckdb
 
 from . import config, lake, manifest, ocr, parse, templates
-from .util import norm_key
+from .util import nfc, norm_key
 
 SQL_DIR = config.DW_DIR / "sql"
 Ctx = parse.Ctx
@@ -33,7 +33,7 @@ PENDING = [
 ]
 # CHALLENGER ORDER RECAPs use the detailed fixed-column parser; other customers the header-driven one.
 CHALLENGER_KEYS = ("CHALLENGER", "CLGR")
-EMAIL_EXT = (".eml", ".pdf", ".msg")
+EMAIL_EXT = (".eml", ".pdf", ".msg", ".mhtml")
 MAILBOX_EXT = (".mbox", ".pst")      # whole mailboxes (ingest/mailbox.py)
 
 
@@ -43,7 +43,7 @@ def _in_inbox(path: Path) -> bool:
 
 def classify(path: Path):
     """Return (source_type, parser, season) from the file name, or (type, None, None) if not parsed."""
-    name = path.name.upper().replace("_", " ")   # '…_27SS_PRODUCTION_PLAN' -> '… 27SS PRODUCTION PLAN'
+    name = nfc(path.name).upper().replace("_", " ")   # '…_27SS_PRODUCTION_PLAN' -> '… 27SS PRODUCTION PLAN'
     season = (m.group(0) if (m := re.search(r"\b2\d(SS|FW)\b", name)) else None)
     ext = path.suffix.lower()
     if _in_inbox(path) and ext in MAILBOX_EXT:
@@ -67,7 +67,7 @@ def classify(path: Path):
         return "excel", None, season
     if ext == ".docx":
         return "meeting_note", "meeting_notes", season
-    if ext == ".eml":
+    if ext in (".eml", ".mhtml"):           # .mhtml: Gmail threads saved inside style packages (STYLES/...)
         return "email", "emails", season
     if ext in (".pdf", ".jpg", ".jpeg", ".png"):
         return "reference", None, None
@@ -118,9 +118,10 @@ def build(verbose=True, retry_failed=False) -> Path:
     seen, registry, extra_issues, tasks = {}, [], [], []
     for i, entry in enumerate(entries, start=1):
         path, digest = entry.path, entry.sha256
+        name = nfc(path.name)                    # macOS stores names decomposed (NFD); compare and store NFC
         stype, parser, season = classify(path)
-        rec = dict(file_id=i, file_name=path.name, rel_path=_rel(path), source_type=stype, parser=parser,
-                   season=season, file_date=file_date(path.name), report_date=None, sha256=digest,
+        rec = dict(file_id=i, file_name=name, rel_path=nfc(_rel(path)), source_type=stype, parser=parser,
+                   season=season, file_date=file_date(name), report_date=None, sha256=digest,
                    size_bytes=entry.size_bytes, is_sample=config.DW_DIR in path.parents,
                    status="LOADED", is_current=False, rows_loaded=0, message=None, loaded_at=dt.datetime.now(),
                    family=None, parse_key=None, from_cache=False, parse_seconds=None, template_fp=None,
@@ -129,24 +130,24 @@ def build(verbose=True, retry_failed=False) -> Path:
         ctx.file_id = i
         if digest in seen:
             rec.update(status="DUPLICATE", message=f"Same content as file_id {seen[digest]}")
-            ctx.issue("INFO", "DUPLICATE_FILE", path.name, rec["message"], path.name)
+            ctx.issue("INFO", "DUPLICATE_FILE", name, rec["message"], name)
         elif parser is None:
             pending = next((m for _, s, m in PENDING if s == stype), None)
             rec.update(status="SKIPPED", message=pending or ("Reference document - not parsed" if stype == "reference"
                                                              else "Unknown template"))
             if stype == "excel":
-                ctx.issue("WARN", "UNKNOWN_TEMPLATE", path.name, "Excel file not matched to a parser", path.name)
+                ctx.issue("WARN", "UNKNOWN_TEMPLATE", name, "Excel file not matched to a parser", name)
         else:
             seen[digest] = i
             ocr_done = parser == "emails" and path.suffix.lower() == ".pdf" and ocr.is_done(digest)
-            key = parse.cache_key(digest, parser, versions[parser], path.name, entry.rel, rec["is_sample"],
+            key = parse.cache_key(digest, parser, versions[parser], name, entry.rel, rec["is_sample"],
                                   "ocr" if ocr_done else "")      # OCR text arrived: parse this PDF again
             rec["parse_key"] = key
             res = results.get(key)
             if res is None or (retry_failed and res["status"] == "FAILED") or (
                     res["status"] == "UNKNOWN_TEMPLATE" and (not check_templates or
                                                              templates.is_known(res["template_fp"], parser, known_templates))):
-                tasks.append(dict(key=key, path=str(path), name=path.name, rel=entry.rel, parser=parser,
+                tasks.append(dict(key=key, path=str(path), name=name, rel=entry.rel, parser=parser,
                                   season=season, sha256=digest, is_sample=rec["is_sample"], version=versions[parser],
                                   size=entry.size_bytes))
         registry.append(rec)

@@ -96,6 +96,10 @@ def parse_date(s: str | None):
         if m:
             d, mo, y = map(int, m.groups())
     if y is None:
+        m = re.match(r"(\d{2})\.(\d{2})\.(\d{2})\s+\d{1,2}:\d{2}", t)                      # 26.06.30 16:46 (Daum quote)
+        if m:
+            y, mo, d = 2000 + int(m.group(1)), int(m.group(2)), int(m.group(3))
+    if y is None:
         m = re.search(r"\b(\d{1,2})/(\d{1,2})/(\d{4})", t)                                 # 19/10/2026 (VN/KR order d/m)
         if m:
             a, b, y = int(m.group(1)), int(m.group(2)), int(m.group(3))

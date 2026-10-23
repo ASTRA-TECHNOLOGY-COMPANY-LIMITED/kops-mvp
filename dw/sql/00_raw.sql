@@ -85,6 +85,10 @@ CREATE TABLE raw.email (
   folder VARCHAR,    -- mailbox folder (.pst) or Gmail labels (.mbox)
   text_source VARCHAR);   -- PDF exports: 'text' (text layer) or 'ocr' (scanned page read by tesseract, H-08)
 
+-- Attachments listed in a message (.mhtml: names only, the files are not in the page). Big-file links expire.
+CREATE TABLE raw.email_attachment (
+  file_id INTEGER, msg_key VARCHAR, part_no INTEGER, file_name VARCHAR, size_text VARCHAR, size_bytes BIGINT,
+  is_link BOOLEAN, expires_on DATE);
 -- Mailbox messages not loaded as business email (H-06), kept to audit the rules: folder | date-range | automated:*
 CREATE TABLE raw.email_filtered (
   file_id INTEGER, msg_key VARCHAR, message_id VARCHAR, sent_at TIMESTAMP, sender_email VARCHAR, subject VARCHAR,

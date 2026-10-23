@@ -110,7 +110,7 @@ def _doc_subject(lines: list[str]) -> str | None:
         m = re.match(r"^Gmail\s*-\s*(.+)$", ln)
         if m:
             return m.group(1).strip()
-        if re.match(r"^(\d+\s+messages?|메일\s*\d+\s*개|\d+\s+thư)$", ln.strip(), re.I) and i > 0:
+        if re.match(r"^(\d+\s+messages?|메일\s*\d+\s*개|\d+\s*개의\s*메일|\d+\s+thư)$", ln.strip(), re.I) and i > 0:
             return lines[i - 1].strip()
     return None
 

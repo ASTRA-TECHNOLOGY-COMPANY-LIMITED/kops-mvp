@@ -88,6 +88,11 @@ CHECKS = [
      "2026-10-14 14:05"),
     ("Email: scanned PDF without text is reported, not guessed", ("file", "09_scanned_no_text"),
      "SELECT count(*) FROM etl.data_issue WHERE code='PDF_NO_TEXT'", 1),
+    ("Email: Gmail .mhtml thread: messages / first sent / expiring link attachments", ("file", "10_gmail_saved_thread"),
+     """SELECT count(*) FILTER (WHERE NOT is_quoted) || ' / ' || strftime(min(sent_at), '%Y-%m-%d %H:%M') || ' / ' ||
+        (SELECT count(*) FILTER (WHERE is_link AND expires_on = DATE '2026-08-19') || ' of ' || count(*)
+         FROM raw.email_attachment a JOIN etl.source_file f USING (file_id) WHERE f.file_name LIKE '10_gmail%')
+        FROM raw.email e JOIN etl.source_file f USING (file_id) WHERE f.file_name LIKE '10_gmail%'""", "2 / 2026-07-20 07:27 / 1 of 3"),
 ]
 
 
