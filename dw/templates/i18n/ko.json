@@ -45,7 +45,7 @@
  "Dự báo xong": "예상 완료",
  "Dự báo xong sau RDD": "예상 완료가 RDD 이후",
  "Dự báo xong so với ETD (40 style cần chú ý)": "예상 완료 vs ETD (주의 스타일 40개)",
- "ETD / ngày cắt {d1} trước đầu mùa ({d2}) quá 120 ngày: nghi gõ sai năm": "ETD / 재단일 {d1}이(가) 시즌 시작({d2})보다 120일 이상 빠름: 연도 오기 의심",
+ "ETD / ngày cắt {d1} trước đầu mùa ({d2}) quá {n} ngày: nghi gõ sai năm": "ETD / 재단일 {d1}이(가) 시즌 시작({d2})보다 {n}일 이상 빠름: 연도 오기 의심",
  "ETD gần nhất": "최근 ETD",
  "ETD lô đầu − ETD VN": "첫 선적 ETD − ETD VN",
  "ETD lô đầu − ETD VN (âm = xuất sớm)": "첫 선적 ETD − ETD VN (음수 = 조기 선적)",

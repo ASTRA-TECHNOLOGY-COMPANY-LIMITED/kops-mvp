@@ -11,13 +11,14 @@
 --   DAILY_STALE       factory with running styles has sent no daily report for more than 1 weekday (Q32, ASM-FRESH-01)
 --   PROPOSAL_PENDING  change read from an e-mail waiting for review (PENDING_REVIEW)
 --   FILE_MISMATCH     numbers differ between files / a total cell is wrong (priority 1 findings), or the ETD / cut date
---                     lies more than 120 days before the season starts (year typed wrong, Q46: txt ETD_YEAR); actions that
+--                     lies more than year_suspect_days (240) before the season starts (year typed wrong, Q46: txt ETD_YEAR); actions that
 --                     rely on the suspect date are not raised (ETD -> FORECAST_LATE, cut date -> plan / material / approval)
 CREATE TABLE mart.mgr_action AS
 WITH st AS (
   SELECT s.style_key, s.customer, s.season, s.brand, s.style_no, s.style_nk, s.factory_code, s.etd, s.rdd, s.order_qty,
          m.shipped, m.risk_reason, m.ready_date,
-         coalesce(s.etd < n.start_date - 120, false) AS etd_suspect, coalesce(p.cut_plan < n.start_date - 120, false) AS cut_suspect,
+         coalesce(s.etd < n.start_date - core.rule_int('year_suspect_days'), false) AS etd_suspect,
+         coalesce(p.cut_plan < n.start_date - core.rule_int('year_suspect_days'), false) AS cut_suspect,
          n.start_date
   FROM dim.style s LEFT JOIN mart.mgr_style m USING (style_key) LEFT JOIN dim.season n ON n.season = s.season
   LEFT JOIN (SELECT style_key, min(cut_plan) AS cut_plan FROM fact.plan GROUP BY 1) p USING (style_key)

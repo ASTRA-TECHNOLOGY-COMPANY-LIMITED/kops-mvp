@@ -28,6 +28,29 @@
 
 Mã câu đã đổi: bảng đổi mã nằm trong phụ lục của `open_questions.md`.
 
+## Trạng thái (Claude Code, 23/10/2026)
+
+| Task | Commit | Kết quả |
+|---|---|---|
+| E-00 | `7926382` | `.env.example` (chỉ tên biến), `.gitignore` cho phép riêng file này; `.env` có `KOPS_EMAIL_LLM=0`. `.env` đặt `KOPS_LLM_MODEL` còn code đọc `KOPS_EMAIL_LLM_MODEL` → code nhận cả hai |
+| E-01 | `7bf8fad` | 27 tham chiếu đổi theo chủ đề; `kops_dw/questions.py` + 3 check mã câu hỏi; chip lấy tiêu đề từ `open_questions.md` (Docker mount chỉ đọc) |
+| E-02 | `95fc769` | Đúng hạn: số chính chặt, số phụ "≤ ETD + 7 ngày", chip Q21; `SCORECARD_WEIGHTS` + công thức trên trang Nhà máy; `dw/party_map.local.txt` (local) 11 dòng |
+| E-03 | `3dea5a3` | `mart.style_funnel` (màu × size), cờ CUT_SHORT / OUTPUT_GT_CUT / SHIP_GT_ORDER; Style 360 + Sức khoẻ dữ liệu; golden HA HIEU sheet `9.28` J31 / N31 / Z31 = 740 / 740 / 90 |
+| E-04 | `616d899` | Trang "Việc cần xử lý" (`mart.mgr_action`), mùa mặc định = mùa đang chạy (27SS), nhớ mùa theo người xem; ngày gõ sai năm (Q46) báo riêng |
+| E-05 | `ddb17c4` | VI / KO: 256 khoá, `templates/i18n/{vi,ko}.json`, 3 check (đủ bản dịch, placeholder, không còn chữ Việt ngoài `L()`) |
+| E-06 | `c6c4919` | In / PDF (A4 ngang), CSV mọi bảng, `kops_dw report` / `make report` (Chromium trong image) |
+| E-07 | `9b28f12` | `make check-ui` (Playwright): 153 lượt mở trang, 891/891; sửa favicon 404, Style 360 hiện số giả định khi đã tắt, bảng mobile; ảnh "Tiến độ sản xuất · sáng · mobile" chụp được |
+| E-08 | `30d0f65` | `make refresh`; trang đang mở tự nạp bản build mới (đổi thư mục dữ liệu nguyên khối); đầu trang ghi ngày dữ liệu / file mới nhất / build; hướng dẫn "Thêm file KLMAS mới" |
+| E-09 | (commit này) | Tài liệu; ngưỡng nghi gõ sai năm thành `year_suspect_days` = 240 (MIZUNO 27SS giao từ 21/09/2026 là thật) |
+
+Check: 92/92 (80 cũ + 12 mới), check-ui 891/891 (máy và Docker), bench accept 10/10. Docker: image 2,32 GB, `make up` từ volume
+trống 2 phút 18 giây, `make refresh` 43 giây.
+
+Việc cần xử lý 27SS (23/10): kế hoạch trễ 12, thiếu duyệt mẫu 6, thiếu báo cáo ngày 2, đề xuất email chờ duyệt 21, lệch số
+giữa file 28 (13 ETD gõ sai năm + 15 ô tổng). Vật tư về trễ: 0 (email vật tư mới nhất 18/10, trước mọi ngày cắt 27SS).
+
+Còn mở: D-03 (chưa có key); danh sách "chưa rõ" của `party_map` chờ PO duyệt; bản tiếng Hàn chờ người Hàn đọc lại.
+
 ## Prompt cho Claude Code terminal
 
 ```text

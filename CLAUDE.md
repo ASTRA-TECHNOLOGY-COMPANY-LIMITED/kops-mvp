@@ -1,7 +1,8 @@
 # CLAUDE.md — kops-mvp (KOPS · KLMAS Order & Production System)
 
 Project context for Claude Code. Team-wide rules live in `GUIDELINES.md`; read it before changing anything.
-Next step: `plans/DASHBOARD_V2_PLAN.md` (27SS operations, VI/KO, export, UI tests); done before: `plans/DASHBOARD_DOCKER_PLAN.md`. Latest hand-off: `plans/HANDOFF_2026-10-23.md` (decisions 23/10, new-docs + emails, prompt for the next Claude Code run); before that `plans/HANDOFF_2026-10-22.md`.
+Done: `plans/DASHBOARD_V2_PLAN.md` (E-00..E-09: 27SS action list, VI/KO, PDF/CSV export, UI tests, `make refresh`; status section
+lists open PO decisions); before that `plans/DASHBOARD_DOCKER_PLAN.md`. Latest hand-off: `plans/HANDOFF_2026-10-23.md` (decisions 23/10, new-docs + emails, prompt for the next Claude Code run); before that `plans/HANDOFF_2026-10-22.md`.
 
 ## What this is
 - Customer: **KLMAS** (Korean garment sourcing office in Vietnam: production management + third-party QC).
@@ -24,10 +25,13 @@ Next step: `plans/DASHBOARD_V2_PLAN.md` (27SS operations, VI/KO, export, UI test
 # macOS: dw/.venv was created in a Linux VM and does not run on the Mac -> use a Mac venv
 python3 -m venv .venv-mac && .venv-mac/bin/pip install -r requirements.txt   # once
 brew install --cask libreoffice                                            # needed for .xlsb
-.venv-mac/bin/python -m kops_dw            # build + test (80 checks) + dashboards -> build/manager.html, dashboard.html, data/
+.venv-mac/bin/python -m kops_dw            # build + test (92 checks) + dashboards -> build/manager.html, dashboard.html, data/
 .venv-mac/bin/python -m kops_dw test       # golden / structural checks only (golden pinned to file versions, snapshot DBs)
-.venv-mac/bin/python -m kops_dw serve --open   # http://127.0.0.1:8765/ manager dashboard (8 pages), /dashboard.html analyst
-make up / make up-real / make check / make logs / make down   # from the repo root: whole stack in Docker (dw/README.md)
+.venv-mac/bin/python -m kops_dw serve --open   # http://127.0.0.1:8765/ manager dashboard (9 pages, VI/KO), /dashboard.html analyst
+.venv-mac/bin/python -m kops_dw check-ui --out /tmp/kops-ui   # Playwright UI test (system Chrome / Chromium), shots outside repo
+.venv-mac/bin/python -m kops_dw report --season 27SS --lang ko --out <dir>   # PDF of actions + overview (local only, KLMAS data)
+.venv-mac/bin/python -m kops_dw i18n       # sync templates/i18n/vi.json from manager.html, list keys missing in ko.json
+make up / make up-real / make refresh / make check / make check-ui / make report / make logs / make down   # Docker (dw/README.md)
 .venv-mac/bin/python -m kops_dw fetch-imap --host … --user … --folder … --since YYYY-MM-DD   # read-only, KOPS_IMAP_PASSWORD env
 .venv-mac/bin/python -m kops_dw attachments  # .eml attachments -> raw-docs/EMAIL_ATTACHMENTS/
 .venv-mac/bin/python -m kops_dw ocr          # OCR queued scanned PDF pages (tesseract kor+vie+eng), then rebuild
@@ -36,7 +40,9 @@ make up / make up-real / make check / make logs / make down   # from the repo ro
 .venv-mac/bin/python -m kops_dw bench accept --out /tmp/kops-bench   # history-scale acceptance (data outside repo)
 ```
 Linked model `dim` / `fact` / `bridge` (dw/docs/data_model.md); synthetic demo data only in schema `sim`, always labelled
-(dw/docs/assumptions.md, KOPS_SIM=0 to drop it); manager metrics `mart.mgr_*` (dw/docs/metrics.md).
+(dw/docs/assumptions.md, KOPS_SIM=0 to drop it); manager metrics `mart.mgr_*`, action list `mart.mgr_action`, colour × size
+funnel `mart.style_funnel` (dw/docs/metrics.md). UI text: `L('…')` + `dw/templates/i18n/{vi,ko}.json` (checked). Question codes
+`Qnn` used anywhere must be registered in `dw/kops_dw/questions.py` (checked against analys-docs/open_questions.md).
 Builds are incremental (manifest + Parquet lake in `dw/build/lake`, parallel parse, quarantine in
 `dw/build/quarantine.csv`); deleting `dw/build/lake` forces a full re-parse. Details: `dw/README.md`.
 Emails: drop `.pdf` / `.eml` / `.msg` / `.mbox` anywhere under `raw-docs/inbox/`; Gmail threads saved as `.mhtml` are read

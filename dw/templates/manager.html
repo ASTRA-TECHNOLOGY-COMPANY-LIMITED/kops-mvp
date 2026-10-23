@@ -299,7 +299,7 @@ function actReason(a) {
     case 'APPROVAL_MISSING': return L('Cắt {d} nhưng chưa thấy {m}', {d: dshort(a.d1), m: (a.txt || '').split(',').map(x => x === 'FPP_CFMD' ? 'FPP CFMD' : L('DM duyệt')).join(' + ')});
     case 'DAILY_STALE': return a.d1 ? L('{n} ngày làm việc chưa gửi báo cáo ngày (cuối {d}); {s} style đang may', {n: fmt(a.n1), d: dshort(a.d1), s: fmt(a.txt)}) : L('Chưa từng gửi báo cáo ngày; {s} style đang may', {s: fmt(a.txt)});
     case 'PROPOSAL_PENDING': return L('Email đề xuất {x} ({d}), chưa duyệt', {x: esc(a.txt || ''), d: dshort(a.d1)});
-    case 'FILE_MISMATCH': return a.txt === 'ETD_YEAR' ? L('ETD / ngày cắt {d1} trước đầu mùa ({d2}) quá 120 ngày: nghi gõ sai năm', {d1: dshort(a.d1), d2: dshort(a.d2)}) : esc(a.txt || '');
+    case 'FILE_MISMATCH': return a.txt === 'ETD_YEAR' ? L('ETD / ngày cắt {d1} trước đầu mùa ({d2}) quá {n} ngày: nghi gõ sai năm', {n: IDX.year_suspect_days ?? 240, d1: dshort(a.d1), d2: dshort(a.d2)}) : esc(a.txt || '');
   }
   return esc(a.txt || '');
 }

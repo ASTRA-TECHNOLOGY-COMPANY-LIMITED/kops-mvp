@@ -45,7 +45,7 @@
  "Dự báo xong": "Dự báo xong",
  "Dự báo xong sau RDD": "Dự báo xong sau RDD",
  "Dự báo xong so với ETD (40 style cần chú ý)": "Dự báo xong so với ETD (40 style cần chú ý)",
- "ETD / ngày cắt {d1} trước đầu mùa ({d2}) quá 120 ngày: nghi gõ sai năm": "ETD / ngày cắt {d1} trước đầu mùa ({d2}) quá 120 ngày: nghi gõ sai năm",
+ "ETD / ngày cắt {d1} trước đầu mùa ({d2}) quá {n} ngày: nghi gõ sai năm": "ETD / ngày cắt {d1} trước đầu mùa ({d2}) quá {n} ngày: nghi gõ sai năm",
  "ETD gần nhất": "ETD gần nhất",
  "ETD lô đầu − ETD VN": "ETD lô đầu − ETD VN",
  "ETD lô đầu − ETD VN (âm = xuất sớm)": "ETD lô đầu − ETD VN (âm = xuất sớm)",

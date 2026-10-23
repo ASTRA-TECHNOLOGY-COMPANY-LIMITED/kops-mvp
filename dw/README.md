@@ -39,7 +39,10 @@ Cần Docker (Docker Desktop trên Mac Apple Silicon, hoặc Docker Engine trên
 ```bash
 make up          # dựng image, build kho + chạy mọi check + dựng dashboard, rồi mở http://127.0.0.1:8765
 make up-real     # như trên nhưng không có dữ liệu giả định (KOPS_SIM=0)
+make refresh     # có file KLMAS mới: build tăng dần + check + dựng lại dashboard; trang đang mở tự nạp (không cần restart)
 make check       # chạy toàn bộ check trong container
+make check-ui    # kiểm thử giao diện (Playwright + Chromium), ảnh chụp vào UI_OUT (mặc định /tmp/kops-ui, ngoài repo)
+make report SEASON=27SS REPORT_LANG=ko   # PDF "Việc cần xử lý" + "Tổng quan" vào ./reports (git-ignored, có dữ liệu KLMAS)
 make logs        # xem log; make down: dừng; make rebuild: dựng lại image; make clean: xoá volume build
 ```
 
@@ -52,8 +55,9 @@ make logs        # xem log; make down: dừng; make rebuild: dựng lại image;
   đưa vào image. Múi giờ container: Asia/Ho_Chi_Minh; `KOPS_TODAY=YYYY-MM-DD make up` để cố định "hôm nay".
 - Bật / tắt dữ liệu giả định: `make up` (bật, có nhãn "Giả định" trên trang) / `make up-real`; trên trang còn công tắc
   "Hiện dữ liệu giả định".
-- Đo ngày 23/10/2026 (MacBook Apple Silicon 8 CPU): dựng image 58 s, image 1,24 GB; build kho lạnh trong container 80 s, lần sau
-  12 s; `make up` từ đầu khoảng 1 phút 45 giây; 80/80 check trong container = ngoài container.
+- Đo ngày 23/10/2026 (MacBook Apple Silicon 8 CPU, sau E-07): image 2,32 GB (có Chromium cho PDF và kiểm thử giao diện; trước
+  là 1,24 GB); `make up` với volume trống 2 phút 18 giây (build kho lạnh 106 s); `make refresh` 43 s; `make check-ui` 92 s
+  (153 lượt mở trang, 891 kiểm tra); 92/92 check trong container = ngoài container.
 
 ### Thêm file KLMAS mới (hằng ngày)
 
@@ -126,7 +130,7 @@ Lệnh khác: `python -m kops_dw lake-compact` (viết lại lake bỏ các bả
 | `core` | Mô hình chuẩn, chỉ lấy bản hiện hành: `style_order`, `order_color`, `shipment_detail`, `production_snapshot`, `meeting`, `requirement`… (`10_core`); `order_portfolio` (mọi khách), `production_plan`, `style_dictionary` (`11_core_customers`); `email` (đã gộp trùng), `email_thread`, `email_mention` (khớp mã bằng token, N-07), `email_reply`, `change_proposal`, `proposal_file_status` (`12_core_email`); `document` (`13`); `shipment_event`, `style_milestone` (`14`); `shipping_schedule`, `buyer_order_status` (`16`) | `sql/1x_*.sql` |
 | `dim`, `fact`, `bridge` | Mô hình liên kết (D-01): khách, brand, mùa, ngày, nhà máy (+ alias), style (+ alias), bên liên lạc; fact đơn, kế hoạch, sản lượng ngày, kiểm, lỗi, lô xuất, mốc, thay đổi, email, tài liệu; bridge nhà máy theo thời gian, email ↔ style / người. Chi tiết: `docs/data_model.md` | `sql/30_model.sql` |
 | `sim` | Dữ liệu **giả định** cho bản demo (D-04): mùa 25SS / 25FW, sản lượng / kiểm / lô xuất cho chỗ thiếu; seed cố định, `assumption_id` (`docs/assumptions.md`); không vào core / fact / check golden; `KOPS_SIM=0` để tắt | `kops_dw/sim.py` |
-| `mart` | Bảng cho dashboard: `style_360`, `season_kpi`, `factory_kpi`, `supplier_styles`, `shipment_*`, `assortment`, `reconciliation`, `change_log`, `source_lineage` (`20_mart`); `customer_portfolio`, `factory_load_all`, `etd_weekly_all`, `plan_risk`, `file_version`, `version_change`, `email_*` (`25_mart_ext`); `style_timeline`, `style_event`, `material_delay`, `schedule_vs_recap`, `plan_vs_buyer_view` (`26_mart_milestone`); `cycle_coverage` (`32`); `mgr_*` chỉ số quản lý, tách phần thật / giả định (`40_mgr`, định nghĩa `docs/metrics.md`) | `sql/2x–4x_*.sql` |
+| `mart` | Bảng cho dashboard: `style_funnel` màu × size + cờ (`34_funnel`); `mgr_action` việc cần xử lý (`42_actions`); `style_360`, `season_kpi`, `factory_kpi`, `supplier_styles`, `shipment_*`, `assortment`, `reconciliation`, `change_log`, `source_lineage` (`20_mart`); `customer_portfolio`, `factory_load_all`, `etd_weekly_all`, `plan_risk`, `file_version`, `version_change`, `email_*` (`25_mart_ext`); `style_timeline`, `style_event`, `material_delay`, `schedule_vs_recap`, `plan_vs_buyer_view` (`26_mart_milestone`); `cycle_coverage` (`32`); `mgr_*` chỉ số quản lý, tách phần thật / giả định (`40_mgr`, định nghĩa `docs/metrics.md`) | `sql/2x–4x_*.sql` |
 
 Mỗi lần build dựng lại file DuckDB từ đầu (đơn giản, idempotent), nhưng chỉ **parse** file mới hoặc đổi; kết quả parse của các file khác được đọc lại từ lake Parquet (mục "Nạp tăng dần" ở trên).
 
@@ -146,12 +150,24 @@ Mỗi lần build dựng lại file DuckDB từ đầu (đơn giản, idempotent
 
 ## Dashboard
 
-**Dashboard quản lý** (trang đầu của `serve`, `templates/manager.html`, D-06): 8 trang — Tổng quan, Tiến độ sản xuất (S-curve
+**Dashboard quản lý** (trang đầu của `serve`, `templates/manager.html`, D-06, E-04..E-08): 9 trang — **Việc cần xử lý** (trang
+đầu, E-04: kế hoạch / dự báo trễ, vật tư về trễ, thiếu duyệt mẫu trước ngày cắt, nhà máy không gửi báo cáo ngày, đề xuất email
+chờ duyệt, lệch số giữa file; mỗi dòng có lý do, nguồn, hạn và mở Style 360; `mart.mgr_action`), Tổng quan, Tiến độ sản xuất (S-curve
 kế hoạch / thực tế, dự báo xong so với ETD, tải nhà máy), Xuất hàng, Chất lượng (tỉ lệ lỗi, Pareto, phàn nàn buyer), Nhà máy
 (scorecard), Thay đổi & email, Style 360 (mốc, funnel, sản lượng ngày, lô, email, thay đổi, tài liệu), Sức khoẻ dữ liệu (độ phủ
 cycle, độ tươi, dòng không nối được, chênh lệch file). Lọc mùa (có "Tất cả"), khách, brand, nhà máy; công tắc "Hiện dữ liệu giả
 định" — phần giả định luôn có nhãn **Giả định** và mã giả định khi rê chuột. Biểu đồ: ECharts 5.5.1 lưu trong
 `templates/vendor/` (không CDN). Dữ liệu `build/data/mgr/<mùa>.json`.
+- Mùa mặc định = mùa đang chạy (mùa có ETD gần nhất phía trước, hiện là 27SS); lựa chọn mùa, ngôn ngữ, tab được nhớ theo người xem
+  (localStorage). 27SS chưa có sản lượng ngày / kiểm: biểu đồ ghi "Chưa có dữ liệu", không sinh giả định.
+- **Song ngữ VI / KO** (E-05): nút ngôn ngữ ở đầu trang. Chuỗi giao diện viết bằng tiếng Việt trong `L('…')`, bản dịch ở
+  `templates/i18n/{vi,ko}.json` (thuật ngữ nghiệp vụ giữ tiếng Anh). Thêm chuỗi mới: viết `L('…')`, chạy
+  `python -m kops_dw i18n` (cập nhật `vi.json`, liệt kê khoá thiếu tiếng Hàn), thêm bản dịch vào `ko.json`; check đỏ khi còn
+  chuỗi thiếu bản dịch hoặc chữ tiếng Việt nằm ngoài `L()`.
+- **Xuất** (E-06): nút "In / PDF" trên Việc cần xử lý và Tổng quan (A4 ngang, có ngày dữ liệu, bộ lọc, nhãn giả định); nút CSV dưới
+  mọi bảng (mọi dòng theo bộ lọc, tạo ngay trong trình duyệt); `python -m kops_dw report --season 27SS --lang ko --out <thư mục>`
+  in PDF bằng Chromium headless (Docker: `make report`). PDF / CSV có dữ liệu KLMAS: chỉ lưu trên máy.
+- Mã câu hỏi KLMAS trên chip lấy tiêu đề từ `analys-docs/open_questions.md` lúc dựng (`kops_dw/questions.py`).
 
 **Dashboard phân tích** (`/dashboard.html`, 12 tab) như dưới đây.
 
@@ -174,9 +190,17 @@ Gồm 12 tab, sáng/tối, chạy tốt trên điện thoại. **Bộ lọc mùa
 
 ## Test
 
-`.venv-mac/bin/python -m kops_dw test` chạy 80 golden number và quy tắc (danh sách trong `kops_dw/checks.py`; các số gốc ở trong `GUIDELINES.md` §7), gồm cả ORDER RECAP khách khác, kế hoạch sản xuất, lịch sử phiên bản, email thật (.mhtml: mốc CHF3WJK6701, lô ABKHPH2608058 / JAKEHPH2609051) và email mẫu.
+`.venv-mac/bin/python -m kops_dw test` chạy 92 golden number và quy tắc (danh sách trong `kops_dw/checks.py`; các số gốc ở trong `GUIDELINES.md` §7), gồm cả ORDER RECAP khách khác, kế hoạch sản xuất, lịch sử phiên bản, email thật (.mhtml: mốc CHF3WJK6701, lô ABKHPH2608058 / JAKEHPH2609051) và email mẫu.
 
 **Golden theo bản file (N-05):** mỗi số golden thuộc về một phiên bản file. Check golden ghi rõ các file nó được đo (`GOLDEN_2210`: bản hiện hành ngày 22/10; `GOLDEN_2310`: ORDER RECAP 261022, PRODUCTION STATUS 261021) và chạy trên một kho snapshot dựng lại từ lake (không parse lại, ~1 s) trong đó các file ghim là bản hiện hành của family của chúng. Bản mới tới sau không làm đỏ golden cũ; bản mới có golden riêng lấy từ ô tổng của chính file đó (tên check ghi sheet/ô). Ví dụ quy tắc: không có thay đổi nào từ email bị tự áp dụng; mọi style đều truy được về file nguồn; email mẫu chứa prompt injection không làm thay đổi dữ liệu. Thiếu file nguồn nào thì bài test tương ứng được SKIP.
+
+**Mã câu hỏi (E-01):** mọi mã `Qnn` trong code / doc / template phải có trong `kops_dw/questions.py` kèm từ khoá của tiêu đề trong
+`open_questions.md`; khi KLMAS đổi mã câu hỏi, check đỏ cho tới khi cập nhật bảng này.
+
+**Kiểm thử giao diện (E-07):** `python -m kops_dw check-ui --out <thư mục ngoài repo>` (Docker: `make check-ui`): mọi trang ×
+sáng/tối × desktop/mobile × VI/KO × giả định tắt/bật (mùa 26FW) + các trang 27SS: không lỗi console, mọi biểu đồ có dữ liệu hoặc
+"Chưa có dữ liệu", chip giả định chỉ có khi bật, không cuộn ngang trên mobile, KPI chính = mart (đọc DuckDB), trang đang mở nhận
+bản build mới mà không tải lại. Dùng Chromium của hệ thống (macOS: Google Chrome; `KOPS_CHROME` để chỉ đường dẫn).
 
 ## Giới hạn của MVP
 

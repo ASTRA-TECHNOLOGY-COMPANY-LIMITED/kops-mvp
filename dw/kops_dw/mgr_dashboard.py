@@ -129,7 +129,7 @@ def render(db_path=None, build_dir=None) -> dict:
     index = dict(built_at=now.strftime("%Y-%m-%d %H:%M"), build_id=now.isoformat(timespec="microseconds"), today=today[0] if today else None,
                  seasons=seasons, default=default, current=current, sizes=sizes, sim=config.SIM, questions=questions.for_dashboard(),
                  weights=config.SCORECARD_WEIGHTS, ontime_tol_days=config.RULES["ontime_tolerance_days"],
-                 ready_buffer=config.RULES["ready_buffer_days"],
+                 ready_buffer=config.RULES["ready_buffer_days"], year_suspect_days=config.RULES["year_suspect_days"],
                  latest_file=max((str(r[2]) for r in common["sources"]["rows"] if r[2]), default=None))
     (ddir / "index.json").write_text(dump(index), encoding="utf-8")
     old = build / "data" / "mgr.old"

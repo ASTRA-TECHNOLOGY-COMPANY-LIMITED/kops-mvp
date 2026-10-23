@@ -41,6 +41,8 @@ RULES = {
     "as_of_fallback": "2026-10-12",    # when a file carries no report date
     "rate_window": 3,                  # forecast: mean of the last N days with output (spec §4.3)
     "rate_lookback_days": 10,          # ... within N days before the last report
+    "year_suspect_days": 240,          # ETD / cut date this long before the season starts = year typed wrong (Q46);
+                                       # typos are about a year early, MIZUNO 27SS ships from 21/09/2026 (~130 days)
 }
 # Factory scorecard (mart.mgr_factory, Nhà máy page): weighted mean of the components; equal until KLMAS answers Q21
 # (assumption ASM-SCORE-01). A weight of 0 drops the component.
