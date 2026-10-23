@@ -55,6 +55,7 @@ QUERIES = {
     "documents": f"""SELECT {STYLE_NK} AS style_nk, s.season, s.customer, s.brand, s.factory_code, d.file_name, d.doc_kind, d.stage, d.doc_date
                      FROM fact.document d JOIN dim.style s USING (style_key)""",
     "recon": "SELECT * FROM mart.mgr_recon",
+    "actions": "SELECT * FROM mart.mgr_action ORDER BY severity, due_date, action_id",
     "funnel": f"""SELECT f.customer || '|' || f.season || '|' || f.style_no AS style_nk, f.* EXCLUDE (is_synthetic)
                   FROM mart.style_funnel f ORDER BY style_no, color, size_code""",
     # _common (no season column)
@@ -106,6 +107,9 @@ def render(db_path=None, build_dir=None) -> dict:
             if r[i] is not None:
                 by_season.setdefault(r[i], {}).setdefault(k, {"cols": cols, "rows": []})["rows"].append(r)
     today = con.execute("SELECT rule_value FROM stg.rule WHERE rule_key = 'today'").fetchone()
+    # running season (E-04): the one whose next ETD is the nearest in the future (real styles only)
+    current = con.execute("""SELECT season FROM dim.style WHERE is_active AND etd >= core.today()
+                             GROUP BY season ORDER BY min(etd) LIMIT 1""").fetchone()
     con.close()
     seasons = sorted(by_season, key=lambda s: (s[:2], s[2:] == "FW"))
     ddir = build / "data" / "mgr"
@@ -119,10 +123,12 @@ def render(db_path=None, build_dir=None) -> dict:
         f.write_text(dump(obj), encoding="utf-8")
         sizes[name] = f.stat().st_size
     real = [s for s in seasons if not s.startswith("25")]
-    default = "26FW" if "26FW" in seasons else (real[-1] if real else seasons[-1] if seasons else None)
+    current = current[0] if current and current[0] in seasons else None
+    default = current or ("26FW" if "26FW" in seasons else (real[-1] if real else seasons[-1] if seasons else None))
     index = dict(built_at=dt.datetime.now().strftime("%Y-%m-%d %H:%M"), today=today[0] if today else None,
-                 seasons=seasons, default=default, sizes=sizes, sim=config.SIM, questions=questions.for_dashboard(),
-                 weights=config.SCORECARD_WEIGHTS, ontime_tol_days=config.RULES["ontime_tolerance_days"])
+                 seasons=seasons, default=default, current=current, sizes=sizes, sim=config.SIM, questions=questions.for_dashboard(),
+                 weights=config.SCORECARD_WEIGHTS, ontime_tol_days=config.RULES["ontime_tolerance_days"],
+                 ready_buffer=config.RULES["ready_buffer_days"])
     (ddir / "index.json").write_text(dump(index), encoding="utf-8")
     (build / "vendor").mkdir(exist_ok=True)
     for f in VENDOR.glob("*.js"):

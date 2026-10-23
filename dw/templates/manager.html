@@ -91,7 +91,7 @@ const uniq = a => [...new Set(a.filter(x => x != null && x !== ''))].sort();
 const ALL = '__all__';
 const NOANIM = new URLSearchParams(location.search).get('noanim') === '1';     // screenshots (self-check)
 let IDX = null, COMMON = null, CACHE = {}, D = {};
-const STATE = {season: null, customer: ALL, brand: ALL, factory: ALL, syn: true, tab: 'overview', style: null};
+const STATE = {season: null, customer: ALL, brand: ALL, factory: ALL, syn: true, tab: 'actions', style: null};
 const ASM = {'ASM-SIM-01': '2 mùa trước giả định từ 26FW/27SS', 'ASM-SIM-02': 'sản lượng ngày giả định (nhà máy không gửi báo cáo)',
   'ASM-SIM-03': 'kết quả kiểm giả định', 'ASM-SIM-04': 'lô xuất giả định (khách chưa gửi Shipment Status)',
   'ASM-SIM-05': 'mã lỗi giả định theo Pareto INPUT DATA', 'ASM-QC-01': 'lỗi = điểm lỗi, tỉ lệ = lỗi ÷ SL kiểm',
@@ -226,8 +226,45 @@ function delta(cur, prev, better = 'up') {
 
 /* ================================================================ pages */
 let COMMON_ROWS = {};
-const PAGES = [['overview', 'Tổng quan'], ['production', 'Tiến độ sản xuất'], ['ship', 'Xuất hàng'], ['quality', 'Chất lượng'],
+const PAGES = [['actions', 'Việc cần xử lý'], ['overview', 'Tổng quan'], ['production', 'Tiến độ sản xuất'], ['ship', 'Xuất hàng'], ['quality', 'Chất lượng'],
   ['factory', 'Nhà máy'], ['change', 'Thay đổi & email'], ['style', 'Style 360'], ['health', 'Sức khoẻ dữ liệu']];
+
+/* ---------------------------------------------------------------- actions (E-04) */
+const ACT = {PLAN_LATE: 'Kế hoạch trễ', FORECAST_LATE: 'Dự báo trễ', MATERIAL_LATE: 'Vật tư về trễ', APPROVAL_MISSING: 'Thiếu duyệt mẫu',
+  DAILY_STALE: 'Thiếu báo cáo ngày', PROPOSAL_PENDING: 'Đề xuất chờ duyệt', FILE_MISMATCH: 'Lệch số giữa file'};
+const SEV = {1: ['Nghiêm trọng', '--critical'], 2: ['Cao', '--warning'], 3: ['Trung bình', '--neutral']};
+const dshort = d => d ? String(d).slice(8, 10) + '/' + String(d).slice(5, 7) + (String(d).slice(0, 4) !== String(IDX.today || '').slice(0, 4) ? '/' + String(d).slice(2, 4) : '') : '–';
+function actReason(a) {
+  switch (a.action_type) {
+    case 'PLAN_LATE': return a.txt === 'BAL' ? `Kế hoạch: BAL ${fmt(a.n1)} ngày (xong ${dshort(a.d1)}, RDD ${dshort(a.d2)})`
+      : `Xong ${dshort(a.d1)} + ${fmt(IDX.ready_buffer ?? 5)} ngày hoàn thiện + vận chuyển > RDD ${dshort(a.d2)} (BAL ${fmt(a.n1)})`;
+    case 'FORECAST_LATE': return a.txt === 'ETD_PASSED_NOT_SHIPPED' ? `Đã qua ETD ${dshort(a.d2)} mà chưa xuất đủ` : `Dự báo sẵn sàng ${dshort(a.d1)} + vận chuyển > RDD ${dshort(a.d2)}`;
+    case 'MATERIAL_LATE': return `Vật tư ${esc(a.txt || '')} về ${dshort(a.d1)}, sau ngày cắt ${dshort(a.d2)} (${fmt(a.n1)} ngày)`;
+    case 'APPROVAL_MISSING': return `Cắt ${dshort(a.d1)} nhưng chưa thấy ${(a.txt || '').split(',').map(x => x === 'FPP_CFMD' ? 'FPP CFMD' : 'DM duyệt').join(' và ')}`;
+    case 'DAILY_STALE': return a.d1 ? `${fmt(a.n1)} ngày làm việc chưa gửi báo cáo ngày (cuối ${dshort(a.d1)}); ${fmt(a.txt)} style đang may` : `Chưa từng gửi báo cáo ngày; ${fmt(a.txt)} style đang may`;
+    case 'PROPOSAL_PENDING': return `Email đề xuất ${esc(a.txt || '')} (${dshort(a.d1)}), chưa duyệt`;
+    case 'FILE_MISMATCH': return a.txt === 'ETD_YEAR' ? `ETD / ngày cắt ${dshort(a.d1)} trước đầu mùa (${dshort(a.d2)}) quá 120 ngày: nghi gõ sai năm` : esc(a.txt || '');
+  }
+  return esc(a.txt || '');
+}
+function pageActions() {
+  const acts = T('actions');
+  const by = group(acts, a => a.action_type, () => 1);
+  const crit = acts.filter(a => a.severity === 1).length;
+  const cur = IDX.current && STATE.season === IDX.current;
+  return `
+  <div class="banner">${cur ? `Mùa đang chạy <b>${esc(IDX.current)}</b> (mùa có ETD gần nhất phía trước). ` : ''}Danh sách lấy từ dữ liệu thật (hôm nay = ${esc(IDX.today || '')}); mỗi dòng có lý do, nguồn và mở được Style 360.
+    Người phụ trách để trống: KLMAS chưa có bảng phân công ${qchip('Q50')}. ${qchip('Q32')} báo cáo thứ Bảy.</div>
+  <div class="kpis">${kpiTile('Nghiêm trọng', fmt(crit), `${fmt(acts.length)} việc`, 'Mức 1: kế hoạch / dự báo trễ, thiếu duyệt mẫu hoặc vật tư trễ khi sắp cắt (≤ 7–14 ngày)')}
+    ${Object.entries(ACT).map(([k, l]) => kpiTile(l, fmt(by.get(k) || 0), '', l)).join('')}</div>
+  <div class="card"><h3>Việc cần xử lý</h3><p class="sub">xếp theo mức độ rồi hạn; bấm một dòng để mở Style 360 (dòng theo nhà máy: lọc nhà máy)</p>
+    ${table('tAct', acts.map(a => ({...a, _src: 'Nguồn: ' + (a.source || '')})), [
+      {k: 'severity', l: 'Mức', r: v => `<span class="chip"><i style="background:var(${(SEV[v] || SEV[3])[1]})"></i>${(SEV[v] || SEV[3])[0]}</span>`},
+      {k: 'due_date', l: 'Hạn', r: v => dshort(v)}, {k: 'action_type', l: 'Loại', r: v => esc(ACT[v] || v)},
+      {k: 'style_no', l: 'Style'}, {k: 'reason', l: 'Lý do', r: (v, r) => actReason(r)}, {k: 'factory_code', l: 'Nhà máy'}, {k: 'customer', l: 'Khách'},
+      {k: 'source', l: 'Nguồn', r: v => `<span class="note">${esc(v || '')}</span>`}, {k: 'owner', l: 'Phụ trách', r: () => '–'}],
+      {limit: 25, onClick: r => r.style_nk ? openStyle(r.style_nk) : (r.factory_code ? (STATE.factory = r.factory_code, refresh()) : null)})}</div>`;
+}
 
 function pageOverview() {
   const st = styles(), k = kpis(st);
@@ -502,7 +539,7 @@ function pageHealth() {
 }
 
 /* ================================================================ shell */
-const VIEW = {overview: pageOverview, production: pageProduction, ship: pageShip, quality: pageQuality, factory: pageFactory, change: pageChange, style: pageStyle, health: pageHealth};
+const VIEW = {actions: pageActions, overview: pageOverview, production: pageProduction, ship: pageShip, quality: pageQuality, factory: pageFactory, change: pageChange, style: pageStyle, health: pageHealth};
 function render() {
   CHARTS.length = 0; Object.keys(TABLES).forEach(k => delete TABLES[k]);
   document.querySelectorAll('.chart').forEach(el => echarts.getInstanceByDom(el)?.dispose());
@@ -519,7 +556,7 @@ async function refresh() {
 }
 $('#tabs').innerHTML = PAGES.map(([k, l]) => `<button role="tab" data-t="${k}">${l}</button>`).join('');
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) showTab(b.dataset.t); });
-$('#fSeason').onchange = e => { STATE.season = e.target.value; refresh(); };
+$('#fSeason').onchange = e => { STATE.season = e.target.value; try { localStorage.setItem('kops.mgr.season', STATE.season); } catch {} refresh(); };
 $('#fCustomer').onchange = e => { STATE.customer = e.target.value; STATE.brand = ALL; refresh(); };
 $('#fBrand').onchange = e => { STATE.brand = e.target.value; refresh(); };
 $('#fFactory').onchange = e => { STATE.factory = e.target.value; refresh(); };
@@ -538,10 +575,12 @@ $('#themeBtn').onclick = () => { const r = document.documentElement, dark = r.da
   COMMON_ROWS = Object.fromEntries(Object.entries(COMMON).map(([k, t]) => [k, rowsOf(t)]));
   $('#built').textContent = 'build ' + IDX.built_at;
   STATE.syn = q.get('syn') != null ? q.get('syn') === '1' : !!IDX.sim;
-  STATE.season = q.get('season') === 'all' ? ALL : (IDX.seasons.includes(q.get('season')) ? q.get('season') : IDX.default);
+  let saved = null; try { saved = localStorage.getItem('kops.mgr.season'); } catch {}
+  const want = q.get('season') === 'all' ? ALL : q.get('season') || saved;    // URL, then this viewer's last choice, then the running season
+  STATE.season = want === ALL || IDX.seasons.includes(want) ? want : IDX.default;
   for (const k of ['customer', 'factory']) if (q.get(k)) STATE[k] = q.get(k);
-  try { STATE.tab = q.get('tab') || localStorage.getItem('kops.mgr.tab') || 'overview'; } catch { STATE.tab = q.get('tab') || 'overview'; }
-  if (!VIEW[STATE.tab]) STATE.tab = 'overview';
+  try { STATE.tab = q.get('tab') || localStorage.getItem('kops.mgr.tab') || 'actions'; } catch { STATE.tab = q.get('tab') || 'actions'; }
+  if (!VIEW[STATE.tab]) STATE.tab = 'actions';
   if (q.get('style')) STATE.style = q.get('style');
   await refresh();
   document.body.dataset.loadMs = Math.round(performance.now());

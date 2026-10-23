@@ -189,6 +189,14 @@ CHECKS = [
     ("Funnel OUTPUT_GT_CUT: CHF4MJK6404 BEIGE S (TRUONG PHUC sheet '10.14' row 173)", ("file", "261014 - 26FW  -(CHALLENGER - TRUONG PHUC"),
      """SELECT string_agg(style_no || ' ' || color || ' ' || size_code || ' ' || sewn || '/' || cut, ', ') FROM mart.style_funnel
         WHERE flags LIKE '%OUTPUT_GT_CUT%'""", "CHF4MJK6404 BEIGE S 64/32"),
+    # ---- action list (E-04): real data only, every row explained and traceable ----
+    ("Actions: rows without reason type / source / style or factory (0), synthetic rows (0)", _R27,
+     """SELECT count(*) FILTER (WHERE action_type IS NULL OR source IS NULL OR (style_nk IS NULL AND factory_code IS NULL
+                                AND action_type <> 'FILE_MISMATCH')) || ' / ' || count(*) FILTER (WHERE is_synthetic) FROM mart.mgr_action""", "0 / 0"),
+    ("Actions CHALLENGER 27SS PLAN_LATE: plan BAL < 0 (261022 CHALLENGER 27SS PRODUCTION PLAN)", ("file", "261022 MJ) CHALLENGER 27SS PRODUCTION PLAN"),
+     """SELECT string_agg(style_no || ' ' || n1, ', ' ORDER BY style_no) FROM mart.mgr_action
+        WHERE action_type = 'PLAN_LATE' AND customer = 'CHALLENGER' AND season = '27SS' AND txt = 'BAL'""",
+     "CHG1MJK7104 -3, CHG1MJK7901 -9, CHG1WJK7503 -6, CHG1WJK7951 -9, CHG2MVT7205 -1"),
     ("Daily output: per factory the daily series adds up to no more than the last-seen TTL", ("file", "261016  26FW (CHALLENGER - TBM) DAILY"),
      """SELECT count(*) FROM (SELECT s.factory_code, sum(s.output_day) AS days,
                                    (SELECT sum(output_ttl) FROM core.daily_progress p WHERE p.factory_code = s.factory_code) AS ttl
