@@ -1,23 +1,24 @@
-# KOPS local stack (D-07): `make up` -> http://127.0.0.1:8765
-#   kops-build      one shot: build the DW from raw-docs, run every check, render the dashboards (exits non-zero if a
-#                   check fails, and the dashboard then does not start)
-#   kops-dashboard  web app (login, data API, dashboards), starts after kops-build succeeded
-# raw-docs is mounted read-only; the build output stays in the named volume kops_build (not in the image, not in
-# dw/build of the host). ANTHROPIC_API_KEY and other secrets come from .env at run time (optional file).
-# Synthetic demo data (schema sim, labelled on the page): KOPS_SIM=1 (default for the demo, `make up`),
-# `make up-real` builds without it.
+# KOPS local stack (D-07, F-06): `make up` -> http://127.0.0.1:8765
+#   kops-build      one shot (image kops-app): build the DW from raw-docs, run every check, render the dashboards (exits
+#                   non-zero if a check fails, and the app then does not start)
+#   kops-dashboard  web app (image kops-app: login, data API, notifications, chatbot), starts after kops-build succeeded
+#   kops-tools      image kops-tools (Chromium + Playwright), only on demand: make check-ui, make report
+# raw-docs is mounted read-only; the DW output stays in volume kops_build (rebuildable), users / sessions / notifications /
+# chat / settings in volume kops_state (kept by make rebuild and make clean; make reset-state asks first).
+# Secrets (admin password, ANTHROPIC_API_KEY) come from .env at run time (optional file).
 name: kops
 
 x-common: &common
-  image: kops-dw:local
+  image: kops-app:local
   build:
     context: ./dw
+    target: app
   volumes:
     - ./raw-docs:/data/raw-docs:ro
     - ./analys-docs/open_questions.md:/data/open_questions.md:ro   # question codes / titles (read only)
-    - kops_build:/app/build
-    - kops_state:/app/state                # app state (users, sessions, notifications): kept across rebuilds
     - ./branding:/app/branding:ro          # logo / favicon: replace the files, reload the page (no rebuild)
+    - kops_build:/app/build
+    - kops_state:/app/state
   env_file:
     - path: .env
       required: false
@@ -42,7 +43,22 @@ services:
     depends_on:
       kops-build:
         condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8765/healthz', timeout=4).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
     restart: unless-stopped
+
+  kops-tools:
+    <<: *common
+    image: kops-tools:local
+    build:
+      context: ./dw
+      target: tools
+    profiles: ["tools"]
+    restart: "no"
 
 volumes:
   kops_build:

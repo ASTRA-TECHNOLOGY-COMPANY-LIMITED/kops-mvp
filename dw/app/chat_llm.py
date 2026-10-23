@@ -171,7 +171,9 @@ def ask(question: str, lang: str = "vi", client=None) -> dict:
     text = "".join(getattr(b, "text", "") for b in (response.content if response else []) if getattr(b, "type", "") == "text")
     if response is not None and response.stop_reason == "refusal":
         text = text or ("Câu hỏi bị từ chối." if lang == "vi" else "요청이 거절되었습니다.")
-    idx = config.BUILD_DIR / "data" / "mgr" / "index.json"
-    today = json.loads(idx.read_text(encoding="utf-8")).get("today") if idx.is_file() else None
+    con = duckdb.connect(str(config.DB_PATH), read_only=True)
+    r = con.execute("SELECT rule_value FROM stg.rule WHERE rule_key = 'today'").fetchone()
+    con.close()
+    today = r[0] if r else None
     return {"intent": "ai", "mode": "ai", "text": text.strip(), "facts": {"tools": used}, "table": None,
             "sources": list(dict.fromkeys(sources)), "data_date": today, "synthetic": False, "links": []}

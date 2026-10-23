@@ -49,10 +49,12 @@ class Ctx:
         self.lang = lang if lang in ("vi", "ko") else "vi"
         self.filters = filters or {}
         self.con = duckdb.connect(str(config.DB_PATH), read_only=True)
-        idx = config.BUILD_DIR / "data" / "mgr" / "index.json"
-        meta = json.loads(idx.read_text(encoding="utf-8")) if idx.is_file() else {}
-        self.today = meta.get("today")
-        self.current = meta.get("current")
+        # data date and running season straight from the warehouse (the dashboard JSON may not be rendered yet)
+        r = self.con.execute("SELECT rule_value FROM stg.rule WHERE rule_key = 'today'").fetchone()
+        self.today = r[0] if r else None
+        r = self.con.execute("""SELECT season FROM dim.style WHERE is_active AND etd >= CAST(? AS DATE)
+                                GROUP BY season ORDER BY min(etd) LIMIT 1""", (self.today or dt.date.today().isoformat(),)).fetchone()
+        self.current = r[0] if r else None
 
     def t(self, vi: str, ko: str, **kw) -> str:
         s = ko if self.lang == "ko" else vi

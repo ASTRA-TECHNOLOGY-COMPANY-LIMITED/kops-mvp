@@ -1,0 +1,3 @@
+# Tools image only (kops-tools): UI test and PDF reports drive the system Chromium, no browser download.
+# Local runs: pip install -r requirements-tools.txt next to requirements.txt.
+playwright==1.63.0

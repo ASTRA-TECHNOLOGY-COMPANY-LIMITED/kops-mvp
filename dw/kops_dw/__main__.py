@@ -45,6 +45,20 @@ def main(argv=None):
     if cmd == "chat-eval":       # chatbot golden cases (dw/eval/chat_cases.json), basic mode
         from app.chat_eval import cli
         sys.exit(cli())
+    if cmd == "backup-state":    # copy state/app.db (users, notifications, chat, settings) into a folder (make backup-state)
+        import datetime as dt
+        import sqlite3
+        from pathlib import Path
+        from . import config
+        out = Path(argv[1] if len(argv) > 1 else "backups")
+        out.mkdir(parents=True, exist_ok=True)
+        dest = out / f"app-{dt.datetime.now():%Y%m%d-%H%M%S}.db"
+        src, dst = sqlite3.connect(config.STATE_DIR / "app.db"), sqlite3.connect(dest)
+        src.backup(dst)
+        dst.close()
+        src.close()
+        print(f"backup: {dest.name} ({dest.stat().st_size / 1e3:.0f} kB)")
+        return
     if cmd == "check-ui":      # Playwright UI test of the manager dashboard (E-07)
         from .uitest import run as check_ui
         sys.exit(check_ui(argv[1:]))

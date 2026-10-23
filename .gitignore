@@ -17,6 +17,7 @@ dw/mail_allow.local.txt
 dw/party_map.local.txt
 # PDF reports / CSV exports with KLMAS data (make report)
 reports/
+backups/
 
 # Secrets (ANTHROPIC_API_KEY ...) for docker compose / local runs
 .env

@@ -7,7 +7,6 @@ fastapi==0.160.0      # web app (dw/app): login, data API, notifications, chatbo
 uvicorn==0.53.0
 argon2-cffi==25.1.0   # password hashing
 httpx==0.28.1         # app tests (FastAPI TestClient)
-playwright==1.63.0   # UI tests (python -m kops_dw check-ui / make check-ui); drives the system Chromium, no browser download
 # optional Python packages:
 #   extract-msg    -> read Outlook .msg emails
 #   anthropic      -> LLM email extractor (KOPS_EMAIL_LLM=1, only after PO decision P2)
