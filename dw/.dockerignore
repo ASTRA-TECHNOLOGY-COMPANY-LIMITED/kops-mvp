@@ -1,0 +1,16 @@
+# Nothing with KLMAS data, secrets or local environments goes into the image (D-07).
+build/
+.venv/
+.venv-mac/
+**/__pycache__/
+*.pyc
+.env
+.env.*
+*.local.txt
+lake/
+bench*/
+*.duckdb
+*.parquet
+docs/
+Dockerfile
+.dockerignore

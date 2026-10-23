@@ -31,6 +31,30 @@ Kết quả nằm trong `dw/build/` (đã `.gitignore`):
 
 > `dashboard.html` và `kops.duckdb` chứa dữ liệu kinh doanh của KLMAS. Chỉ chia sẻ trong phạm vi dự án (GUIDELINES §8).
 
+### Chạy bằng Docker
+
+Cần Docker (Docker Desktop trên Mac Apple Silicon, hoặc Docker Engine trên Linux x86_64) và thư mục `raw-docs/` cạnh
+`docker-compose.yml`. Không cần Python, LibreOffice hay tesseract trên máy: image có đủ.
+
+```bash
+make up          # dựng image, build kho + chạy mọi check + dựng dashboard, rồi mở http://127.0.0.1:8765
+make up-real     # như trên nhưng không có dữ liệu giả định (KOPS_SIM=0)
+make check       # chạy toàn bộ check trong container
+make logs        # xem log; make down: dừng; make rebuild: dựng lại image; make clean: xoá volume build
+```
+
+- `kops-build` chạy một lần: build → check → dashboard; check đỏ thì dừng và `kops-dashboard` không chạy.
+- `raw-docs` mount **chỉ đọc**; kết quả build nằm trong volume `kops_build` (không lẫn với `dw/build` của máy). Image chỉ có
+  code và email mẫu tổng hợp, không có file KLMAS (kiểm: `docker run --rm --entrypoint ls kops-dw:local -R /app`).
+- Cổng chỉ mở trên `127.0.0.1:8765` (máy này). Server chỉ phục vụ `manager.html`, `dashboard.html`, `data/**.json`,
+  `vendor/*.js`; file DuckDB, lake không truy cập được qua HTTP.
+- `ANTHROPIC_API_KEY` (khi bật bóc tách email bằng AI) đặt trong `.env` ở gốc repo (không commit), compose đọc lúc chạy, không
+  đưa vào image. Múi giờ container: Asia/Ho_Chi_Minh; `KOPS_TODAY=YYYY-MM-DD make up` để cố định "hôm nay".
+- Bật / tắt dữ liệu giả định: `make up` (bật, có nhãn "Giả định" trên trang) / `make up-real`; trên trang còn công tắc
+  "Hiện dữ liệu giả định".
+- Đo ngày 23/10/2026 (MacBook Apple Silicon 8 CPU): dựng image 58 s, image 1,24 GB; build kho lạnh trong container 80 s, lần sau
+  12 s; `make up` từ đầu khoảng 1 phút 45 giây; 80/80 check trong container = ngoài container.
+
 ### Thêm dữ liệu
 
 | Muốn thêm | Làm gì |

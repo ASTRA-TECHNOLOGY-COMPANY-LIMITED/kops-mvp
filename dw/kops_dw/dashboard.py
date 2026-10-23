@@ -189,12 +189,14 @@ def serve(argv: list[str]) -> int:
     import functools
     import webbrowser
     port = int(argv[argv.index("--port") + 1]) if "--port" in argv else 8765
+    # inside the Docker container: --host 0.0.0.0, the host side publishes 127.0.0.1:8765 only (docker-compose.yml)
+    host = argv[argv.index("--host") + 1] if "--host" in argv else "127.0.0.1"
     if not (config.BUILD_DIR / "data" / "index.json").exists():
         render()
     handler = functools.partial(_Handler, directory=str(config.BUILD_DIR))
-    httpd = ThreadingHTTPServer(("127.0.0.1", port), handler)
+    httpd = ThreadingHTTPServer((host, port), handler)
     url = f"http://127.0.0.1:{port}/"
-    print(f"Dashboard on {url} (Ctrl+C to stop; local only)")
+    print(f"Dashboard on {url} (Ctrl+C to stop; listening on {host})", flush=True)
     if "--open" in argv:
         webbrowser.open(url)
     try:

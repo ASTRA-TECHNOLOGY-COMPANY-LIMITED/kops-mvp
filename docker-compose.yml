@@ -1,0 +1,42 @@
+# KOPS local stack (D-07): `make up` -> http://127.0.0.1:8765
+#   kops-build      one shot: build the DW from raw-docs, run every check, render the dashboards (exits non-zero if a
+#                   check fails, and the dashboard then does not start)
+#   kops-dashboard  static server for the dashboards, starts after kops-build succeeded
+# raw-docs is mounted read-only; the build output stays in the named volume kops_build (not in the image, not in
+# dw/build of the host). ANTHROPIC_API_KEY and other secrets come from .env at run time (optional file).
+# Synthetic demo data (schema sim, labelled on the page): KOPS_SIM=1 (default for the demo, `make up`),
+# `make up-real` builds without it.
+name: kops
+
+x-common: &common
+  image: kops-dw:local
+  build:
+    context: ./dw
+  volumes:
+    - ./raw-docs:/data/raw-docs:ro
+    - kops_build:/app/build
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    KOPS_SIM: ${KOPS_SIM:-1}
+    KOPS_TODAY: ${KOPS_TODAY:-}
+
+services:
+  kops-build:
+    <<: *common
+    command: ["sh", "-c", "python -m kops_dw build && python -m kops_dw test && python -m kops_dw dashboard"]
+    restart: "no"
+
+  kops-dashboard:
+    <<: *common
+    command: ["python", "-m", "kops_dw", "serve", "--host", "0.0.0.0", "--port", "8765"]
+    ports:
+      - "127.0.0.1:8765:8765"          # this machine only
+    depends_on:
+      kops-build:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+volumes:
+  kops_build:
