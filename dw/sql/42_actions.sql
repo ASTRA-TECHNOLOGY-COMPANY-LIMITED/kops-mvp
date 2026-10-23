@@ -6,7 +6,7 @@
 --   FORECAST_LATE     daily-report forecast ready + transit > RDD, or ETD passed and not shipped (mgr_style.risk_reason)
 --   MATERIAL_LATE     material for the factory arrives after the planned cut date (inbound_material events in e-mail;
 --                     arrival = ETA, else ETD + 7 days, assumption ASM-MAT-01)
---   APPROVAL_MISSING  cut planned within 21 days (or passed, nothing shipped) and no FPP CFMD / DM approval milestone
+--   APPROVAL_MISSING  cut planned from 7 days ago to 21 days ahead, nothing shipped, and no FPP CFMD / DM approval milestone
 --                     on or before the cut date in e-mails or documents
 --   DAILY_STALE       factory with running styles has sent no daily report for more than 1 weekday (Q32, ASM-FRESH-01)
 --   PROPOSAL_PENDING  change read from an e-mail waiting for review (PENDING_REVIEW)
@@ -39,7 +39,7 @@ plan_late AS (
      OR p.finish_plan + core.rule_int('ready_buffer_days') + core.rule_int('rdd_offset_days') > coalesce(p.rdd, s.rdd))),
 forecast_late AS (
   SELECT 'FORECAST_LATE', 1, core.today(), style_key, factory_code, ready_date, CASE WHEN risk_reason = 'ETD_PASSED_NOT_SHIPPED' THEN etd ELSE rdd END,
-         NULL::BIGINT, risk_reason, 'ORDER RECAP · Shipment Status · báo cáo sản xuất ngày'
+         NULL::BIGINT, risk_reason, 'ORDER RECAP · Shipment Status · DAILY PRODUCTION REPORT'
   FROM open_st WHERE risk_reason IN ('FORECAST_AFTER_RDD', 'ETD_PASSED_NOT_SHIPPED') AND NOT etd_suspect),
 mat AS (
   SELECT e.*, f.factory_code AS ev_factory, coalesce(e.eta, e.etd_new + 7) AS arrival
@@ -60,9 +60,9 @@ approval_missing AS (
          s.style_key, s.factory_code, p.cut_plan, NULL::DATE, NULL::BIGINT,
          concat_ws(',', CASE WHEN a.fpp IS NULL OR a.fpp > p.cut_plan THEN 'FPP_CFMD' END,
                         CASE WHEN a.dm IS NULL OR a.dm > p.cut_plan THEN 'DM_APPROVAL' END),
-         p.file_name || ' (ngày cắt) · email / tài liệu (mốc)'
+         p.file_name || ' (CUT) · e-mail / documents (FPP CFMD, DM)'
   FROM pl p JOIN open_st s USING (style_key) LEFT JOIN appr a USING (style_key)
-  WHERE NOT s.cut_suspect AND p.cut_plan <= core.today() + 21 AND coalesce(s.shipped, 0) = 0
+  WHERE NOT s.cut_suspect AND p.cut_plan BETWEEN core.today() - 7 AND core.today() + 21 AND coalesce(s.shipped, 0) = 0
     AND (a.fpp IS NULL OR a.fpp > p.cut_plan OR a.dm IS NULL OR a.dm > p.cut_plan)),
 running AS (     -- factory x customer x season with styles on the line: cut planned / reported, not shipped, ETD not long past
   SELECT s.customer, s.season, s.factory_code, count(*) AS n
@@ -75,7 +75,7 @@ daily_stale AS (
   SELECT 'DAILY_STALE', CASE WHEN l.last_report IS NULL OR mart.weekdays_between(l.last_report, core.today()) > 5 THEN 2 ELSE 3 END,
          core.today(), NULL::BIGINT, r.factory_code, l.last_report, NULL::DATE,
          CASE WHEN l.last_report IS NOT NULL THEN mart.weekdays_between(l.last_report, core.today()) END, r.n::VARCHAR,
-         coalesce('báo cáo sản xuất ngày, file cuối ' || strftime(l.last_report, '%d/%m'), 'chưa nhận báo cáo sản xuất ngày nào'),
+         coalesce('DAILY PRODUCTION REPORT ' || strftime(l.last_report, '%d/%m'), 'DAILY PRODUCTION REPORT: –'),
          r.customer, r.season
   FROM running r LEFT JOIN last_rep l USING (customer, factory_code)
   WHERE l.last_report IS NULL OR mart.weekdays_between(l.last_report, core.today()) > 1),
@@ -97,7 +97,7 @@ mismatch AS (
   UNION ALL
   SELECT 'FILE_MISMATCH', 2, core.today(), s.style_key, s.factory_code, CASE WHEN s.etd_suspect THEN s.etd ELSE p.cut_plan END,
          s.start_date, NULL::BIGINT, 'ETD_YEAR',
-         CASE WHEN s.etd_suspect THEN 'ORDER RECAP (ETD)' ELSE 'PRODUCTION PLAN (ngày cắt)' END, s.customer, s.season
+         CASE WHEN s.etd_suspect THEN 'ORDER RECAP (ETD)' ELSE 'PRODUCTION PLAN (CUT)' END, s.customer, s.season
   FROM st s LEFT JOIN (SELECT style_key, min(cut_plan) AS cut_plan FROM fact.plan GROUP BY 1) p USING (style_key)
   WHERE s.etd_suspect OR s.cut_suspect),
 styled AS (

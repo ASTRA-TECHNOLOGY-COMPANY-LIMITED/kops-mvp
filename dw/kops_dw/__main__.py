@@ -38,6 +38,11 @@ def main(argv=None):
     if cmd == "mail-allow":
         from .mailallow import cli as mail_allow
         sys.exit(mail_allow(argv[1:]))
+    if cmd == "i18n":          # rewrite templates/i18n/vi.json from manager.html, list keys without Korean text
+        from .i18n import sync
+        missing = sync()
+        print(f"{len(missing)} key(s) without Korean text" + "".join(f"\n  {k}" for k in missing))
+        sys.exit(1 if missing else 0)
     if cmd == "templates":
         from .templates import cli
         return cli(args[1:] + sorted(flags))

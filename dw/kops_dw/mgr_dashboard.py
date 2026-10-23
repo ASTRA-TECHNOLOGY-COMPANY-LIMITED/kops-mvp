@@ -12,7 +12,7 @@ import shutil
 
 import duckdb
 
-from . import config, questions
+from . import config, i18n, questions
 
 TEMPLATE = config.DW_DIR / "templates" / "manager.html"
 VENDOR = config.DW_DIR / "templates" / "vendor"
@@ -39,7 +39,7 @@ QUERIES = {
                 UNION ALL
                 SELECT coalesce({STYLE_NK}, 'SIM|' || x.customer || '|' || x.season || '|' || x.style_code), x.season, x.customer,
                        coalesce(s.brand, x.customer), x.factory_code, x.lot_label,
-                       x.lot_etd, x.ship_mode, x.qty, 'giả định', true, x.assumption_id
+                       x.lot_etd, x.ship_mode, x.qty, 'SIM', true, x.assumption_id
                 FROM sim.shipment_lot x LEFT JOIN dim.style s ON s.style_key = x.style_key""",
     "daily": f"""SELECT {STYLE_NK} AS style_nk, s.season, s.customer, s.brand, s.factory_code, d.fact_date, d.output_day, d.output_ttl, false AS is_synthetic
                  FROM fact.daily_output d JOIN dim.style s USING (style_key)
@@ -133,5 +133,5 @@ def render(db_path=None, build_dir=None) -> dict:
     (build / "vendor").mkdir(exist_ok=True)
     for f in VENDOR.glob("*.js"):
         shutil.copyfile(f, build / "vendor" / f.name)
-    shutil.copyfile(TEMPLATE, build / "manager.html")
+    (build / "manager.html").write_text(i18n.embed(TEMPLATE.read_text(encoding="utf-8")), encoding="utf-8")   # VI / KO text
     return sizes

@@ -332,8 +332,9 @@ def run_checks(db_path=None) -> bool:
     for f, m in failed:
         ok = False
         print(f"  FAIL  source failed to parse: {f}: {m}")
+    from .i18n import check as i18n_check
     from .questions import check as question_check
-    for name, good, detail in question_check():
+    for name, good, detail in question_check() + i18n_check():
         ok &= good
         print(f"  {'PASS' if good else 'FAIL'}  {name}: {detail}")
     print("ALL PASS" if ok else "SOME CHECKS FAILED")
