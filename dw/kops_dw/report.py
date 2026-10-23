@@ -36,8 +36,17 @@ def _arg(argv: list[str], name: str, default=None):
     return argv[argv.index(name) + 1] if name in argv and argv.index(name) + 1 < len(argv) else default
 
 
-def run(argv: list[str]) -> int:
+def start_server() -> tuple[ThreadingHTTPServer, int]:
+    """Dashboard server on 127.0.0.1, random port, in a background thread (render first if needed)."""
     from .dashboard import _Handler, render
+    if not (config.BUILD_DIR / "manager.html").exists():
+        render()
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(_Handler, directory=str(config.BUILD_DIR)))
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    return httpd, httpd.server_address[1]
+
+
+def run(argv: list[str]) -> int:
     season, lang, out = _arg(argv, "--season"), _arg(argv, "--lang", "vi"), _arg(argv, "--out")
     pages = [p for p in _arg(argv, "--pages", ",".join(PAGES)).split(",") if p]
     syn = _arg(argv, "--syn")
@@ -48,13 +57,9 @@ def run(argv: list[str]) -> int:
     if not chrome:
         print("Chromium / Chrome not found: set KOPS_CHROME, or run inside the Docker image (make report).")
         return 1
-    if not (config.BUILD_DIR / "manager.html").exists():
-        render()
     out_dir = Path(out)
     out_dir.mkdir(parents=True, exist_ok=True)
-    httpd = ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(_Handler, directory=str(config.BUILD_DIR)))
-    threading.Thread(target=httpd.serve_forever, daemon=True).start()
-    port = httpd.server_address[1]
+    httpd, port = start_server()
     made = []
     try:
         with tempfile.TemporaryDirectory(prefix="kops-chrome-") as profile:

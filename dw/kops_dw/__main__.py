@@ -38,6 +38,9 @@ def main(argv=None):
     if cmd == "mail-allow":
         from .mailallow import cli as mail_allow
         sys.exit(mail_allow(argv[1:]))
+    if cmd == "check-ui":      # Playwright UI test of the manager dashboard (E-07)
+        from .uitest import run as check_ui
+        sys.exit(check_ui(argv[1:]))
     if cmd == "report":        # PDF of the action list / overview (headless Chromium, local only)
         from .report import run as report
         sys.exit(report(argv[1:]))

@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>KOPS</title>
+<link rel="icon" href="data:,">
 <style>
 :root{
   --bg:#f6f7f9;--surface:#ffffff;--surface-2:#f0f2f5;--text:#16191d;--text-2:#555d68;--line:#e2e5ea;--line-strong:#c9ced6;
@@ -41,7 +42,7 @@ main{max-width:1360px;margin:0 auto;padding:18px 20px 60px}
 .grid.g1{grid-template-columns:1fr}.grid.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
 .card h3{margin:0 0 2px;font-size:14.5px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}.card .sub{margin:0 0 8px;color:var(--text-2);font-size:12.5px}
-.chart{width:100%;height:300px}.chart.tall{height:420px}.chart.small{height:150px}
+.chart{width:100%;height:300px}.chart.nodata{height:auto}.chart.tall{height:420px}.chart.small{height:150px}
 .qref{text-decoration:underline dotted;cursor:help}
 .syn{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;background:color-mix(in srgb,var(--syn) 18%,transparent);color:var(--syn);border:1px solid color-mix(in srgb,var(--syn) 40%,transparent);cursor:help}
 .tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px}
@@ -55,7 +56,8 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}tr.click{cursor:poi
 .heat td{text-align:center;font-size:12px;font-weight:600}
 .tfoot{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:6px}.tfoot .pager{margin:0}
 button.csv{font-size:11.5px;padding:1px 7px}.printhead{display:none}.pagebar{display:flex;justify-content:flex-end;margin:-6px 0 8px}
-@media (max-width:820px){.grid,.grid.g3{grid-template-columns:1fr}.top{padding:8px 14px}nav{padding:0 14px}main{padding:14px}
+html:lang(ko) body{word-break:keep-all}
+@media (max-width:820px){.tw table{min-width:680px}.grid,.grid.g3{grid-template-columns:1fr}.top{padding:8px 14px}nav{padding:0 14px}main{padding:14px}
   select,input[type=search]{max-width:140px}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.chart.tall{height:360px}}
 @page{size:A4 landscape;margin:10mm}
 @media print{
@@ -125,7 +127,8 @@ const qchip = c => `<span class="chip qref" title="${esc(L('Chờ KLMAS trả l�
 const TOL = () => IDX?.ontime_tol_days ?? 7;
 const synChip = (ids, share) => { const qs = uniq((ids || []).map(qOf));
   const tip = (ids || []).map(i => i + ': ' + (ASM[i] || '') + (qOf(i) ? ' — ' + L('câu hỏi KLMAS {q}', {q: qTitle(qOf(i))}) : '')).join('\n') || L('dữ liệu giả định');
-  return `<span class="syn" title="${esc(tip)}">${L('Giả định')}${share != null ? ' ' + nf1.format(share) + '%' : ''}${qs.length ? ' · ' + qs.join(', ') : ''}</span>`; };
+  const sim = !(ids || []).length || ids.some(i => String(i || '').startsWith('ASM-SIM'));    // synthetic data, not a rule assumption
+  return `<span class="syn${sim ? ' sim' : ''}" title="${esc(tip)}">${L('Giả định')}${share != null ? ' ' + nf1.format(share) + '%' : ''}${qs.length ? ' · ' + qs.join(', ') : ''}</span>`; };
 
 async function getJSON(u) { const r = await fetch(u, {cache: 'no-cache'}); if (!r.ok) throw new Error(u + ': HTTP ' + r.status); return r.json(); }
 async function loadSeasons(list) {
@@ -160,7 +163,13 @@ function drawFilters() {
 
 /* ================================================================ charts */
 const CHARTS = [];
-function chart(id, option) { CHARTS.push([id, option]); return `<div class="chart${option._cls ? ' ' + option._cls : ''}" id="${id}"></div>`; }
+// a chart without any value shows "no data yet" instead of empty axes (27SS before production; UI test E-07)
+const hasData = o => [].concat(o.series || []).some(s => (s.data || []).some(v => {
+  const x = v && typeof v === 'object' && !Array.isArray(v) ? v.value : v; return Array.isArray(x) ? x.some(y => y != null) : x != null && x !== 0; }));
+function chart(id, option) {
+  if (!hasData(option)) return `<div class="chart nodata" id="${id}" data-empty="1"><div class="empty">${L('Chưa có dữ liệu')}</div></div>`;
+  CHARTS.push([id, option]); return `<div class="chart${option._cls ? ' ' + option._cls : ''}" id="${id}"></div>`;
+}
 function base(o) {
   const t = css('--text-2'), l = css('--line');
   return Object.assign({
@@ -260,8 +269,8 @@ function seasonKpi(season) {
   const g = k => sum(rows, r => r[k + '_real']) + (STATE.syn ? sum(rows, r => r[k + '_syn']) : 0);
   return {syn, order: sum(rows, r => r.order_qty), shipped: g('shipped'), judged: g('judged'), onTime: g('on_time'), onTimeTol: g('on_time_tol')};
 }
-function kpiTile(label, value, detail, tip, syn) {
-  return `<div class="kpi" title="${esc(tip)}"><div class="l">${esc(label)} ${syn || ''}</div><div class="v">${value}</div><div class="d">${detail || ''}</div></div>`;
+function kpiTile(label, value, detail, tip, syn, key, raw) {     // key / raw: read by the UI test (E-07)
+  return `<div class="kpi" title="${esc(tip)}"${key ? ` data-kpi="${key}" data-v="${raw ?? ''}"` : ''}><div class="l">${esc(label)} ${syn || ''}</div><div class="v">${value}</div><div class="d">${detail || ''}</div></div>`;
 }
 function delta(cur, prev, better = 'up') {
   if (cur == null || prev == null) return '';
@@ -300,7 +309,7 @@ function pageActions() {
   const cur = IDX.current && STATE.season === IDX.current;
   return `${printHead(L('Việc cần xử lý'))}
   <div class="banner">${cur ? L('Mùa đang chạy <b>{s}</b> (mùa có ETD gần nhất phía trước).', {s: esc(IDX.current)}) + ' ' : ''}${L('Danh sách lấy từ dữ liệu thật (hôm nay = {d}); mỗi dòng có lý do, nguồn và mở được Style 360. Người phụ trách để trống: KLMAS chưa có bảng phân công', {d: esc(IDX.today || '')})} ${qchip('Q50')}. ${L('Báo cáo thứ Bảy: {q}.', {q: qchip('Q32')})}</div>
-  <div class="kpis">${kpiTile(L('Nghiêm trọng'), fmt(crit), L('{n} việc', {n: fmt(acts.length)}), L('Mức 1: kế hoạch / dự báo trễ, thiếu duyệt mẫu hoặc vật tư trễ khi sắp cắt (≤ 7–14 ngày)'))}
+  <div class="kpis">${kpiTile(L('Nghiêm trọng'), fmt(crit), L('{n} việc', {n: fmt(acts.length)}), L('Mức 1: kế hoạch / dự báo trễ, thiếu duyệt mẫu hoặc vật tư trễ khi sắp cắt (≤ 7–14 ngày)'), '', 'actions', acts.length)}
     ${Object.entries(ACT).map(([k, l]) => kpiTile(l, fmt(by.get(k) || 0), '', l)).join('')}</div>
   <div class="card"><h3>${L('Việc cần xử lý')}</h3><p class="sub">${L('xếp theo mức độ rồi hạn; bấm một dòng để mở Style 360 (dòng theo nhà máy: lọc nhà máy)')}</p>
     ${table('tAct', acts.map(a => ({...a, _src: L('Nguồn: {s}', {s: a.source || ''})})), [
@@ -335,9 +344,9 @@ function pageOverview() {
   return `${printHead(L('Tổng quan'))}
   <div class="banner">${L('Mùa {s}', {s: esc(STATE.season === ALL ? L('tất cả') : STATE.season)})}${STATE.customer !== ALL ? ' · ' + esc(STATE.customer) : ''}. ${L('Số thật lấy từ file KLMAS (CHALLENGER 26FW là cycle đủ dữ liệu). Ô nào có phần <span class="syn">Giả định</span> thì rê chuột để xem giả định nào (dw/docs/assumptions.md); tắt công tắc để chỉ xem dữ liệu thật.')}</div>
   <div class="kpis">
-    ${kpiTile(L('SL đặt (pcs)'), fmt(k.order), L('{n} style đang chạy', {n: fmt(k.styles)}), L('Σ SL đặt của style còn hiệu lực — ORDER RECAP bản hiện hành'), synS)}
-    ${kpiTile(L('Đã xuất'), ship == null ? '–' : nf1.format(ship) + '%', [`${fmt(k.shipped)} pcs`, delta(ship, prevShip)].filter(Boolean).join(' · '), L('SL lô SHIPMENT (không gồm mẫu) ÷ SL đặt còn hiệu lực — Shipment Status'), synShip)}
-    ${kpiTile(L('Đúng hạn (lô đầu ≤ ETD VN)'), ot == null ? '–' : nf1.format(ot) + '%', `${L('≤ ETD + {n} ngày: {p}', {n: TOL(), p: otTol == null ? '–' : nf1.format(otTol) + '%'})} · ${delta(ot, prevOt)} ${prevNote}`, L('Số chính: lô đầu tiên có ETD ≤ ETD VN trong ORDER RECAP (quy tắc chặt, PO chốt 23/10). Số phụ: cho trễ {n} ngày (≤ ETD + {n} ngày). Chờ KLMAS xác nhận {q}', {n: TOL(), q: qTitle('Q21')}), (synJ || '') + ' ' + qchip('Q21'))}
+    ${kpiTile(L('SL đặt (pcs)'), fmt(k.order), L('{n} style đang chạy', {n: fmt(k.styles)}), L('Σ SL đặt của style còn hiệu lực — ORDER RECAP bản hiện hành'), synS, 'order', k.order)}
+    ${kpiTile(L('Đã xuất'), ship == null ? '–' : nf1.format(ship) + '%', [`${fmt(k.shipped)} pcs`, delta(ship, prevShip)].filter(Boolean).join(' · '), L('SL lô SHIPMENT (không gồm mẫu) ÷ SL đặt còn hiệu lực — Shipment Status'), synShip, 'shipped_pct', ship)}
+    ${kpiTile(L('Đúng hạn (lô đầu ≤ ETD VN)'), ot == null ? '–' : nf1.format(ot) + '%', `${L('≤ ETD + {n} ngày: {p}', {n: TOL(), p: otTol == null ? '–' : nf1.format(otTol) + '%'})} · ${delta(ot, prevOt)} ${prevNote}`, L('Số chính: lô đầu tiên có ETD ≤ ETD VN trong ORDER RECAP (quy tắc chặt, PO chốt 23/10). Số phụ: cho trễ {n} ngày (≤ ETD + {n} ngày). Chờ KLMAS xác nhận {q}', {n: TOL(), q: qTitle('Q21')}), (synJ || '') + ' ' + qchip('Q21'), 'ontime_pct', ot)}
     ${kpiTile(L('Trễ ETD trung bình'), k.delay == null ? '–' : L('{n} ngày', {n: nf1.format(k.delay)}), L('{n} style đã xuất', {n: fmt(k.judged)}), L('ETD lô đầu − ETD VN (âm = xuất sớm)'), synJ)}
     ${kpiTile(L('Style rủi ro'), fmt(k.risk), L('dự báo sau RDD, BAL < 0, hoặc quá ETD chưa xuất'), L('Còn hiệu lực, chưa xuất đủ và: ngày sẵn sàng dự báo + 12 ngày > RDD, hoặc BAL kế hoạch < 0, hoặc đã qua ETD — xem metrics.md'), '')}
     ${kpiTile(L('Tỉ lệ lỗi kiểm'), defR == null ? '–' : nf1.format(defR) + '%', L('{a} lỗi / {b} pcs kiểm', {a: fmt(k.defects), b: fmt(k.insp)}), L('Điểm lỗi ÷ SL đã kiểm (bảng kiểm KLMAS dòng D ÷ C) — giả định ASM-QC-01'), synI || synChip(['ASM-QC-01']))}
@@ -524,7 +533,10 @@ function pageStyle() {
     ...(s.etd ? [{name: 'ETD VN', date: s.etd, src: 'ORDER RECAP'}] : []), ...(s.rdd ? [{name: 'RDD', date: s.rdd, src: 'ORDER RECAP'}] : []),
     ...lots.map(l => ({name: LOT + (l.lot_label || ''), date: l.lot_etd, src: (l.is_synthetic ? L('Giả định') + ' ' + (l.assumption_id || '') : 'Shipment Status: ' + (l.source || '')), syn: l.is_synthetic}))].filter(e => e.date);
   const cats = uniq(events.map(e => e.name.startsWith(LOT) ? L('Xuất hàng') : e.name));
-  const order = s.order_qty || 0, out = s.output_qty || 0, insp = s.passed || s.inspected || 0, shipped = s.shipped || 0;
+  // synthetic output / inspection / shipments are hidden (no number) when the viewer switched synthetic data off
+  const hideOut = s.out_syn && !STATE.syn, hideInsp = s.insp_syn && !STATE.syn, hideShip = s.ship_syn && !STATE.syn;
+  const order = s.order_qty || 0, out = hideOut ? null : s.output_qty || 0, insp = hideInsp ? null : s.passed || s.inspected || 0,
+    shipped = hideShip ? null : s.shipped || 0, delay = hideShip ? null : s.delay_days;
   const options = uniq(styles().map(x => x.style_nk));
   return `
   <div class="s360head"><select id="stylePick" style="max-width:320px">${options.map(o => `<option value="${esc(o)}"${o === s.style_nk ? ' selected' : ''}>${esc(o.split('|').slice(1).reverse().join(' · '))}</option>`).join('')}</select>
@@ -532,10 +544,10 @@ function pageStyle() {
     ${s.risk_reason ? `<span class="chip"><i style="background:var(--critical)"></i>${esc(s.risk_reason)}</span>` : ''}${s.style_syn ? synChip([s.style_asm]) : ''}</div>
   <div class="kpis">
     ${kpiTile(L('SL đặt'), fmt(order), `ETD ${esc(s.etd || '–')} · RDD ${esc(s.rdd || '–')}`, L('ORDER RECAP bản hiện hành'))}
-    ${kpiTile(L('Ra chuyền'), fmt(out), pct(out, order), L('Báo cáo sản xuất ngày (last-seen) hoặc Production Status'), s.out_syn ? synChip(['ASM-SIM-02']) : '')}
-    ${kpiTile(L('Đạt kiểm'), fmt(insp), pct(insp, order), L('Bảng kiểm KLMAS (SL đạt) hoặc Production Status'), s.insp_syn ? synChip(['ASM-SIM-03']) : '')}
-    ${kpiTile(L('Đã xuất'), fmt(shipped), pct(shipped, order), L('Shipment Status, lô SHIPMENT'), s.ship_syn ? synChip([s.ship_asm]) : '')}
-    ${kpiTile(L('Trễ ETD lô đầu'), s.delay_days == null ? '–' : L('{n} ngày', {n: fmt(s.delay_days)}), s.first_lot_etd ? L('lô đầu {d}', {d: esc(s.first_lot_etd)}) : '', L('ETD lô đầu − ETD VN'))}
+    ${kpiTile(L('Ra chuyền'), fmt(out), out == null ? '' : pct(out, order), L('Báo cáo sản xuất ngày (last-seen) hoặc Production Status'), s.out_syn && STATE.syn ? synChip(['ASM-SIM-02']) : '')}
+    ${kpiTile(L('Đạt kiểm'), fmt(insp), insp == null ? '' : pct(insp, order), L('Bảng kiểm KLMAS (SL đạt) hoặc Production Status'), s.insp_syn && STATE.syn ? synChip(['ASM-SIM-03']) : '')}
+    ${kpiTile(L('Đã xuất'), fmt(shipped), shipped == null ? '' : pct(shipped, order), L('Shipment Status, lô SHIPMENT'), s.ship_syn && STATE.syn ? synChip([s.ship_asm]) : '')}
+    ${kpiTile(L('Trễ ETD lô đầu'), delay == null ? '–' : L('{n} ngày', {n: fmt(delay)}), s.first_lot_etd && !hideShip ? L('lô đầu {d}', {d: esc(s.first_lot_etd)}) : '', L('ETD lô đầu − ETD VN'))}
   </div>
   <div class="grid">
     <div class="card"><h3>${L('Mốc của style')}</h3><p class="sub">${L('email + tên tài liệu (luật trên tiêu đề, chờ duyệt), kế hoạch, dự báo, lô xuất; rê chuột để xem nguồn')}</p>
@@ -546,7 +558,7 @@ function pageStyle() {
     <div class="card"><h3>${L('Từ đơn tới xuất')}</h3><p class="sub">${L('đặt → ra chuyền → đạt kiểm → đã xuất')}</p>
       ${chart('cFunnel', {tooltip: {trigger: 'item'}, xAxis: {show: false}, yAxis: {show: false}, legend: {show: false},
         series: [{type: 'funnel', sort: 'none', left: '8%', width: '84%', minSize: '25%', label: {position: 'inside', formatter: p => p.name + ': ' + nf.format(p.value), color: '#fff', fontWeight: 600},
-          data: [{name: L('Đặt'), value: order}, {name: L('Ra chuyền'), value: out}, {name: L('Đạt kiểm'), value: insp}, {name: L('Đã xuất'), value: shipped}]}]})}
+          data: [{name: L('Đặt'), value: order}, {name: L('Ra chuyền'), value: out}, {name: L('Đạt kiểm'), value: insp}, {name: L('Đã xuất'), value: shipped}].filter(d => d.value != null)}]})}
       ${daily.length ? chart('cDaily', {grid: {left: 40, right: 8, top: 24, bottom: 24}, xAxis: {type: 'category', data: daily.map(d => d.fact_date)}, yAxis: {type: 'value'}, series: [{name: L('Sản lượng ngày'), type: 'bar', data: daily.map(d => ({value: d.output_day, itemStyle: d.is_synthetic ? {color: css('--syn')} : undefined}))}], _cls: 'small'}) : ''}</div>
   </div>
   <div class="grid">
@@ -588,7 +600,7 @@ const VIEW = {actions: pageActions, overview: pageOverview, production: pageProd
 function render() {
   CHARTS.length = 0; Object.keys(TABLES).forEach(k => delete TABLES[k]);
   document.querySelectorAll('.chart').forEach(el => echarts.getInstanceByDom(el)?.dispose());
-  let html; try { html = VIEW[STATE.tab](); } catch (e) { html = `<div class="banner">${L('Lỗi hiển thị:')} ${esc(e.message)}</div>`; console.error(e); }
+  let html; try { html = VIEW[STATE.tab](); } catch (e) { html = `<div class="banner" data-error="1">${L('Lỗi hiển thị:')} ${esc(e.message)}</div>`; console.error(e); }
   $('#main').innerHTML = html;
   Object.keys(TABLES).forEach(drawTable); drawCharts();
   const sp = $('#stylePick'); if (sp) sp.onchange = () => openStyle(sp.value);

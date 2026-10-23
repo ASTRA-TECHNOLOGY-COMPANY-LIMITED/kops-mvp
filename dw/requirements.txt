@@ -3,6 +3,7 @@ openpyxl==3.1.5
 python-docx==1.2.0
 pypdf==5.1.0
 pyarrow==25.0.1
+playwright==1.63.0   # UI tests (python -m kops_dw check-ui / make check-ui); drives the system Chromium, no browser download
 # optional Python packages:
 #   extract-msg    -> read Outlook .msg emails
 #   anthropic      -> LLM email extractor (KOPS_EMAIL_LLM=1, only after PO decision P2)

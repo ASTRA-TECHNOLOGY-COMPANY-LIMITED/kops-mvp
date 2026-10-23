@@ -7,12 +7,15 @@
 #   make rebuild   rebuild the image without cache and start again
 #   make clean     stop and delete the build volume (next `make up` parses everything again)
 #   make report SEASON=27SS REPORT_LANG=ko   PDF of the action list + overview into ./reports (git-ignored, KLMAS data)
+#   make check-ui  UI test (Playwright + Chromium): every page x theme x desktop/mobile x VI/KO x synthetic off/on;
+#                  screenshots into UI_OUT (default /tmp/kops-ui, outside the repo)
 COMPOSE = docker compose
 
 SEASON ?=
 REPORT_LANG ?= vi
+UI_OUT ?= /tmp/kops-ui
 
-.PHONY: up up-real down rebuild check logs clean report
+.PHONY: up up-real down rebuild check check-ui logs clean report
 
 up:
 	KOPS_SIM=1 $(COMPOSE) up -d --build
@@ -31,6 +34,10 @@ rebuild:
 
 check:
 	$(COMPOSE) run --rm --no-deps kops-build python -m kops_dw test
+
+check-ui:
+	mkdir -p "$(UI_OUT)"
+	$(COMPOSE) run --rm --no-deps -v "$(UI_OUT):/out" kops-build python -m kops_dw check-ui --out /out
 
 report:
 	mkdir -p reports
