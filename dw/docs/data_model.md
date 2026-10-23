@@ -66,8 +66,10 @@ thì `style_key` rỗng) và `link_issue` (lý do không nối được style).
 | `fact.order_line` | style × màu (CHALLENGER) / style × dòng đơn (khách khác), bản RECAP hiện hành | `core.order_color`, `core.order_line_ext` | ETD VN | 748 |
 | `fact.plan` | style × nhà máy × bản kế hoạch | `core.production_plan` | ngày xuất xưởng dự kiến | 246 |
 | `fact.production_status` | style × bản PRODUCTION AND SHIPPING STATUS | `core.production_snapshot` | as of | 110 |
-| `fact.daily_output` | style × nhà máy × ngày (D-02) | báo cáo sản xuất ngày | ngày báo cáo | D-02 |
-| `fact.inspection` / `fact.defect` | lần kiểm / lần kiểm × mã lỗi (D-02) | bảng kiểm KLMAS, INPUT DATA bên thứ ba | ngày kiểm | D-02 |
+| `fact.daily_output` | style × nhà máy × ngày báo cáo: SL ra chuyền trong ngày (TODAY, hoặc chênh lệch TTL), luỹ kế, vào chuyền, cắt | `core.daily_output_series` (báo cáo sản xuất ngày, D-02); dòng style mùa cũ còn sót trong sheet (LEV-24xxx) không vào core | ngày báo cáo | 3.048 |
+| `fact.inspection` | một kết quả kiểm: KLMAS = style × món × màu × ngày (SL đạt); THIRD_PARTY = một lần kiểm (SL kiểm, đạt, lỗi, PASS/REJECT) | `core.inspection_passed`, `core.qc_inspection` | ngày kiểm | 110 + 3.124 |
+| `fact.inspection_day` | nhà máy × ngày (bảng kiểm KLMAS dòng A / C / D / F: đạt, đã kiểm, điểm lỗi, số kiểm viên; **không có tên**) | `core.inspection_day` | ngày kiểm | 45 |
+| `fact.defect` | lần kiểm bên thứ ba × mã lỗi (minor, major) | `core.qc_defect` + bảng mã A–G | ngày kiểm | 9.632 |
 | `fact.shipment_line` | lô × style × màu × size (mục SHIPMENT, SAMPLE) | `core.shipment_detail` | ETD lô | 1.878 |
 | `fact.shipment_lot` | lô × style | gom `fact.shipment_line` | ETD lô | 186 |
 | `fact.milestone` | style × mốc × nguồn (thư / tài liệu) | `core.style_milestone` (luật trên tiêu đề / tên file), `extractor` = rule | ngày gửi thư / ngày trong tên file | 292 |

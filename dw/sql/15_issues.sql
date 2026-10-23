@@ -1,4 +1,14 @@
 -- Data issues that need the conformed model to detect (Python parsers log the per-file ones).
+
+-- Daily production rows of an earlier season still in the sheet (kept in raw, not in core.daily_row, 17_core_phase1)
+INSERT INTO etl.data_issue
+SELECT file_id, 'INFO', 'DAILY_CARRY_OVER', style_raw,
+       count(*) || ' row(s) of an earlier-season style in a ' || any_value(season) || ' daily report: not loaded in core',
+       any_value(sheet)
+FROM raw.daily_prod_row
+WHERE year(coalesce(rdd, etd)) < 2000 + CAST(left(season, 2) AS INT) - 1
+   OR CAST(nullif(regexp_extract(style_raw, '^[A-Z]{3}-(\d{2})\d{3}', 1), '') AS INT) < CAST(left(season, 2) AS INT) - 1
+GROUP BY file_id, style_raw;
 INSERT INTO etl.data_issue
 SELECT file_id, 'WARN', 'FACTORY_UNKNOWN', style_no, 'Factory "' || factory_raw || '" not in alias list', 'ORDER RECAP!E' || row_no
 FROM core.style_order WHERE is_active AND factory_code IS NULL AND factory_raw IS NOT NULL;

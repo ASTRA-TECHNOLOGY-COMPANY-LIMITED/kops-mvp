@@ -205,6 +205,22 @@ SELECT customer, season, style_no AS style_code, NULL::VARCHAR AS factory_code, 
        file_id AS source_file_id, file_name, ext, size_bytes, stage, doc_kind, doc_date, meta_source, style_known
 FROM core.document;
 
+CREATE TEMP TABLE f_daily_output AS      -- grain: style x factory x report day (daily production report, D-02)
+SELECT customer, season, style_no AS style_code, factory_code, NULL::VARCHAR AS factory_raw, report_date AS fact_date,
+       brand, output_day, output_ttl, input_day, cut_day, NULL::INTEGER AS source_file_id
+FROM core.daily_output_series;
+
+CREATE TEMP TABLE f_inspection AS        -- grain: one inspection result. KLMAS tracker: style x piece x colour x day
+SELECT 'CHALLENGER' AS customer, NULL::VARCHAR AS season, style_no AS style_code, factory_code, NULL::VARCHAR AS factory_raw,
+       inspect_date AS fact_date, 'KLMAS' AS source, piece, color, NULL::VARCHAR AS brand, passed_qty,
+       NULL::INTEGER AS inspected_qty, NULL::INTEGER AS defect_qty, NULL::VARCHAR AS result, NULL::INTEGER AS inspection_no,
+       NULL::INTEGER AS source_file_id
+FROM core.inspection_passed
+UNION ALL                                -- third-party: one row per inspection (brands outside KLMAS's orders)
+SELECT NULL, NULL, style_no, factory_code, factory_raw, inspect_date, 'THIRD_PARTY', NULL, po_color, brand, pass_qty,
+       inspected_qty, defect_qty, result, inspection_no, file_id
+FROM core.qc_inspection;
+
 -- factory text -> factory_key: canonical code, confirmed or review alias; 'A>>B' moves count as B
 CREATE TEMP TABLE factory_lookup AS
 SELECT factory_code AS txt, factory_key FROM dim.factory
@@ -244,6 +260,17 @@ CREATE TABLE fact.shipment_lot AS FROM fact.with_keys('f_shipment_lot');
 CREATE TABLE fact.milestone AS FROM fact.with_keys('f_milestone');
 CREATE TABLE fact.change AS FROM fact.with_keys('f_change');
 CREATE TABLE fact.document AS FROM fact.with_keys('f_document');
+CREATE TABLE fact.daily_output AS FROM fact.with_keys('f_daily_output');
+CREATE TABLE fact.inspection AS FROM fact.with_keys('f_inspection');
+
+CREATE TABLE fact.inspection_day AS      -- grain: factory x day (KLMAS tracker rows A / C / D / F; no names)
+SELECT d.*, fl.factory_key, dim.date_key(d.inspect_date) AS date_key, 'KLMAS' AS source, false AS is_synthetic
+FROM core.inspection_day d LEFT JOIN factory_lookup fl ON fl.txt = d.factory_code;
+
+CREATE TABLE fact.defect AS              -- grain: third-party inspection x defect code (minor / major points)
+SELECT d.inspection_no, d.code, d.code_group, d.minor, d.major, d.minor + d.major AS points, i.factory_key, i.date_key,
+       i.brand, 'THIRD_PARTY' AS source, false AS is_synthetic
+FROM core.qc_defect d JOIN fact.inspection i ON i.source = 'THIRD_PARTY' AND i.inspection_no = d.inspection_no;
 
 CREATE TABLE fact.shipment_event AS      -- grain: shipment (booking, or factory + ETD) from e-mail subjects; no style
 SELECT e.event_id, e.direction, e.booking, e.forwarder, e.factory AS factory_raw, e.customer, e.origin, e.etd_old, e.etd_new,
@@ -299,7 +326,9 @@ WITH o AS (
   UNION ALL SELECT 'shipment_line', customer, season, style_code, link_issue, source_file_id, source_ref FROM fact.shipment_line
   UNION ALL SELECT 'milestone', customer, season, style_code, link_issue, NULL, source_ref FROM fact.milestone
   UNION ALL SELECT 'change', customer, season, style_code, link_issue, source_file_id, source_ref FROM fact.change
-  UNION ALL SELECT 'document', customer, season, style_code, link_issue, source_file_id, file_name FROM fact.document)
+  UNION ALL SELECT 'document', customer, season, style_code, link_issue, source_file_id, file_name FROM fact.document
+  UNION ALL SELECT 'daily_output', customer, season, style_code, link_issue, NULL, NULL FROM fact.daily_output
+  UNION ALL SELECT 'inspection', customer, season, style_code, link_issue, NULL, NULL FROM fact.inspection WHERE source = 'KLMAS')
 SELECT o.fact, o.customer, o.season, o.style_code, o.link_issue AS reason, f.file_name AS source_file, o.source_ref
 FROM o LEFT JOIN etl.source_file f ON f.file_id = o.source_file_id
 WHERE o.link_issue IS NOT NULL AND o.link_issue <> 'NO_STYLE_CODE';
@@ -312,7 +341,9 @@ WITH a AS (
   UNION ALL SELECT 'shipment_line', customer, season, style_key, link_issue FROM fact.shipment_line
   UNION ALL SELECT 'milestone', customer, season, style_key, link_issue FROM fact.milestone
   UNION ALL SELECT 'change', customer, season, style_key, link_issue FROM fact.change
-  UNION ALL SELECT 'document', customer, season, style_key, link_issue FROM fact.document)
+  UNION ALL SELECT 'document', customer, season, style_key, link_issue FROM fact.document
+  UNION ALL SELECT 'daily_output', customer, season, style_key, link_issue FROM fact.daily_output
+  UNION ALL SELECT 'inspection', customer, season, style_key, link_issue FROM fact.inspection WHERE source = 'KLMAS')
 SELECT coalesce(customer, '?') AS customer, coalesce(season, '?') AS season, count(*) AS rows_with_style,
        count(style_key) AS linked, count(*) FILTER (WHERE link_issue = 'NO_ORDER_RECAP_FOR_SEASON') AS no_master,
        round(100.0 * count(style_key) / nullif(count(*) - count(*) FILTER (WHERE link_issue = 'NO_ORDER_RECAP_FOR_SEASON'), 0), 1)

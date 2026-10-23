@@ -136,6 +136,64 @@ CHECKS = [
      """SELECT string_agg(brand || ' ' || n || ' / ' || q, ', ' ORDER BY brand) FROM (
           SELECT brand, count(*) AS n, sum(qty) AS q FROM core.buyer_order_status GROUP BY brand)""",
      "8 SECONDS 17 / 28600, BEANPOLE KIDS 12 / 10370"),
+    # ---- phase-1 parsers (D-02): spec analys-docs/mvp_phase1_spec.md §8 (G1-G12) + total cells of the files ----
+    ("G1 daily production files found / loaded", ("file", "261016  26FW (CHALLENGER - TBM) DAILY"),
+     """SELECT count(*) || ' / ' || count(*) FILTER (WHERE status = 'LOADED') FROM etl.source_file
+        WHERE parser = 'daily_production'""", "7 / 7"),
+    ("G2 last daily report per factory", ("file", "261016  26FW (CHALLENGER - TBM) DAILY"),
+     """SELECT string_agg(factory_code || ' ' || strftime(d, '%d/%m'), ', ' ORDER BY factory_code) FROM (
+          SELECT factory_code, max(report_date) AS d FROM core.daily_row GROUP BY 1)""",
+     "DONG MY 28/09, HA HIEU 28/09, HAGACO 15/10, MTT 02/10, NATEXCO 08/09, TAN BINH MINH 15/10, TRUONG PHUC 14/10"),
+    ("G3 TBM sheets 13.01 / 14.01 / 15.01 read as 13-15/10 (REPORT_DATE_FIXED)", ("file", "261016  26FW (CHALLENGER - TBM) DAILY"),
+     """SELECT (SELECT count(*) FROM etl.data_issue WHERE code = 'REPORT_DATE_FIXED' AND entity IN ('13.01', '14.01', '15.01'))
+        || ' / ' || (SELECT string_agg(DISTINCT strftime(report_date, '%d/%m'), ',' ORDER BY strftime(report_date, '%d/%m'))
+                     FROM core.daily_row WHERE sheet IN ('13.01', '14.01', '15.01'))""", "3 / 13/10,14/10,15/10"),
+    ("G4 CHALLENGER styles in daily reports / found in ORDER RECAP", ("file", "261016  26FW (CHALLENGER - TBM) DAILY"),
+     """SELECT count(DISTINCT d.style_no) || ' / ' || count(DISTINCT o.style_no) FROM core.daily_row d
+        LEFT JOIN core.style_order o ON o.style_no = d.style_no WHERE d.customer = 'CHALLENGER'""", "101 / 101"),
+    # G5 counts running (active) styles without any daily report; mart.style_freshness also leaves out styles already
+    # shipped in full (CHF4WJK6803: 451 / 450 in Shipment Status 261021R1), so it shows 8 there.
+    ("G5 CHALLENGER 26FW running styles with no daily report (NO_REPORT)", ("file", "261016  26FW (CHALLENGER - TBM) DAILY"),
+     """SELECT count(*) FROM core.style_order WHERE season = '26FW' AND is_active
+        AND style_no NOT IN (SELECT style_no FROM core.daily_row)""", 9),
+    ("G6 CHF4MPT6444 output last-seen / rate / ready / days late", ("file", "261016  26FW (CHALLENGER - TBM) DAILY"),
+     """SELECT output_ttl || ' / ' || CAST(rate AS INT) || ' / ' || ready_date || ' / ' || days_late FROM mart.style_forecast
+        WHERE style_no = 'CHF4MPT6444'""", "190 / 50 / 2026-10-25 / 18"),
+    ("G7 CHF4WPT6846 output / ready / days late", ("file", "261016  26FW (CHALLENGER - TBM) DAILY"),
+     "SELECT output_ttl || ' / ' || ready_date || ' / ' || days_late FROM mart.style_forecast WHERE style_no = 'CHF4WPT6846'",
+     "290 / 2026-10-21 / 14"),
+    ("G8 freshness on 2026-10-19: NATEXCO / TAN BINH MINH / TRUONG PHUC", ("file", "260908 - 26FW  - (CHALLENGER - NATEXCO)"),
+     """SELECT string_agg(factory_code || ' ' || mart.freshness_level(d, DATE '2026-10-19'), ', ' ORDER BY factory_code) FROM (
+          SELECT factory_code, max(report_date) AS d FROM core.daily_row
+          WHERE factory_code IN ('NATEXCO', 'TAN BINH MINH', 'TRUONG PHUC') GROUP BY 1)""",
+     "NATEXCO DARK, TAN BINH MINH FRESH, TRUONG PHUC FRESH"),
+    ("G12 HAGACO sheet 15/10: GRAND TOTAL rows / ORDER / OUT PUT (file cells) = size rows", ("file", "261015. DHG-HAGACO"),
+     """SELECT (SELECT count(*) || ' / ' || sum(order_qty) || ' / ' || sum(output_ttl) FROM raw.daily_prod_total t
+                JOIN etl.source_file f USING (file_id) WHERE f.file_name LIKE '261015. DHG-HAGACO%' AND t.sheet = '10.15')
+        || ' = ' || (SELECT sum(order_qty) || ' / ' || sum(output_ttl) FROM raw.daily_prod_row r
+                JOIN etl.source_file f USING (file_id) WHERE f.file_name LIKE '261015. DHG-HAGACO%' AND r.sheet = '10.15')""",
+     "8 / 12740 / 10230 = 12740 / 10230"),
+    ("G9 inspection rows dropped: sheet factory differs from ORDER RECAP", ("file", "260727 HOA) 26SS CHALLENGER"),
+     "SELECT count(DISTINCT (sheet, row_no)) FROM core.inspection_cell WHERE factory_mismatch", 12),
+    ("G10 PASSED_GT_ORDER", ("file", "260727 HOA) 26SS CHALLENGER"),
+     """SELECT string_agg(style_no || coalesce('-' || piece, '') || ' ' || passed || '/' || ordered, ', ' ORDER BY style_no)
+        FROM mart.inspection_style WHERE passed_gt_order""", "CHF4WJK6801-JACKET 392/350, CHF4WJK6991 1381/1000"),
+    ("G11 ETD change requests from the tracker remark (PENDING_REVIEW)", ("file", "260727 HOA) 26SS CHALLENGER"),
+     "SELECT count(*) || ' ' || min(review_status) FROM core.inspection_proposal", "8 PENDING_REVIEW"),
+    ("Inspection tracker sheet 'TP ': passed cells = row A total (H26:J26 = 378)", ("file", "260727 HOA) 26SS CHALLENGER"),
+     """SELECT (SELECT sum(passed_qty) FROM raw.inspection_cell WHERE sheet = 'TP ') || ' / ' ||
+               (SELECT sum(value) FROM raw.inspection_day WHERE sheet = 'TP ' AND measure = 'passed_qty')""", "378 / 378"),
+    ("No inspector name column anywhere", None,
+     """SELECT count(*) FROM information_schema.columns WHERE table_schema IN ('raw', 'stg', 'core', 'mart', 'fact', 'dim')
+        AND (column_name ILIKE '%inspector_name%' OR column_name ILIKE '%qc_name%')""", 0),
+    ("Third party (M1-12): inspections / inspected / defects / defect points / A08+A37 % / sum mismatches",
+     ("file", "INPUT DATA"),
+     """SELECT count(*) || ' / ' || sum(inspected_qty) || ' / ' || sum(defect_qty) || ' / ' ||
+               (SELECT sum(minor + major) FROM core.qc_defect) || ' / ' ||
+               (SELECT round(100.0 * sum(minor + major) FILTER (WHERE code IN ('A08', 'A37')) / sum(minor + major), 1)
+                FROM core.qc_defect) || ' / ' ||
+               (SELECT regexp_extract(message, '^(\\d+)', 1) FROM etl.data_issue WHERE code = 'QC_DEFECT_SUM_MISMATCH')
+        FROM core.qc_inspection""", "3124 / 315745 / 68678 / 68653 / 42.9 / 285"),
     # ---- linked model (D-01): style link rate, no fuzzy match ----
     ("Linked model: CHALLENGER 26FW fact rows linked to dim.style >= 98%", _R26,
      """SELECT CASE WHEN link_pct >= 98 THEN 'OK' ELSE link_pct::VARCHAR END FROM mart.link_rate

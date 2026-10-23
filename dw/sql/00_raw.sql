@@ -98,6 +98,34 @@ CREATE TABLE raw.buyer_order_status (
   file_id INTEGER, page INTEGER, line_no INTEGER, brand VARCHAR, season VARCHAR, printed_on DATE, file_no VARCHAR,
   style_no VARCHAR, item VARCHAR, factory_raw VARCHAR, factory_code VARCHAR, qty INTEGER, cut_plan DATE,
   input_plan DATE, finish_plan DATE, etd DATE, eta DATE, rdd DATE, margin_days INTEGER, status VARCHAR);
+-- Daily production report (D-02 / M1-02): size rows of every day sheet; GRAND TOTAL rows kept to check them
+CREATE TABLE raw.daily_prod_row (
+  file_id INTEGER, customer VARCHAR, brand VARCHAR, season VARCHAR, factory_code VARCHAR, report_date DATE, sheet VARCHAR,
+  sheet_hidden BOOLEAN, row_no INTEGER, style_raw VARCHAR, style_variant VARCHAR, style_note VARCHAR, line_no VARCHAR,
+  workers INTEGER, etd DATE, rdd DATE, color VARCHAR, size_code VARCHAR, order_qty INTEGER, cut_today INTEGER,
+  cut_ttl INTEGER, print_send_today INTEGER, print_send_ttl INTEGER, print_return_today INTEGER, print_return_ttl INTEGER,
+  input_today INTEGER, input_ttl INTEGER, output_today INTEGER, output_ttl INTEGER);
+CREATE TABLE raw.daily_prod_total (
+  file_id INTEGER, sheet VARCHAR, report_date DATE, row_no INTEGER, factory_code VARCHAR, order_qty INTEGER, output_ttl INTEGER);
+-- KLMAS inspection tracker (D-02 / M1-06): passed qty per style x piece x colour x day; factory x day totals A/C/D/F.
+-- Inspector names (row G) are never loaded.
+CREATE TABLE raw.inspection_cell (
+  file_id INTEGER, sheet VARCHAR, factory_code VARCHAR, is_old_round BOOLEAN, style_no VARCHAR, piece VARCHAR,
+  color VARCHAR, inspect_date DATE, passed_qty INTEGER, order_qty INTEGER, row_no INTEGER, col_no INTEGER);
+CREATE TABLE raw.inspection_day (
+  file_id INTEGER, sheet VARCHAR, factory_code VARCHAR, is_old_round BOOLEAN, inspect_date DATE, measure VARCHAR,
+  value INTEGER, row_no INTEGER, col_no INTEGER);
+CREATE TABLE stg.inspection_remark (
+  file_id INTEGER, sheet VARCHAR, factory_code VARCHAR, style_no VARCHAR, piece VARCHAR, color VARCHAR, remark VARCHAR,
+  request_etd DATE, ttl_pass INTEGER, row_no INTEGER);
+-- Third-party inspections (D-02 / M1-12): INPUT DATA.xlsx, one row per inspection, one per defect code; code list
+CREATE TABLE raw.qc_inspection (
+  file_id INTEGER, inspection_no INTEGER, row_no INTEGER, location VARCHAR, style_no VARCHAR, po_color VARCHAR,
+  ship_to VARCHAR, round_no INTEGER, item VARCHAR, brand VARCHAR, vendor VARCHAR, factory_raw VARCHAR, inspect_date DATE,
+  pre_final VARCHAR, order_qty INTEGER, inspected_qty INTEGER, pass_qty INTEGER, defect_qty INTEGER, remark VARCHAR,
+  result VARCHAR);
+CREATE TABLE raw.qc_defect (file_id INTEGER, inspection_no INTEGER, row_no INTEGER, code VARCHAR, minor INTEGER, major INTEGER);
+CREATE TABLE raw.defect_code (file_id INTEGER, code VARCHAR, name_ko VARCHAR, code_group VARCHAR, row_no INTEGER);
 -- Milestone / shipment named by an email subject (N-03, milestones.py; rule-based hints, not facts).
 CREATE TABLE stg.email_event (
   file_id INTEGER, msg_key VARCHAR, milestone VARCHAR, sent_at TIMESTAMP, factory VARCHAR, style_candidates VARCHAR,

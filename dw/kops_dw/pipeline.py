@@ -27,11 +27,12 @@ Ctx = parse.Ctx
 
 # Known source types that have no parser yet (Phase 1 tasks): registered and skipped without a warning.
 PENDING = [
-    ("DAILY PRODUCTION REPORT", "daily_production", "Parser planned in Phase 1 (M1-02)"),
     ("KLMAS INSPECTION REPORT (FORM)", "inspection_form", "Blank inspection form (template, not data)"),
-    ("INSPECTION REPORT", "inspection_tracker", "Parser planned in Phase 1 (M1-06)"),
-    ("INPUT DATA", "qc_third_party", "Third-party QC database; parser proposed (M1-12)"),
 ]
+# Phase-1 sources (D-02): name key -> (source type, parser). Consumption / fabric inspection sheets of a style package
+# also say 'INSPECTION REPORT' but are technical documents (name only).
+PHASE1 = [("DAILY PRODUCTION REPORT", "daily_production"), ("KLMAS INSPECTION REPORT", "inspection_tracker"),
+          ("INPUT DATA", "qc_third_party")]
 DOC_MESSAGE = "Metadata only: technical document / pattern (name read, file not opened)"
 # CHALLENGER ORDER RECAPs use the detailed fixed-column parser; other customers the header-driven one.
 CHALLENGER_KEYS = ("CHALLENGER", "CLGR")
@@ -70,6 +71,9 @@ def classify(path: Path):
         for key, stype, _ in PENDING:
             if stype and key in name:
                 return stype, None, season
+        for key, parser in PHASE1:
+            if key in name and "CONSUMPTION" not in name:
+                return parser, parser, season
         if docmeta.is_meta_only(path):           # work sheets, comments, markers ... (name only, not opened)
             return "document", None, season
         return "excel", None, season
@@ -457,7 +461,8 @@ def _load_reference(con):
     _insert(con, "stg.style_alias", [dict(alias_style=k, style_no=v, confirmed=False)
                                      for k, v in config.STYLE_ALIASES.items()])
     _insert(con, "stg.rule", [dict(rule_key=k, rule_value=str(v)) for k, v in config.RULES.items()]
-            + [dict(rule_key="klmas_domains", rule_value=",".join(config.KLMAS_EMAIL_DOMAINS))])
+            + [dict(rule_key="klmas_domains", rule_value=",".join(config.KLMAS_EMAIL_DOMAINS)),
+               dict(rule_key="today", rule_value=config.TODAY)])
     _insert(con, "stg.requirement_coverage", [dict(req_no=k, mvp_status=s, where_in_mvp=w, next_step=n)
                                               for k, (s, w, n) in config.REQUIREMENT_COVERAGE.items()])
 

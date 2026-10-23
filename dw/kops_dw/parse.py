@@ -24,7 +24,7 @@ from .util import MissingTool
 
 LAKE_FORMAT = "1"          # bump to re-parse everything (e.g. after a change in how rows are stored)
 EXCEL_PARSERS = ("order_recap", "order_recap_ext", "production_plan", "shipment_status", "production_status",
-                 "shipping_schedule")
+                 "shipping_schedule", "daily_production", "inspection_tracker", "qc_third_party")
 _COMMON = ["parse.py", "util.py"]
 _EXCEL = [*_COMMON, "excel.py", "templates.py"]
 _CUSTOMERS = ["CUSTOMER_KEYS", "BRAND_ALIASES", "FACTORY_ALIASES"]
@@ -40,6 +40,11 @@ PARSER_DEPS = {
                         ["SHIPMENT_SHEET_FACTORY", *_CUSTOMERS]),
     "production_status": ([*_EXCEL, "ingest/production_status.py", "ingest/order_recap_generic.py"], _CUSTOMERS),
     "shipping_schedule": ([*_EXCEL, "ingest/shipping_schedule.py", "ingest/order_recap_generic.py"], _CUSTOMERS),
+    "daily_production": ([*_EXCEL, "ingest/daily_production.py", "ingest/order_recap_generic.py"],
+                         [*_CUSTOMERS, "VENDOR_BRAND"]),
+    "inspection_tracker": ([*_EXCEL, "ingest/inspection_tracker.py", "milestones.py", "docmeta.py"],
+                           [*_CUSTOMERS, "INSPECTION_SHEET_FACTORY"]),
+    "qc_third_party": ([*_EXCEL, "ingest/qc_third_party.py"], []),
     "buyer_order_status": ([*_COMMON, "ingest/buyer_order_status.py", "ingest/order_recap_generic.py", "milestones.py",
                             "docmeta.py"], _CUSTOMERS),
     "meeting_notes": ([*_COMMON, "ingest/meeting_notes.py"], []),
@@ -214,6 +219,14 @@ def parse_file(t: dict, ctx: Ctx):
             raise ValueError("Season code (e.g. 26FW) not found in file name")
         tables, report_date = shipping_schedule.parse(open_workbook(path, digest), season, ctx)
         return tables, report_date or file_date(path.name), None
+    if parser in ("daily_production", "inspection_tracker", "qc_third_party"):
+        from .ingest import daily_production, inspection_tracker, qc_third_party
+        mod = {"daily_production": daily_production, "inspection_tracker": inspection_tracker,
+               "qc_third_party": qc_third_party}[parser]
+        out = mod.parse(open_workbook(path, digest), season, ctx, path.name)
+        tables, report_date = out[0], out[1]
+        family = out[2] if len(out) > 2 else None
+        return tables, report_date or file_date(path.name), family
     if parser == "buyer_order_status":
         tables, printed, brand = buyer_order_status.parse(path, ctx)
         return tables, printed or file_date(path.name), brand
