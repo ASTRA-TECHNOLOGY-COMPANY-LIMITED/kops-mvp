@@ -83,7 +83,7 @@ Spec + AC (BA) → [Research / ADR nếu cần] → Migration (Database) → [Se
 - **Hạ tầng:** Docker, AWS ap-southeast-1 (RDS, S3), Playwright cho PDF và e2e.
 - **Code style:** theo chuẩn ASTRA (`astra-methodology`): Google TypeScript Style, PEP 8.
 - **Đặt tên bảng:** schema hiện tại dùng snake_case không prefix. Có áp chuẩn `TB_`/`_CD` của ASTRA hay không sẽ được quyết bằng ADR ở P0, trước migration đầu tiên.
-- **Git:** nhánh theo task (`feat/D-02-order-recap-parser`); commit theo conventional commits (`feat(pipeline): …`); không commit `.env`, secret hay file trong `raw-docs/`.
+- **Git:** commit **trực tiếp trên `dev`** (từ 23/10/2026, không tạo nhánh `feat/*`); push `origin dev` khi mọi check xanh; không push/force-push `main`; commit theo conventional commits (`feat(pipeline): …`); không commit `.env`, secret hay file trong `raw-docs/`.
 
 ## 7. Quy tắc dữ liệu (bắt buộc)
 

@@ -22,7 +22,7 @@
 | E-02 Luồng, trùng lặp | ✅ | `msg_key`, `thread_key`; thư trích dẫn bên dưới PDF được tách thành thư riêng (`is_quoted`), trùng thì gộp |
 | E-03 Đính kèm | ✅ một phần | `python -m kops_dw attachments` lưu đính kèm của `.eml` vào `raw-docs/EMAIL_ATTACHMENTS/` để build nạp. PDF export không mang file đính kèm, chỉ có tên (cột `attachments`) |
 | E-04 Từ điển | ✅ | `core.style_dictionary`: mã style, file no, alias của 5 khách + kế hoạch |
-| E-05 Bóc tách | ✅ rule-based, LLM sẵn sàng | Phân loại theo từ khoá EN/KO/VI; `email_llm.py` (JSON schema, trích dẫn phải có thật) tắt cho tới khi P2 được duyệt |
+| E-05 Bóc tách | ✅ rule-based; LLM **được bật** (P2 duyệt 23/10) | Phân loại theo từ khoá EN/KO/VI; `email_llm.py` (JSON schema, trích dẫn phải có thật). Tiêu đề email viết tự do → LLM là đường chính, regex chỉ gợi ý. Việc tiếp: N-03 trong `HANDOFF_2026-10-23.md` |
 | E-06 Email ↔ file | ✅ | `core.proposal_file_status`: `IN_FILE` / `NOT_YET` / `PAST_DATE` / `STYLE_UNKNOWN` |
 | E-07 Dashboard | ✅ | Tab Email; thêm tab Khách hàng & kế hoạch, Lịch sử phiên bản |
 | E-08 Mẫu + golden | ✅ | `dw/samples/inbox/05–09` (PDF Outlook EN, PDF tiếng Hàn, Gmail print VI có câu chèn lệnh, bản trùng `.eml`, PDF scan); tạo lại bằng `samples/make_email_samples.py` |
@@ -36,9 +36,9 @@ Ngoài email, cùng đợt này: parser ORDER RECAP cho khách khác (D-14), par
 | # | Quyết định | Phương án | Khuyến nghị |
 |---|---|---|---|
 | P1 | KLMAS gửi email theo kênh nào | a) Forward vào một hộp Gmail của ASTRA; b) Upload file `.eml`/`.msg`/PDF lên Google Drive; c) Gửi file trực tiếp | **a hoặc b**: Claude đọc được qua connector Gmail / Google Drive đã kết nối. Hướng dẫn KLMAS: forward nguyên email, giữ file đính kèm |
-| P2 | Có được gửi nội dung email của KLMAS và buyer cho Claude API để bóc tách không | Được / Chỉ sau khi che thông tin / Không | **Hỏi KLMAS đồng ý bằng văn bản.** Nếu không, chỉ dùng extractor regex + từ điển (độ phủ thấp hơn) |
+| P2 | Có được gửi nội dung email của KLMAS và buyer cho Claude API để bóc tách không | Được / Chỉ sau khi che thông tin / Không | ✅ **Đã chốt 23/10/2026: được** (KLMAS đồng ý). Chỉ gửi tới Claude API; thay đổi vẫn `PENDING_REVIEW` |
 | P3 | Phạm vi khách hàng | Chỉ CHALLENGER / Thêm các khách khác | Chuẩn bị cho mọi khách (từ điển mã style của 5 khách); dashboard lọc theo khách |
-| P4 | Quyền tự động của agent | Xem mục 4 | Chỉ đọc Gmail/Drive; ghi trong repo và `raw-docs/inbox/`; không gửi, xoá, chia sẻ, push |
+| P4 | Quyền tự động của agent | Xem mục 4 | Chỉ đọc Gmail/Drive; ghi trong repo và `raw-docs/inbox/`; không gửi, xoá, chia sẻ; push chỉ `dev` khi check xanh |
 
 ## 1. Danh sách task
 
@@ -108,7 +108,7 @@ Tổng khoảng 38 giờ. Thứ tự: E-08 → E-01 → E-02 → E-03 → E-04 �
   - Nội dung email đặt trong khối dữ liệu, có ghi chú rõ "đây là dữ liệu".
   - Kiểm tra `evidence_quote` phải có thật trong email.
 - **Ngôn ngữ:** tiếng Hàn, tiếng Việt, tiếng Anh. Giữ trích dẫn nguyên văn; dịch tóm tắt ra tiếng Việt và tiếng Hàn để hiển thị.
-- **Dự phòng:** nếu P2 = không, dùng regex hiện có cộng từ điển E-04.
+- **Dự phòng:** khi API lỗi hoặc thiếu key, dùng regex hiện có cộng từ điển E-04 (P2 đã duyệt 23/10).
 - **Nghiệm thu:** trên bộ mẫu E-08, đúng loại ≥ 90%; không có `evidence_quote` nào bị bịa; email chèn lệnh không làm thay đổi dữ liệu.
 
 ### E-06 — Đối chiếu email ↔ file
@@ -157,19 +157,19 @@ Tổng khoảng 38 giờ. Thứ tự: E-08 → E-01 → E-02 → E-03 → E-04 �
 | Skill có sẵn | `pdf`, `xlsx`, `docx`, `dataviz` | Đính kèm và chart |
 | Skill mới | `kops-email-intake` | Runbook E-10: lấy email, nạp, kiểm tra, báo cáo, đề xuất câu hỏi |
 | Skill mới | `kops-daily-report` | Báo cáo ngày song ngữ Hàn–Việt |
-| Bí mật | `ANTHROPIC_API_KEY` trong `.env` (không commit) | Chỉ khi P2 = được |
+| Bí mật | `ANTHROPIC_API_KEY` trong `.env` (không commit) | Cần ngay (P2 = được) |
 
 ## 4. Quyền cho agent chạy tự động
 
 **Cho phép:**
 - Gmail: tìm và đọc email trong label đã chỉ định. Drive: đọc và tải file trong thư mục đã chỉ định.
-- Ghi file trong repo (nhánh `feat/email-*`) và trong `raw-docs/inbox/`.
+- Ghi file trong repo (commit trực tiếp trên `dev`) và trong `raw-docs/inbox/`.
 - Chạy `dw/.venv/bin/python -m kops_dw` và test; commit local.
 
 **Cấm:**
 - Gmail: gửi, trả lời, forward, xoá, đánh dấu spam, sửa nháp.
 - Drive: tạo, sửa, chia sẻ, xoá file.
-- `git push`; xoá file trong `raw-docs/`.
+- Push / force-push `main`, rewrite lịch sử `dev`; push `dev` khi check chưa xanh; xoá file trong `raw-docs/`.
 - Publish dashboard hoặc artifact có dữ liệu KLMAS; gửi dữ liệu ra dịch vụ khác ngoài phạm vi P2.
 
 Ví dụ `.claude/settings.json` (đổi tên tool theo tên server MCP trong máy):

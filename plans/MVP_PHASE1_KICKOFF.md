@@ -23,7 +23,7 @@ Bạn thực hiện **KOPS MVP Phase 1**: mở rộng data warehouse trong `dw/`
 **Phạm vi:** chỉ các task trong plan. Không làm tỷ lệ lỗi, năng suất theo công nhân, app nhập liệu, đăng nhập. Không sửa `raw-docs/`.
 
 **Cách làm:**
-- Theo thứ tự phụ thuộc trong plan; mỗi task một nhánh `feat/M1-xx-…` và một commit hoặc PR riêng.
+- Theo thứ tự phụ thuộc trong plan; mỗi task một commit riêng, trực tiếp trên `dev` (từ 23/10/2026).
 - Sau mỗi task chạy `cd dw && KOPS_TODAY=2026-10-19 .venv/bin/python -m kops_dw`. Build phải xong và mọi golden test PASS trước khi sang task sau.
 - Với M1-08, mở `dw/build/dashboard.html` bằng trình duyệt headless, chụp màn hình các tab ở cả sáng/tối và desktop/mobile, rồi tự xem lại trước khi báo xong.
 

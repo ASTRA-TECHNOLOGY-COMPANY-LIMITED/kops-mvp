@@ -60,7 +60,7 @@ Số style và tổng SL của khách khác lấy theo ô tổng của chính fi
 
 | Khách / brand | Nhãn cột ETD trong file | Ghi chú |
 |---|---|---|
-| CHALLENGER | `RDD (-12DAY)` ở trang đầu, `RDD (-14DAY)` từ trang 4 | Đã hỏi ở Q17 |
+| CHALLENGER | `RDD (-12DAY)` ở trang đầu, `RDD (-14DAY)` từ trang 4 | Đã hỏi ở Q20 |
 | DHG 8 SECONDS | `RDD (-20DAY)`; DETAIL ghi `ETD VN (RDD-20 DAYS)` | |
 | DHG BEANPOLE KIDS | `RDD (-14DAY)`, có thêm cột `실제납기` (ngày giao thực tế) | Sheet DETAIL lại ghi `ETD VN (RDD-20 DAYS)`: mâu thuẫn ngay trong một file |
 | DHG XEXYMIX | `RDD (-10DAY)` | |
@@ -69,13 +69,13 @@ Số style và tổng SL của khách khác lấy theo ô tổng của chính fi
 
 - **[Q]** Mọi file đều có cột `BUYER DEL (RDD-10)`, kể cả CHALLENGER.
 - **[S]** Không có một quy tắc RDD chung. Cấu hình `rdd_offset_days = 12` hiện đang dùng chung cho mọi khách là sai khi mở rộng sang khách khác.
-- **[R]** Chuyển quy tắc này thành cấu hình theo khách (và brand nếu cần). Bổ sung bằng chứng này vào Q17 khi hoàn thiện bộ câu hỏi.
+- **[R]** Chuyển quy tắc này thành cấu hình theo khách (và brand nếu cần). Bổ sung bằng chứng này vào Q20 khi hoàn thiện bộ câu hỏi.
 
 ## 4. Lỗi gõ năm và mùa là lỗi lặp lại, không phải trường hợp lẻ
 
 - **[Q]** CHALLENGER 27SS bản `261005`: **97 style** có ETD và RDD ghi năm 2026. Bản `261015` đã sửa thành 2027.
-  - 5 style trong Q37 là phần còn sót lại, đều đã huỷ.
-  - **[S]** KLMAS đã tự sửa đúng hướng, nên Q37 gần như đã có câu trả lời là "2027".
+  - 5 style trong Q40 là phần còn sót lại, đều đã huỷ.
+  - **[S]** KLMAS đã tự sửa đúng hướng, nên Q40 gần như đã có câu trả lời là "2027".
 - **[Q]** Các file 27SS khác cũng có ETD năm 2026, có thể cùng lỗi:
   - JBEE 27SS: ETD sớm nhất 17/01/2026.
   - KOFA 27SS: ETD 30/01 đến 05/02/2026.
@@ -136,16 +136,16 @@ So sánh bằng parser của DW, theo các trường: trạng thái màu, nhà m
 
 ## 8. Câu hỏi bổ sung
 
-*Ngày 21/10 đã đưa vào `open_questions.md`: ý 1 → Q08; ý 2 và 7 → Q14; ý 3 → Q17; ý 4 → Q37; ý 5 → Q05; ý 6 → Q15.*
+*Ngày 21/10 đã đưa vào `open_questions.md`: ý 1 → Q08; ý 2 và 7 → Q14; ý 3 → Q20; ý 4 → Q40; ý 5 → Q05; ý 6 → Q15.*
 
 
 1. **B85** trong cột nhà máy của các file DHG, JBEE là nhà máy nào? Là mã nội bộ hay tên một xưởng?
 2. **Vai trò của DHG, JBEE, KOFA, DKM:** đây là khách đặt hàng với KLMAS (vendor của brand Hàn), còn 8 SECONDS, NEPA, MIZUNO… là brand, đúng không? Vì sao NEPA có ở cả JBEE và KOFA?
-3. **RDD theo khách:** khoảng cách ETD → RDD ghi trong file (−20, −14, −10, ETA = ETD + 10) có đúng là quy tắc riêng của từng khách không? Cột `BUYER DEL (RDD-10)` là mốc gì? (Bổ sung vào Q17.)
-4. **Năm ETD của JBEE và KOFA 27SS** (01–02/2026): đáng lẽ là 2027, đúng không? (Gộp với Q37.)
+3. **RDD theo khách:** khoảng cách ETD → RDD ghi trong file (−20, −14, −10, ETA = ETD + 10) có đúng là quy tắc riêng của từng khách không? Cột `BUYER DEL (RDD-10)` là mốc gì? (Bổ sung vào Q20.)
+4. **Năm ETD của JBEE và KOFA 27SS** (01–02/2026): đáng lẽ là 2027, đúng không? (Gộp với Q40.)
 5. **CHG2WSK6979 → CHG2WSK7970, và CHF2WSK6979 mới:** là gõ nhầm hay đổi mã thật?
 6. **Thư mục `PRODUCTION PLAN` trên Drive** đã có file kế hoạch sản xuất chưa, hay mới tạo thư mục? (Liên quan yêu cầu D1: kế hoạch sản xuất chưa nhận.)
-7. **Phạm vi giai đoạn 1:** ngoài CHALLENGER, KLMAS muốn theo dõi khách nào trước? (Mở rộng Q14 và Q39.)
+7. **Phạm vi giai đoạn 1:** ngoài CHALLENGER, KLMAS muốn theo dõi khách nào trước? (Mở rộng Q14 và Q44.)
 
 ---
 
@@ -220,4 +220,4 @@ So sánh bằng parser của DW, theo các trường: trạng thái màu, nhà m
 | 9 | Kiểm tra bản mới trước khi thay bản cũ: ngày ngoài mùa, ô tổng lỗi, ngày UP DATE lùi | Gộp vào D-14 và D-15 |
 | 10 | Thống nhất cách đưa file từ Drive về (mục 9) | PO quyết |
 
-Câu hỏi mới đã thêm vào `open_questions.md`: **Q15** (kế hoạch sản xuất, ưu tiên 2) và **Q38** (Beanpole Kids bản 21/10, ưu tiên 3). Bằng chứng mới cũng được bổ sung vào Q05, Q08, Q14, Q17 và Q37.
+Câu hỏi mới đã thêm vào `open_questions.md`: **Q15** (kế hoạch sản xuất, ưu tiên 2) và **Q41** (Beanpole Kids bản 21/10, ưu tiên 3). Bằng chứng mới cũng được bổ sung vào Q05, Q08, Q14, Q20 và Q40.

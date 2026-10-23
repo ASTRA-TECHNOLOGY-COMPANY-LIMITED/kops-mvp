@@ -61,7 +61,7 @@ PDF từng thư phù hợp cho vài chục thư mẫu, **không phù hợp cho l
 | Chuẩn hoá chữ | NFC; tiếng Việt: dấu tổ hợp → dựng sẵn, `Đ/đ`; tiếng Hàn: giữ nguyên âm tiết | Đã có `nfc`, `norm_key` |
 | Nhận ngôn ngữ | Đếm ký tự Hangul / dấu tiếng Việt (đã có `lang_of`) | Mỗi thư có thể trộn 2 ngôn ngữ; lưu tỉ lệ thay vì một nhãn |
 | Phân loại nhanh, không tốn tiền | Từ khoá VI/KO/EN theo loại (đã có `config.EMAIL_CATEGORIES`); bổ sung từ điển ngành may (원단, 부자재, 선적, 납기, 수량, 샘플; vải, phụ liệu, giao hàng, số lượng, mẫu) | Đủ cho dashboard tổng quan |
-| Hiểu nội dung, bóc tách thay đổi | LLM (`email_llm.py`), trả **tóm tắt cả tiếng Việt và tiếng Hàn** + đề xuất có trích dẫn nguyên văn | Chỉ khi PO duyệt P2 |
+| Hiểu nội dung, bóc tách thay đổi | LLM (`email_llm.py`), trả **tóm tắt cả tiếng Việt và tiếng Hàn** + đề xuất có trích dẫn nguyên văn | P2 đã duyệt 23/10/2026: bật; tiêu đề email viết tự do nên đây là đường chính |
 | Tìm kiếm xuyên ngôn ngữ | (a) Full-text: DuckDB FTS không tách từ tiếng Hàn tốt, nên đánh chỉ mục **n-gram ký tự (bi-gram)** cho cả 2 ngôn ngữ; (b) Ngữ nghĩa: embedding đa ngôn ngữ (vd. `bge-m3` / `multilingual-e5`, chạy local) lưu vào DuckDB `vss` | (a) làm trước, (b) khi cần "tìm theo ý" |
 | OCR PDF scan | `tesseract` với gói ngôn ngữ `kor` + `vie` (+`eng`), chỉ chạy cho trang không có text layer, cache theo trang | Chậm: chạy nền theo hàng đợi |
 | Hiển thị | Dashboard song ngữ: nhãn tiếng Việt, cột tóm tắt có cả VI và KO | Người Hàn và người Việt cùng đọc được |
@@ -95,9 +95,9 @@ PDF từng thư phù hợp cho vài chục thư mẫu, **không phù hợp cho l
 | H-06 | **Hộp thư lớn:** đọc `.mbox` (thư viện chuẩn), `.pst` qua `readpst` nếu có; lọc theo ngày/thư mục; bỏ thư rác, thư tự động (newsletter, thông báo hệ thống) bằng quy tắc | — | 5 | Mẫu `.mbox` 1.000 thư nạp < 2 phút; thư trùng gộp đúng |
 | H-07 | **Chat export** Kakao / Zalo (`.txt`/`.csv`) → bảng `raw.chat_message` cùng khuôn email | H-06 | 3 | Mẫu chat 2 ngôn ngữ ra đúng người gửi và thời gian |
 | H-08 | **OCR hàng đợi:** chỉ trang không có text; `tesseract -l kor+vie+eng`; cache theo trang | H-02 | 3 | PDF scan mẫu ra text; chạy lại không OCR lại |
-| H-09 | **LLM theo lô** (khi P2 duyệt): chỉ thư không trùng, không phải trích dẫn; Message Batches API; cache theo `msg_key`; tóm tắt VI + KO; ngưỡng chi phí chạy thử 200 thư trước | H-06 | 5 | Chạy lại không gọi API cho thư đã có; báo cáo chi phí ước tính trước khi chạy toàn bộ |
+| H-09 | **LLM theo lô** (P2 đã duyệt 23/10): chỉ thư không trùng, không phải trích dẫn; Message Batches API; cache theo `msg_key`; tóm tắt VI + KO; ngưỡng chi phí chạy thử 200 thư trước | H-06 | 5 | Chạy lại không gọi API cho thư đã có; báo cáo chi phí ước tính trước khi chạy toàn bộ |
 | H-10 | **Tìm kiếm:** chỉ mục n-gram VI/KO cho email + text file; lệnh `python -m kops_dw search "..."`; (sau) embedding đa ngôn ngữ | H-02 | 4 | Tìm "납기 지연" và "trễ giao hàng" đều ra thư mẫu tương ứng |
-| H-11 | **Dashboard theo mùa, tải lười:** `python -m kops_dw serve` (server tĩnh local), dữ liệu chia `build/data/<season>.json` + tổng hợp nhiều mùa; trang chỉ tải mùa đang xem | H-02 | 6 | 10 mùa giả lập: trang mở < 3 giây, mỗi mùa < 5 MB |
+| H-11 | **Dashboard theo mùa, tải lười, có bộ lọc mùa trên mọi tab (PO chốt 23/10):** `python -m kops_dw serve` (server tĩnh local), dữ liệu chia `build/data/<season>.json` + tổng hợp nhiều mùa; trang chỉ tải mùa đang xem | H-02 | 6 | 10 mùa giả lập: trang mở < 3 giây, mỗi mùa < 5 MB |
 | H-12 | **Mart lịch sử nhiều mùa:** so sánh mùa, lead time, đúng hạn theo nhà máy nhiều mùa, tần suất thay đổi | H-02, H-05 | 6 | Tab "Lịch sử" có so sánh mùa; số mùa 26FW khớp số hiện tại |
 | H-13 | **Benchmark + giới hạn:** bộ dữ liệu giả lập 5.000 file / 50.000 thư (nhân bản và biến đổi file thật, không commit) | H-01..H-03 | 3 | Báo cáo thời gian lần đầu / lần sau, RAM, dung lượng lake |
 
