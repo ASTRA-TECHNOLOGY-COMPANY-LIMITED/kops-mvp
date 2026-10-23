@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>KOPS</title>
-<link rel="icon" href="data:,">
+<link rel="icon" href="/branding/favicon.svg">
 <style>
 :root{
   --bg:#f6f7f9;--surface:#ffffff;--surface-2:#f0f2f5;--text:#16191d;--text-2:#555d68;--line:#e2e5ea;--line-strong:#c9ced6;
@@ -44,6 +44,13 @@ main{max-width:1360px;margin:0 auto;padding:18px 20px 60px}
 .card h3{margin:0 0 2px;font-size:14.5px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}.card .sub{margin:0 0 8px;color:var(--text-2);font-size:12.5px}
 .chart{width:100%;height:300px}.chart.nodata{height:auto}.chart.tall{height:420px}.chart.small{height:150px}
 #built.fresh{color:var(--good);font-weight:600}
+.umenu{position:relative}.umenu-list{position:absolute;right:0;top:calc(100% + 4px);z-index:30;min-width:190px;background:var(--surface);
+  border:1px solid var(--line-strong);border-radius:8px;padding:4px;box-shadow:0 6px 20px rgb(0 0 0 / .15)}
+.umenu-list button{display:block;width:100%;text-align:left;border:0;background:none;color:var(--text);padding:7px 10px;border-radius:6px;font:inherit;cursor:pointer}
+.umenu-list button:hover{background:var(--surface-2)}.umenu-list .who{padding:6px 10px;color:var(--text-2);font-size:12.5px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.form{display:grid;gap:8px;max-width:420px}.form input,.form select{max-width:none;width:100%}.form label{color:var(--text-2);font-size:12.5px}
+button.primary{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:7px 14px;font:inherit;font-weight:600;cursor:pointer}
+.ok{color:var(--good)}.bad{color:var(--critical)}
 .qref{text-decoration:underline dotted;cursor:help}
 .syn{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;background:color-mix(in srgb,var(--syn) 18%,transparent);color:var(--syn);border:1px solid color-mix(in srgb,var(--syn) 40%,transparent);cursor:help}
 .tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px}
@@ -84,6 +91,8 @@ html:lang(ko) body{word-break:keep-all}
     <a class="note" href="dashboard.html" id="lAnalyst"></a>
     <button class="icon" id="langBtn"></button>
     <button class="icon" id="themeBtn">☾</button>
+    <div class="umenu"><button class="icon" id="userBtn" aria-haspopup="true" aria-expanded="false"></button>
+      <div class="umenu-list" id="userMenu" hidden></div></div>
   </div>
   <nav id="tabs" role="tablist"></nav>
 </header>
@@ -131,6 +140,15 @@ const synChip = (ids, share) => { const qs = uniq((ids || []).map(qOf));
   const sim = !(ids || []).length || ids.some(i => String(i || '').startsWith('ASM-SIM'));    // synthetic data, not a rule assumption
   return `<span class="syn${sim ? ' sim' : ''}" title="${esc(tip)}">${L('Giả định')}${share != null ? ' ' + nf1.format(share) + '%' : ''}${qs.length ? ' · ' + qs.join(', ') : ''}</span>`; };
 
+/* account (F-01): /api/me gives the user and the CSRF token every POST must send */
+let ME = null;
+async function api(url, body) {
+  const r = await fetch(url, {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': ME?.csrf || ''},
+    body: JSON.stringify(body || {})});
+  if (r.status === 401) { location.href = '/login'; throw new Error('login'); }
+  return {ok: r.ok, status: r.status, data: await r.json().catch(() => ({}))};
+}
+const isAdmin = () => ME?.role === 'admin';
 async function getJSON(u) {     // data only through the app's API (session checked); no session -> login page
   const r = await fetch(u, {cache: 'no-cache', credentials: 'same-origin'});
   if (r.status === 401) { location.href = '/login?next=' + encodeURIComponent(location.pathname + location.search); throw new Error('login'); }
@@ -600,7 +618,78 @@ function pageHealth() {
 }
 
 /* ================================================================ shell */
-const VIEW = {actions: pageActions, overview: pageOverview, production: pageProduction, ship: pageShip, quality: pageQuality, factory: pageFactory, change: pageChange, style: pageStyle, health: pageHealth};
+/* ---------------------------------------------------------------- profile + users (F-01) */
+const ROLE = {admin: L('Quản trị'), manager: L('Người quản lý'), viewer: L('Chỉ xem')};
+const PW_ERR = {old_wrong: L('Mật khẩu hiện tại không đúng'), too_short: L('Mật khẩu cần ít nhất 10 ký tự'),
+  same_as_user: L('Mật khẩu không được trùng tên đăng nhập'), same_as_old: L('Mật khẩu mới phải khác mật khẩu cũ')};
+function pageProfile() {
+  const opts = PAGES.map(([k, l]) => `<option value="${k}"${(ME?.default_page || 'overview') === k ? ' selected' : ''}>${esc(l)}</option>`).join('');
+  return `<div class="grid">
+    <div class="card"><h3>${L('Đổi mật khẩu')}</h3>
+      <form class="form" id="pwForm"><label>${L('Mật khẩu hiện tại')}<input type="password" id="pwOld" autocomplete="current-password" required></label>
+        <label>${L('Mật khẩu mới (ít nhất 10 ký tự)')}<input type="password" id="pwNew" autocomplete="new-password" required></label>
+        <label>${L('Nhập lại mật khẩu mới')}<input type="password" id="pwNew2" autocomplete="new-password" required></label>
+        <button class="primary" type="submit">${L('Lưu')}</button><div id="pwMsg"></div></form></div>
+    <div class="card"><h3>${L('Hồ sơ')}</h3><p class="sub">${esc(ME?.username || '')} · ${esc(ROLE[ME?.role] || '')}</p>
+      <form class="form" id="prefForm"><label>${L('Trang mở đầu sau khi đăng nhập')}<select id="prefPage">${opts}</select></label>
+        <button class="primary" type="submit">${L('Lưu')}</button><div id="prefMsg"></div></form></div></div>`;
+}
+function pageUsers() {
+  if (!isAdmin()) return `<div class="banner">${L('Chỉ quản trị viên được vào trang này')}</div>`;
+  return `<div class="card"><h3>${L('Người dùng')}</h3><p class="sub">${L('Quản trị: người dùng và cài đặt; Quản lý: xem tất cả, xử lý thông báo, chatbot; Chỉ xem: xem.')}</p>
+      <form class="form" id="newUser" style="grid-template-columns:2fr 1fr auto;max-width:none;align-items:end">
+        <label>${L('Tên đăng nhập mới')}<input id="nuName" required pattern="[A-Za-z0-9._@-]{3,60}"></label>
+        <label>${L('Vai trò')}<select id="nuRole">${Object.entries(ROLE).map(([k, l]) => `<option value="${k}"${k === 'viewer' ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
+        <button class="primary" type="submit">${L('Tạo')}</button></form><div id="userMsg" class="note"></div>
+      <div id="userList" class="tw"></div></div>
+    <div class="card" style="margin-top:12px"><h3>${L('Nhật ký hệ thống')}</h3><p class="sub">${L('đăng nhập, đổi mật khẩu, thao tác quản trị (500 dòng gần nhất)')}</p><div id="auditList" class="tw"></div></div>`;
+}
+async function loadUsers() {
+  const el = $('#userList'); if (!el) return;
+  const us = await getJSON('api/users');
+  el.innerHTML = `<table><thead><tr><th>${L('Tên đăng nhập')}</th><th>${L('Vai trò')}</th><th>${L('Trạng thái')}</th><th></th></tr></thead><tbody>${us.map(u => `<tr>
+    <td>${esc(u.username)}</td><td><select data-role="${u.id}"${u.username === ME.username ? ' disabled' : ''}>${Object.entries(ROLE).map(([k, l]) => `<option value="${k}"${k === u.role ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></td>
+    <td>${u.locked ? L('Đã khoá') : u.must_change ? L('Chờ đổi mật khẩu') : L('Hoạt động')}</td>
+    <td><button class="icon" data-act="reset" data-id="${u.id}">${L('Đặt lại mật khẩu')}</button>
+      ${u.username === ME.username ? '' : `<button class="icon" data-act="${u.locked ? 'unlock' : 'lock'}" data-id="${u.id}">${u.locked ? L('Mở khoá') : L('Khoá')}</button>`}</td></tr>`).join('')}</tbody></table>`;
+  const au = await getJSON('api/audit');
+  $('#auditList').innerHTML = `<table><thead><tr><th>${L('Thời điểm')}</th><th>${L('Người dùng')}</th><th>${L('Thao tác')}</th><th>${L('Đối tượng')}</th><th>IP</th></tr></thead><tbody>${
+    au.slice(0, 100).map(a => `<tr><td>${esc(a.at)}</td><td>${esc(a.username || '')}</td><td>${esc(a.action)}</td><td>${esc(a.target || '')}</td><td>${esc(a.ip || '')}</td></tr>`).join('')}</tbody></table>`;
+}
+function bindAccountPages() {
+  const pw = $('#pwForm');
+  if (pw) pw.onsubmit = async e => { e.preventDefault(); const m = $('#pwMsg');
+    if ($('#pwNew').value !== $('#pwNew2').value) { m.className = 'bad'; m.textContent = L('Hai lần nhập không khớp'); return; }
+    const r = await api('api/password', {old: $('#pwOld').value, new: $('#pwNew').value});
+    m.className = r.ok ? 'ok' : 'bad'; m.textContent = r.ok ? L('Đã đổi mật khẩu') : (PW_ERR[r.data.error] || L('Lỗi, thử lại sau')); if (r.ok) pw.reset(); };
+  const pf = $('#prefForm');
+  if (pf) pf.onsubmit = async e => { e.preventDefault(); const r = await api('api/profile', {default_page: $('#prefPage').value});
+    if (r.ok) ME.default_page = $('#prefPage').value; $('#prefMsg').className = r.ok ? 'ok' : 'bad'; $('#prefMsg').textContent = r.ok ? L('Đã lưu') : L('Lỗi, thử lại sau'); };
+  const nu = $('#newUser');
+  if (nu) {
+    nu.onsubmit = async e => { e.preventDefault(); const r = await api('api/users', {username: $('#nuName').value, role: $('#nuRole').value});
+      $('#userMsg').innerHTML = r.ok ? esc(L('Đã tạo. Mật khẩu tạm (chỉ hiện một lần, người dùng phải đổi khi đăng nhập): {p}', {p: r.data.temp_password})) : esc(L('Tên không hợp lệ hoặc đã có'));
+      if (r.ok) { nu.reset(); loadUsers(); } };
+    $('#userList').onclick = async e => { const b = e.target.closest('[data-act]'); if (!b) return;
+      const r = await api('api/users/' + b.dataset.id, {action: b.dataset.act});
+      $('#userMsg').textContent = r.ok ? (r.data.temp_password ? L('Mật khẩu tạm (chỉ hiện một lần): {p}', {p: r.data.temp_password}) : L('Đã lưu')) : L('Lỗi, thử lại sau'); loadUsers(); };
+    $('#userList').onchange = async e => { const s = e.target.closest('[data-role]'); if (!s) return;
+      const r = await api('api/users/' + s.dataset.role, {action: 'role', role: s.value}); $('#userMsg').textContent = r.ok ? L('Đã lưu') : L('Lỗi, thử lại sau'); };
+    loadUsers();
+  }
+}
+function buildUserMenu() {
+  $('#userBtn').textContent = '👤 ' + (ME?.username || '');
+  $('#userMenu').innerHTML = `<div class="who">${esc(ME?.username || '')} · ${esc(ROLE[ME?.role] || '')}</div>
+    <button data-go="profile">${L('Hồ sơ và mật khẩu')}</button>${isAdmin() ? `<button data-go="users">${L('Người dùng')}</button>` : ''}
+    <button data-go="logout">${L('Đăng xuất')}</button>`;
+}
+$('#userBtn').onclick = () => { const m = $('#userMenu'); m.hidden = !m.hidden; $('#userBtn').setAttribute('aria-expanded', String(!m.hidden)); };
+$('#userMenu').onclick = async e => { const b = e.target.closest('[data-go]'); if (!b) return; $('#userMenu').hidden = true;
+  if (b.dataset.go === 'logout') { await api('api/logout'); location.href = '/login'; } else showTab(b.dataset.go); };
+document.addEventListener('click', e => { if (!e.target.closest('.umenu')) $('#userMenu').hidden = true; });
+
+const VIEW = {profile: pageProfile, users: pageUsers, actions: pageActions, overview: pageOverview, production: pageProduction, ship: pageShip, quality: pageQuality, factory: pageFactory, change: pageChange, style: pageStyle, health: pageHealth};
 function render() {
   CHARTS.length = 0; Object.keys(TABLES).forEach(k => delete TABLES[k]);
   document.querySelectorAll('.chart').forEach(el => echarts.getInstanceByDom(el)?.dispose());
@@ -608,6 +697,7 @@ function render() {
   $('#main').innerHTML = html;
   Object.keys(TABLES).forEach(drawTable); drawCharts();
   const sp = $('#stylePick'); if (sp) sp.onchange = () => openStyle(sp.value);
+  bindAccountPages();
   document.querySelectorAll('nav button').forEach(b => b.setAttribute('aria-selected', b.dataset.t === STATE.tab));
 }
 /* New data (E-08): `make refresh` rebuilds while this page stays open; every minute the page checks index.json and,
@@ -656,6 +746,7 @@ $('#themeBtn').onclick = () => { const r = document.documentElement, dark = r.da
   const q = new URLSearchParams(location.search);
   if (q.get('theme')) document.documentElement.dataset.theme = q.get('theme');
   try {
+    ME = await getJSON('api/me'); buildUserMenu();
     IDX = await getJSON('api/data/mgr/index.json'); COMMON = await getJSON('api/data/mgr/_common.json');
   } catch (err) {
     $('#main').innerHTML = `<div class="banner">${L('Trang này tải dữ liệu từ <b>data/mgr/</b>: chạy <code>python -m kops_dw serve</code> (hoặc <code>make up</code>) rồi mở <b>http://127.0.0.1:8765/</b>.')}<br><span class="note">${esc(err.message)}</span></div>`; return;

@@ -1,41 +1,100 @@
 <!doctype html>
-<html lang="vi">
+<html lang="vi" translate="no">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>KOPS</title>
-<link rel="icon" href="data:,">
+<link rel="icon" href="/branding/favicon.svg">
 <style>
-:root{--bg:#f6f7f9;--surface:#fff;--text:#16191d;--text-2:#555d68;--line:#c9ced6;--accent:#2f5bd3;--critical:#c0362c;color-scheme:light}
-@media (prefers-color-scheme:dark){:root{--bg:#111418;--surface:#191d22;--text:#e8ebef;--text-2:#a3abb5;--line:#3c444d;--accent:#7b9cf0;--critical:#ef6b61;color-scheme:dark}}
+:root{--bg:#f6f7f9;--surface:#fff;--text:#16191d;--text-2:#555d68;--line:#c9ced6;--accent:#2f5bd3;--critical:#c0362c;--good:#1f8a4c;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111418;--surface:#191d22;--text:#e8ebef;--text-2:#a3abb5;--line:#3c444d;--accent:#7b9cf0;--critical:#ef6b61;--good:#4cc27e;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#111418;--surface:#191d22;--text:#e8ebef;--text-2:#a3abb5;--line:#3c444d;--accent:#7b9cf0;--critical:#ef6b61;--good:#4cc27e;color-scheme:dark}
 *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif}
-main{max-width:360px;margin:12vh auto 0;padding:0 16px}
+html:lang(ko) body{word-break:keep-all}
+main{max-width:380px;margin:10vh auto 0;padding:0 16px}
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:14px}.logo img{height:36px}
 form{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:22px}
-h1{font-size:20px;margin:0 0 16px}label{display:block;margin:10px 0 4px;color:var(--text-2)}
+h1{font-size:18px;margin:0 0 14px}label{display:block;margin:10px 0 4px;color:var(--text-2)}
 input{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text);font:inherit}
 button{margin-top:16px;width:100%;padding:9px;border:0;border-radius:6px;background:var(--accent);color:#fff;font:inherit;font-weight:600;cursor:pointer}
-.err{color:var(--critical);min-height:20px;margin-top:10px}
+.msg{min-height:20px;margin-top:10px;color:var(--critical)}.note{color:var(--text-2);font-size:12.5px;margin-top:8px}
+.lang{display:flex;justify-content:flex-end;margin-bottom:8px}.lang button{width:auto;margin:0;background:none;color:var(--accent);padding:2px 6px}
+[hidden]{display:none!important}
 </style>
 </head>
 <body>
 <main>
-  <form id="f">
-    <h1>KOPS</h1>
-    <label for="u">Tên đăng nhập</label><input id="u" autocomplete="username" required>
-    <label for="p">Mật khẩu</label><input id="p" type="password" autocomplete="current-password" required>
-    <button type="submit">Đăng nhập</button>
-    <div class="err" id="err"></div>
+  <div class="lang"><button type="button" id="langBtn"></button></div>
+  <div class="logo"><img id="logo" src="/branding/logo.svg" alt="KOPS"></div>
+  <form id="fLogin">
+    <h1 data-t="title"></h1>
+    <label for="u" data-t="user"></label><input id="u" autocomplete="username" required>
+    <label for="p" data-t="pass"></label><input id="p" type="password" autocomplete="current-password" required>
+    <button type="submit" data-t="login"></button>
+    <div class="msg" id="err" role="alert"></div>
+    <div class="note" data-t="forgot"></div>
+  </form>
+  <form id="fChange" hidden>
+    <h1 data-t="changeTitle"></h1>
+    <div class="note" data-t="changeWhy"></div>
+    <label for="n1" data-t="new"></label><input id="n1" type="password" autocomplete="new-password" required>
+    <label for="n2" data-t="again"></label><input id="n2" type="password" autocomplete="new-password" required>
+    <button type="submit" data-t="save"></button>
+    <div class="msg" id="err2" role="alert"></div>
   </form>
 </main>
 <script>
 'use strict';
-document.getElementById('f').onsubmit = async e => {
-  e.preventDefault();
-  const r = await fetch('/api/login', {method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({username: document.getElementById('u').value, password: document.getElementById('p').value})});
-  if (r.ok) { const n = new URLSearchParams(location.search).get('next'); location.href = n && n.startsWith('/') && !n.startsWith('//') ? n : '/'; }
-  else document.getElementById('err').textContent = 'Sai tên đăng nhập hoặc mật khẩu';
+const T = {
+  vi: {title: 'Đăng nhập', user: 'Tên đăng nhập', pass: 'Mật khẩu', login: 'Đăng nhập', forgot: 'Quên mật khẩu: nhờ quản trị viên đặt lại.',
+    invalid: 'Sai tên đăng nhập hoặc mật khẩu', locked: 'Tài khoản tạm khoá {m} phút sau 5 lần sai mật khẩu', error: 'Lỗi, thử lại sau',
+    changeTitle: 'Đổi mật khẩu', changeWhy: 'Lần đăng nhập đầu hoặc mật khẩu vừa được đặt lại: hãy đặt mật khẩu mới.',
+    new: 'Mật khẩu mới (ít nhất 10 ký tự)', again: 'Nhập lại mật khẩu mới', save: 'Lưu và vào hệ thống', mismatch: 'Hai lần nhập không khớp',
+    too_short: 'Mật khẩu cần ít nhất 10 ký tự', same_as_user: 'Mật khẩu không được trùng tên đăng nhập', same_as_old: 'Mật khẩu mới phải khác mật khẩu cũ',
+    lang: '한국어'},
+  ko: {title: '로그인', user: '아이디', pass: '비밀번호', login: '로그인', forgot: '비밀번호를 잊은 경우 관리자에게 재설정을 요청하세요.',
+    invalid: '아이디 또는 비밀번호가 올바르지 않습니다', locked: '비밀번호 5회 오류로 {m}분간 잠금', error: '오류가 발생했습니다. 잠시 후 다시 시도하세요',
+    changeTitle: '비밀번호 변경', changeWhy: '첫 로그인이거나 비밀번호가 재설정되었습니다. 새 비밀번호를 정하세요.',
+    new: '새 비밀번호 (10자 이상)', again: '새 비밀번호 확인', save: '저장 후 시작', mismatch: '두 비밀번호가 다릅니다',
+    too_short: '비밀번호는 10자 이상이어야 합니다', same_as_user: '아이디와 같은 비밀번호는 쓸 수 없습니다', same_as_old: '기존 비밀번호와 달라야 합니다',
+    lang: 'Tiếng Việt'}};
+const q = new URLSearchParams(location.search);
+let LANG = q.get('lang'); try { LANG = LANG || localStorage.getItem('kops.lang'); } catch {}
+if (!T[LANG]) LANG = 'vi';
+const t = k => T[LANG][k] || k;
+const $ = id => document.getElementById(id);
+const cookie = n => (document.cookie.split('; ').find(c => c.startsWith(n + '=')) || '').slice(n.length + 1);
+let CSRF = '', OLD = '', NEXT = '/';
+function apply() {
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-t]').forEach(e => { e.textContent = t(e.dataset.t); });
+  $('langBtn').textContent = t('lang');
+}
+$('langBtn').onclick = () => { LANG = LANG === 'vi' ? 'ko' : 'vi'; try { localStorage.setItem('kops.lang', LANG); } catch {} apply(); };
+try { const th = localStorage.getItem('kops.theme'); if (th) document.documentElement.dataset.theme = th; } catch {}
+if (matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.dataset.theme !== 'light') $('logo').src = '/branding/logo-dark.svg';
+async function post(url, body, csrf) {
+  return fetch(url, {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf}, body: JSON.stringify(body)});
+}
+function go() { location.href = NEXT; }
+$('fLogin').onsubmit = async e => {
+  e.preventDefault(); $('err').textContent = '';
+  const r = await post('/api/login', {username: $('u').value, password: $('p').value}, cookie('kops_csrf'));
+  const j = await r.json().catch(() => ({}));
+  if (r.ok) {
+    CSRF = j.csrf; OLD = $('p').value;
+    const n = q.get('next'); NEXT = n && n.startsWith('/') && !n.startsWith('//') ? n : (j.default_page ? '/?tab=' + encodeURIComponent(j.default_page) : '/');
+    if (j.must_change) { $('fLogin').hidden = true; $('fChange').hidden = false; $('n1').focus(); } else go();
+  } else $('err').textContent = r.status === 423 ? t('locked').replace('{m}', j.minutes || 15) : r.status === 401 ? t('invalid') : t('error');
 };
+$('fChange').onsubmit = async e => {
+  e.preventDefault(); $('err2').textContent = '';
+  if ($('n1').value !== $('n2').value) { $('err2').textContent = t('mismatch'); return; }
+  const r = await post('/api/password', {old: OLD, new: $('n1').value}, CSRF);
+  const j = await r.json().catch(() => ({}));
+  if (r.ok) go(); else $('err2').textContent = t(j.error || 'error');
+};
+apply();
 </script>
 </body>
 </html>

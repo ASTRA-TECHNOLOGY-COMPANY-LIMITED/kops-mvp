@@ -38,6 +38,10 @@ def main(argv=None):
     if cmd == "mail-allow":
         from .mailallow import cli as mail_allow
         sys.exit(mail_allow(argv[1:]))
+    if cmd == "admin-reset":     # admin password back to KOPS_ADMIN_PASSWORD (.env), must change at next login
+        from app.bootstrap import reset_admin
+        print(reset_admin())
+        return
     if cmd == "check-ui":      # Playwright UI test of the manager dashboard (E-07)
         from .uitest import run as check_ui
         sys.exit(check_ui(argv[1:]))

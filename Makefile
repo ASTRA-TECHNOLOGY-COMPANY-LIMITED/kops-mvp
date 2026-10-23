@@ -16,13 +16,21 @@ SEASON ?=
 REPORT_LANG ?= vi
 UI_OUT ?= /tmp/kops-ui
 
-.PHONY: up up-real down rebuild refresh check check-ui logs clean report
+.PHONY: env-admin up up-real down rebuild refresh check check-ui logs clean report
 
-up:
+# first admin of the web app: when .env has no KOPS_ADMIN_PASSWORD, append a random one (never printed; read it in .env)
+env-admin:
+	@test -f .env || (touch .env && chmod 600 .env)
+	@grep -q '^KOPS_ADMIN_USER=' .env || echo 'KOPS_ADMIN_USER=admin' >> .env
+	@grep -q '^KOPS_ADMIN_PASSWORD=' .env || (echo '# first admin password (generated; change it at first login)' >> .env && \
+	  echo "KOPS_ADMIN_PASSWORD=$$(LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 24)" >> .env && \
+	  echo 'Admin password generated: see KOPS_ADMIN_PASSWORD in .env')
+
+up: env-admin
 	KOPS_SIM=1 $(COMPOSE) up -d --build
 	@echo "Dashboard: http://127.0.0.1:8765/  (logs: make logs)"
 
-up-real:
+up-real: env-admin
 	KOPS_SIM=0 $(COMPOSE) up -d --build --force-recreate
 	@echo "Dashboard (real data only): http://127.0.0.1:8765/"
 
