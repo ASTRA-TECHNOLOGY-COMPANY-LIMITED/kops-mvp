@@ -55,6 +55,13 @@ QUERIES = {
     "documents": f"""SELECT {STYLE_NK} AS style_nk, s.season, s.customer, s.brand, s.factory_code, d.file_name, d.doc_kind, d.stage, d.doc_date
                      FROM fact.document d JOIN dim.style s USING (style_key)""",
     "recon": "SELECT * FROM mart.mgr_recon",
+    # F-05 charts
+    "stage": "SELECT * EXCLUDE (is_active) FROM mart.mgr_style_stage WHERE is_active",
+    "qty_bridge": "SELECT * FROM mart.mgr_qty_bridge",
+    "trend_size": "SELECT * FROM mart.trend_size",
+    "trend_color": "SELECT * FROM mart.trend_color",
+    "trend_item": "SELECT * FROM mart.trend_item",
+    "trend_fabric": "SELECT * FROM mart.trend_fabric",
     "actions": "SELECT * FROM mart.mgr_action ORDER BY severity, due_date, action_id",
     "funnel": f"""SELECT f.customer || '|' || f.season || '|' || f.style_no AS style_nk, f.* EXCLUDE (is_synthetic)
                   FROM mart.style_funnel f ORDER BY style_no, color, size_code""",

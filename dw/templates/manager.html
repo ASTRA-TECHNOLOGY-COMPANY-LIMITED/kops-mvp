@@ -9,17 +9,17 @@
 :root{
   --bg:#f6f7f9;--surface:#ffffff;--surface-2:#f0f2f5;--text:#16191d;--text-2:#555d68;--line:#e2e5ea;--line-strong:#c9ced6;
   --accent:#2f5bd3;--good:#1f8a4c;--warning:#b7791f;--critical:#c0362c;--neutral:#7a838f;--syn:#8a5cc7;
-  --s1:#2f5bd3;--s2:#d9822b;--s3:#2a9d8f;--s4:#c0362c;--s5:#8a5cc7;--s6:#7a838f;--s7:#b5838d;--s8:#3d8bd9;
+  --s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#eda100;--s5:#e87ba4;--s6:#008300;--s7:#6250d6;--s8:#e34948;
   color-scheme:light;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#111418;--surface:#191d22;--surface-2:#20252b;--text:#e8ebef;--text-2:#a3abb5;--line:#2c3239;--line-strong:#3c444d;
   --accent:#7b9cf0;--good:#4cc27e;--warning:#e0a64a;--critical:#ef6b61;--neutral:#99a2ad;--syn:#b18ae8;
-  --s1:#7b9cf0;--s2:#efa35c;--s3:#56c2b4;--s4:#ef6b61;--s5:#b18ae8;--s6:#99a2ad;--s7:#d6a2ac;--s8:#6fb1f0;color-scheme:dark}}
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;--s5:#d55181;--s6:#008300;--s7:#9085e9;--s8:#e66767;color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#111418;--surface:#191d22;--surface-2:#20252b;--text:#e8ebef;--text-2:#a3abb5;--line:#2c3239;--line-strong:#3c444d;
   --accent:#7b9cf0;--good:#4cc27e;--warning:#e0a64a;--critical:#ef6b61;--neutral:#99a2ad;--syn:#b18ae8;
-  --s1:#7b9cf0;--s2:#efa35c;--s3:#56c2b4;--s4:#ef6b61;--s5:#b18ae8;--s6:#99a2ad;--s7:#d6a2ac;--s8:#6fb1f0;color-scheme:dark}
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;--s5:#d55181;--s6:#008300;--s7:#9085e9;--s8:#e66767;color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif}
 header{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
@@ -227,25 +227,28 @@ const hasData = o => [].concat(o.series || []).some(s => (s.data || []).some(v =
   const x = v && typeof v === 'object' && !Array.isArray(v) ? v.value : v; return Array.isArray(x) ? x.some(y => y != null) : x != null && x !== 0; }));
 function chart(id, option) {
   if (!hasData(option)) return `<div class="chart nodata" id="${id}" data-empty="1"><div class="empty">${L('Chưa có dữ liệu')}</div></div>`;
-  CHARTS.push([id, option]); return `<div class="chart${option._cls ? ' ' + option._cls : ''}" id="${id}"></div>`;
+  CHARTS.push([id, option]); return `<div class="chart${option._cls ? ' ' + option._cls : ''}" id="${id}"${option._h ? ` style="height:${option._h}px"` : ''}></div>`;
 }
 function base(o) {
+  // theme defaults merged INTO each axis / tooltip / legend of the chart (a chart that sets its own axis keeps the theme)
   const t = css('--text-2'), l = css('--line');
-  return Object.assign({
-    animation: !NOANIM && !PRINT,
-    textStyle: {color: t, fontFamily: 'system-ui, sans-serif'}, grid: {left: 52, right: 16, top: 30, bottom: 34, containLabel: false},
+  const ax = a => a && typeof a === 'object' && !Array.isArray(a) ? {...a, axisLabel: {color: t, ...a.axisLabel}, nameTextStyle: {color: t, ...a.nameTextStyle},
+    axisLine: {...a.axisLine, lineStyle: {color: l, ...a.axisLine?.lineStyle}}, axisTick: {lineStyle: {color: l}, ...a.axisTick},
+    splitLine: {show: (a.type || 'category') === 'value', ...a.splitLine, lineStyle: {color: l, ...a.splitLine?.lineStyle}}} : a;
+  const axes = a => Array.isArray(a) ? a.map(ax) : ax(a);
+  const tip = {trigger: 'axis', backgroundColor: css('--surface'), borderColor: css('--line-strong'), textStyle: {color: css('--text')}};
+  const leg = {top: 0, textStyle: {color: t}, type: 'scroll', pageTextStyle: {color: t}, pageIconColor: t};
+  return {animation: !NOANIM && !PRINT, textStyle: {color: t, fontFamily: 'system-ui, sans-serif'}, grid: {left: 52, right: 16, top: 30, bottom: 34, containLabel: false},
     color: ['--s1', '--s2', '--s3', '--s4', '--s5', '--s6', '--s7', '--s8'].map(css),
-    tooltip: {trigger: 'axis', backgroundColor: css('--surface'), borderColor: css('--line-strong'), textStyle: {color: css('--text')}},
-    legend: {top: 0, textStyle: {color: t}, type: 'scroll'},
-    xAxis: {axisLine: {lineStyle: {color: l}}, axisLabel: {color: t}, splitLine: {show: false}},
-    yAxis: {axisLine: {lineStyle: {color: l}}, axisLabel: {color: t}, splitLine: {lineStyle: {color: l}}},
-  }, o);
+    ...o, tooltip: {...tip, ...o.tooltip}, legend: {...leg, ...o.legend},
+    ...(o.xAxis !== undefined ? {xAxis: axes(o.xAxis)} : {}), ...(o.yAxis !== undefined ? {yAxis: axes(o.yAxis)} : {})};
 }
+
 function drawCharts() {
   for (const [id, opt] of CHARTS) {
     const el = document.getElementById(id); if (!el) continue;
     const c = echarts.getInstanceByDom(el) || echarts.init(el, null, {renderer: 'svg'});
-    const {_click, _cls, ...o} = opt;
+    const {_click, _cls, _h, ...o} = opt;
     c.setOption(base(o), true);
     c.off('click'); if (_click) c.on('click', _click);
   }
@@ -417,6 +420,7 @@ function pageOverview() {
     ${kpiTile(L('Tỉ lệ lỗi kiểm'), defR == null ? '–' : nf1.format(defR) + '%', L('{a} lỗi / {b} pcs kiểm', {a: fmt(k.defects), b: fmt(k.insp)}), L('Điểm lỗi ÷ SL đã kiểm (bảng kiểm KLMAS dòng D ÷ C) — giả định ASM-QC-01'), synI || synChip(['ASM-QC-01']))}
     ${kpiTile(L('Đề xuất chờ duyệt'), fmt(k.pending), L('từ email, chưa áp vào số liệu'), L('Thay đổi đọc từ email: luôn PENDING_REVIEW'))}
   </div>
+  ${riskMatrix()}
   <div class="grid">
     <div class="card"><h3>${L('SL đặt theo khách và brand')}</h3><p class="sub">${L('bấm một cột để lọc theo khách')}</p>
       ${chart('cCust', {xAxis: {type: 'category', data: custs, axisLabel: {color: css('--text-2')}}, yAxis: {type: 'value'}, series: byCB,
@@ -466,7 +470,7 @@ function pageProduction() {
       ${chart('cLoad', {xAxis: {type: 'category', data: weeks}, yAxis: {type: 'value'}, dataZoom: [{type: 'inside'}],
         series: facs.map(f => { const g = group(wk.filter(x => x.factory_code === f), x => x.week_start, x => x.qty); return {name: f, type: 'bar', stack: 'o', data: weeks.map(w => g.get(w) || 0)}; }),
         _click: p => { STATE.factory = p.seriesName; refresh(); }, _cls: 'tall'})}</div>
-  </div>`;
+  </div>${productionMore()}`;
 }
 
 function pageShip() {
@@ -494,7 +498,7 @@ function pageShip() {
   </div>
   <div class="card"><h3>${L('Vật tư về nhà máy bị dời ETD')}</h3><p class="sub">${L('nguồn: tiêu đề email "M/D->M/D ETD (delay)"')}</p>
     ${table('tMat', mat, [{k: 'factory_code', l: L('Nhà máy')}, {k: 'customer', l: L('Khách')}, {k: 'shipments', l: L('Lô'), n: 1}, {k: 'delayed', l: L('Bị dời'), n: 1},
-      {k: 'avg_delay_days', l: L('TB ngày dời'), n: 1}, {k: 'max_delay_days', l: L('Tối đa'), n: 1}, {k: 'last_etd', l: L('ETD gần nhất')}])}</div>`;
+      {k: 'avg_delay_days', l: L('TB ngày dời'), n: 1}, {k: 'max_delay_days', l: L('Tối đa'), n: 1}, {k: 'last_etd', l: L('ETD gần nhất')}])}</div>${shipMore()}`;
 }
 
 function pageQuality() {
@@ -505,7 +509,7 @@ function pageQuality() {
   const par = (D.pareto || []).filter(p => STATE.syn || !p.is_synthetic);
   const src = par.some(p => p.source === 'THIRD_PARTY') ? 'THIRD_PARTY' : 'KLMAS';
   const top = Object.values(par.filter(p => p.source === src).reduce((a, p) => ((a[p.code] = a[p.code] || {code: p.code, name: p.name_ko, points: 0}).points += p.points, a), {})).sort((a, b) => b.points - a.points).slice(0, 15);
-  const tot = sum(par.filter(p => p.source === src), p => p.points); let cum = 0;
+  const tot = sum(par.filter(p => p.source === src), p => p.points);
   const comp = D.complaints || [];
   const tpMonths = uniq(tp.map(r => r.month));
   return `
@@ -514,10 +518,12 @@ function pageQuality() {
     <div class="card"><h3>${L('Tỉ lệ lỗi theo nhà máy (đơn KLMAS)')} ${STATE.syn && q.some(r => r.is_synthetic) ? synChip(['ASM-SIM-01', 'ASM-SIM-03']) : ''}</h3><p class="sub">${L('bấm để lọc nhà máy')}</p>
       ${chart('cQF', {grid: {left: 52, right: 16, top: 30, bottom: 64}, xAxis: {type: 'category', data: facs, axisLabel: {rotate: 30, color: css('--text-2')}}, yAxis: {type: 'value', name: '%'}, series: [{name: L('Tỉ lệ lỗi %'), type: 'bar', data: facs.map(rate)}],
         _click: p => { STATE.factory = p.name; refresh(); }})}</div>
-    <div class="card"><h3>${L('Pareto mã lỗi ({s})', {s: src === 'THIRD_PARTY' ? L('kiểm bên thứ ba, dữ liệu thật') : L('giả định')})}</h3><p class="sub">${L('15 mã nhiều điểm lỗi nhất; đường = % cộng dồn')}</p>
-      ${chart('cPar', {grid: {left: 52, right: 44, top: 30, bottom: 34}, xAxis: {type: 'category', data: top.map(t => t.code)}, yAxis: [{type: 'value'}, {type: 'value', max: 100, splitLine: {show: false}}],
-        tooltip: {trigger: 'axis', formatter: ps => ps.map(p => `${p.seriesName}: ${nf1.format(p.value)}`).join('<br>') + '<br>' + esc((top[ps[0].dataIndex] || {}).name || '')},
-        series: [{name: L('Điểm lỗi'), type: 'bar', data: top.map(t => t.points)}, {name: L('% cộng dồn'), type: 'line', yAxisIndex: 1, data: top.map(t => +(100 * (cum += t.points) / tot).toFixed(1))}]})}</div>
+    <div class="card"><h3>${L('Pareto mã lỗi ({s})', {s: src === 'THIRD_PARTY' ? L('kiểm bên thứ ba, dữ liệu thật') : L('giả định')})}</h3><p class="sub">${L('15 mã nhiều điểm lỗi nhất; nhãn = % cộng dồn của 5 mã đầu')}</p>
+      ${chart('cPar', {grid: {left: 52, right: 16, top: 30, bottom: 34}, legend: {show: false}, xAxis: {type: 'category', data: top.map(t => t.code)}, yAxis: {type: 'value'},
+        tooltip: {trigger: 'axis', formatter: ps => { const i = ps[0].dataIndex; const c = top.slice(0, i + 1).reduce((a, t) => a + t.points, 0);
+          return `<b>${esc(top[i].code)}</b> ${esc(top[i].name || '')}<br>${L('Điểm lỗi')}: ${fmt(top[i].points)}<br>${L('% cộng dồn')}: ${nf1.format(100 * c / tot)}%`; }},
+        series: [{name: L('Điểm lỗi'), type: 'bar', itemStyle: {color: css('--s1'), borderRadius: [4, 4, 0, 0]}, data: top.map(t => t.points),
+          label: {show: true, position: 'top', fontSize: 10, color: css('--text-2'), formatter: p => { const c = top.slice(0, p.dataIndex + 1).reduce((a, t) => a + t.points, 0); return p.dataIndex < 5 ? nf1.format(100 * c / tot) + '%' : ''; }}}]})}</div>
   </div>
   <div class="grid">
     <div class="card"><h3>${L('Xu hướng tỉ lệ lỗi theo tháng')}</h3><p class="sub">${L('đơn KLMAS (theo bộ lọc) và kiểm bên thứ ba')}</p>
@@ -526,14 +532,14 @@ function pageQuality() {
                  {name: L('Kiểm bên thứ ba'), type: 'line', data: uniq([...months, ...tpMonths]).map(m => { const r = tp.filter(x => x.month === m); const i = sum(r, x => x.inspected); return i ? +(100 * sum(r, x => x.defects) / i).toFixed(1) : null; })}]})}</div>
     <div class="card"><h3>${L('Phàn nàn chất lượng từ buyer (email)')}</h3><p class="sub">${L('tiêu đề có QUALITY / 품질 / 불량')}</p>
       ${table('tComp', comp.filter(c => keep(c)), [{k: 'sent_at', l: L('Ngày')}, {k: 'subject', l: L('Tiêu đề')}, {k: 'party_type', l: L('Người gửi')}, {k: 'styles', l: 'Style'}], {limit: 8})}</div>
-  </div>`;
+  </div>${qualityMore()}`;
 }
 
 function scoreFormula() {
   const W = IDX.weights || {}, n = {on_time: L('% đúng hạn (lô đầu ≤ ETD VN)'), quality: L('(100 − % lỗi)'), changes: L('(100 − 10 × số thay đổi / 1.000 pcs)'),
     freshness: L('độ tươi (FRESH 100, STALE 50, DARK 0)')};
   const used = Object.keys(n).filter(k => (W[k] ?? 1) > 0), tot = sum(used, k => W[k] ?? 1);
-  return L('Điểm = {f} (thành phần chưa có dữ liệu thì bỏ, chia lại trọng số)', {f: used.map(k => `${nf1.format((W[k] ?? 1) / tot)} × ${n[k]}`).join(' + ')});
+  return L('Điểm = {f} (thành phần chưa có dữ liệu thì bỏ, chia lại trọng số)', {f: used.map(k => `${((W[k] ?? 1) / tot).toLocaleString(LANG === 'ko' ? 'ko-KR' : 'vi-VN', {maximumFractionDigits: 2})} × ${n[k]}`).join(' + ')});
 }
 function pageFactory() {
   const f = T('factory'), facs = uniq(f.map(r => r.factory_code));
@@ -565,7 +571,7 @@ function pageFactory() {
       xAxis: {type: 'category', data: weeks, axisLabel: {show: false}}, yAxis: {type: 'value', axisLabel: {fontSize: 9, color: css('--text-2')}},
       series: [{type: 'bar', data: weeks.map(w => sum(wk.filter(x => x.week_start === w && x.factory_code === r.factory_code), x => x.qty))}], _cls: 'small'})}</div>`).join('')}</div></div>
   <div class="card" style="margin-top:12px"><h3>${L('Lịch sử đổi nhà máy')}</h3><p class="sub">${L('ghi chú "MOVED FACT" trong ORDER RECAP (bridge.style_factory)')}</p>
-    ${table('tMv', mv.filter(m => STATE.factory === ALL || m.factory_code === STATE.factory), [{k: 'factory_code', l: L('Nhà máy')}, {k: 'moves_in', l: L('Lần chuyển ghi trong RECAP'), n: 1}, {k: 'styles', l: L('Style từng ở nhà máy'), n: 1}])}</div>`;
+    ${table('tMv', mv.filter(m => STATE.factory === ALL || m.factory_code === STATE.factory), [{k: 'factory_code', l: L('Nhà máy')}, {k: 'moves_in', l: L('Lần chuyển ghi trong RECAP'), n: 1}, {k: 'styles', l: L('Style từng ở nhà máy'), n: 1}])}</div>${factoryMore()}`;
 }
 
 function pageChange() {
@@ -580,7 +586,7 @@ function pageChange() {
       ${chart('cEr', {xAxis: {type: 'category', data: em}, yAxis: {type: 'value', name: L('giờ')}, series: parties.map(p => ({name: p, type: 'line', data: em.map(m => (er.find(r => r.month === m && r.sender_party === p) || {}).median_reply_hours ?? null)}))})}</div>
   </div>
   <div class="card"><h3>${L('Đề xuất thay đổi từ email chờ duyệt ({n})', {n: fmt(pend.length)})}</h3><p class="sub">${L('không bao giờ tự áp vào số liệu; bấm để mở Style 360')}</p>
-    ${table('tPend', pend, [{k: 'fact_date', l: L('Ngày')}, {k: 'style_no', l: 'Style'}, {k: 'change_type', l: L('Loại')}, {k: 'after_v', l: L('Yêu cầu')}, {k: 'detail', l: L('Trích dẫn')}], {limit: 10, onClick: r => openStyle(r.style_nk)})}</div>`;
+    ${table('tPend', pend, [{k: 'fact_date', l: L('Ngày')}, {k: 'style_no', l: 'Style'}, {k: 'change_type', l: L('Loại')}, {k: 'after_v', l: L('Yêu cầu')}, {k: 'detail', l: L('Trích dẫn')}], {limit: 10, onClick: r => openStyle(r.style_nk)})}</div>${changeMore()}`;
 }
 
 const FLAG = {CUT_SHORT: L('cắt thiếu: SL cắt < SL đặt − 5% khi đã xuất hoặc đã qua ETD'), OUTPUT_GT_CUT: L('may nhiều hơn cắt'),
@@ -666,6 +672,211 @@ function pageHealth() {
 }
 
 /* ================================================================ shell */
+/* ---------------------------------------------------------------- manager charts (F-05); definitions in dw/docs/metrics.md
+   Colours: categorical slots --s1..--s8 (validated palette), one-hue blue ramp for magnitude, status colours only for status. */
+const RAMP = {light: ['#cde2fb', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf', '#184f95', '#0d366b'],
+  dark: ['#20304a', '#184f95', '#1c5cab', '#2a78d6', '#5598e7', '#86b6ef', '#cde2fb']};
+const isDark = () => { const r = document.documentElement; return r.dataset.theme ? r.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches; };
+const ramp = () => RAMP[isDark() ? 'dark' : 'light'];
+const srcLine = s => `<br><span style="opacity:.75">${esc(L('Nguồn: {s}', {s}))}</span>`;
+function heat(id, xs, ys, cells, {fmtv = v => fmt(v), src = '', click, max} = {}) {
+  // cells: [xIndex, yIndex, value]; one-hue sequential ramp, value written in every cell tooltip
+  const vals = cells.map(c => c[2]).filter(v => v != null);
+  return chart(id, {grid: {left: 110, right: 16, top: 10, bottom: 56}, legend: {show: false},
+    tooltip: {trigger: 'item', formatter: p => `${esc(ys[p.value[1]])} · ${esc(xs[p.value[0]])}<br><b>${fmtv(p.value[2])}</b>${srcLine(src)}`},
+    xAxis: {type: 'category', data: xs, splitArea: {show: false}, axisLabel: {rotate: 45, fontSize: 10, color: css('--text-2')}},
+    yAxis: {type: 'category', data: ys, axisLabel: {fontSize: 10, color: css('--text-2')}},
+    visualMap: {min: 0, max: max ?? Math.max(1, ...vals), calculable: false, orient: 'horizontal', left: 'center', bottom: 0, itemHeight: 90, itemWidth: 10,
+      inRange: {color: ramp()}, textStyle: {color: css('--text-2'), fontSize: 10}, show: true, text: [L('cao'), L('thấp')]},
+    series: [{type: 'heatmap', data: cells, itemStyle: {borderColor: css('--surface'), borderWidth: 2}, emphasis: {itemStyle: {borderColor: css('--text'), borderWidth: 1}}}],
+    _click: click, _cls: ys.length > 10 ? 'tall' : ''});
+}
+const quart = a => { const s = [...a].sort((x, y) => x - y), q = p => { const i = (s.length - 1) * p, lo = Math.floor(i); return s[lo] + (s[Math.ceil(i)] - s[lo]) * (i - lo); };
+  return [s[0], q(.25), q(.5), q(.75), s[s.length - 1]]; };
+
+// Overview: risk matrix - days left to RDD x % done, bubble = order qty, colour = status (with label in the tooltip)
+function riskMatrix() {
+  const today = IDX.today ? new Date(IDX.today) : new Date();
+  const st = styles().filter(s => s.is_active && s.rdd && s.order_qty && (s.shipped || 0) < s.order_qty * 0.95 && (STATE.syn || !s.style_syn));
+  if (!st.length) return '';
+  const pts = st.map(s => {
+    const done = Math.min(100, 100 * Math.max(s.shipped || 0, s.output_qty || 0) / s.order_qty);
+    const days = Math.round((new Date(s.rdd) - today) / 864e5);
+    const level = s.risk_reason ? 'critical' : days < 30 && done < 50 ? 'warning' : 'good';
+    return {value: [days, +done.toFixed(1), s.order_qty], s, level};
+  });
+  const C = {critical: [L('Rủi ro'), '--critical'], warning: [L('Cần theo dõi'), '--warning'], good: [L('Bình thường'), '--good']};
+  const maxQ = Math.max(...pts.map(p => p.value[2]));
+  const syn = STATE.syn && st.some(s => s.ship_syn || s.out_syn) ? synChip(['ASM-SIM-02', 'ASM-SIM-04']) : '';
+  return `<div class="card" style="margin-bottom:12px"><h3>${L('Ma trận rủi ro')} ${syn}</h3><p class="sub">${L('trục ngang: số ngày còn tới RDD (âm = đã qua); trục dọc: % đã may hoặc đã xuất; bong bóng = SL đặt; màu = mức rủi ro. Bấm để mở Style 360.')}</p>
+    ${chart('cRisk', {grid: {left: 56, right: 20, top: 34, bottom: 40}, tooltip: {trigger: 'item', formatter: p => { const s = p.data.s;
+        return `<b>${esc(s.style_no)}</b> · ${esc(s.factory_code || '')}<br>${esc(C[p.data.level][0])}${s.risk_reason ? ' · ' + esc(s.risk_reason) : ''}<br>RDD ${esc(s.rdd)} (${L('{n} ngày', {n: p.value[0]})}) · ${nf1.format(p.value[1])}% · ${fmt(s.order_qty)} pcs${srcLine('mart.mgr_style')}`; }},
+      xAxis: {type: 'value', name: L('ngày tới RDD'), nameLocation: 'middle', nameGap: 26}, yAxis: {type: 'value', max: 100, name: '%'},
+      legend: {data: Object.values(C).map(c => c[0])},
+      series: Object.entries(C).map(([k, [name, col]]) => ({name, type: 'scatter', itemStyle: {color: css(col), opacity: .75, borderColor: css('--surface'), borderWidth: 2},
+        symbolSize: v => 8 + 30 * Math.sqrt(v[2] / maxQ), data: pts.filter(p => p.level === k)})),
+      _click: p => p.data?.s && openStyle(p.data.s.style_nk), _cls: 'tall'})}</div>`;
+}
+
+// Production: milestone funnel + lead time per stage (box plot by factory)
+function productionMore() {
+  const sg = T('stage').filter(s => STATE.syn || !s.stage_syn);
+  const stages = [['st_fpp', 'FPP REQUEST'], ['st_cfmd', 'FPP CFMD'], ['st_dm', L('DM duyệt')], ['st_cut', L('Đã cắt / tới ngày cắt')], ['st_sewn', L('Đã may')], ['st_inspected', L('Đã kiểm')], ['st_shipped', L('Đã xuất')]];
+  const counts = stages.map(([k]) => sg.filter(s => s[k]).length);
+  const r = ramp(), ordinal = isDark() ? r.slice(1) : r.slice(2);
+  const funnel = chart('cMilestone', {grid: {left: 150, right: 40, top: 10, bottom: 24}, legend: {show: false},
+    tooltip: {trigger: 'item', formatter: p => `${esc(p.name)}: <b>${fmt(p.value)}</b> / ${fmt(sg.length)} style${srcLine(L('mốc trong email / tài liệu (luật tiêu đề), kế hoạch, báo cáo ngày, bảng kiểm, Shipment Status'))}`},
+    xAxis: {type: 'value'}, yAxis: {type: 'category', inverse: true, data: stages.map(s => s[1]), axisLabel: {color: css('--text-2')}},
+    series: [{type: 'bar', barMaxWidth: 22, label: {show: true, position: 'right', color: css('--text-2'), formatter: p => fmt(p.value)},
+      itemStyle: {borderRadius: [0, 4, 4, 0]}, data: counts.map((v, i) => ({value: v, itemStyle: {color: ordinal[Math.min(i, ordinal.length - 1)]}}))}]});
+  const legs = [['days_fpp_cfmd', 'FPP REQUEST → FPP CFMD'], ['days_cfmd_cut', L('FPP CFMD → cắt')], ['days_cut_ship', L('cắt → lô xuất đầu')]];
+  const boxes = legs.map(([k, label], i) => {
+    const by = {}; sg.filter(s => s[k] != null && s.factory_code).forEach(s => (by[s.factory_code] = by[s.factory_code] || []).push(s[k]));
+    const facs = Object.keys(by).filter(f => by[f].length >= 2).sort();
+    return `<div><div class="note"><b>${esc(label)}</b> · ${L('{n} style', {n: facs.reduce((a, f) => a + by[f].length, 0)})}</div>${chart('cLead' + i, {grid: {left: 96, right: 12, top: 8, bottom: 26}, legend: {show: false},
+      tooltip: {trigger: 'item', formatter: p => p.seriesType === 'boxplot' ? `${esc(p.name)} (${by[p.name].length} style)<br>min ${p.value[1]} · Q1 ${nf1.format(p.value[2])} · ${L('trung vị')} ${nf1.format(p.value[3])} · Q3 ${nf1.format(p.value[4])} · max ${p.value[5]} ${L('ngày')}${srcLine('mart.mgr_style_stage')}` : ''},
+      yAxis: {type: 'category', data: facs, axisLabel: {fontSize: 10, color: css('--text-2')}}, xAxis: {type: 'value'},
+      series: [{type: 'boxplot', data: facs.map(f => quart(by[f])), itemStyle: {color: css('--surface-2'), borderColor: css('--s1'), borderWidth: 2}}], _h: 50 + 26 * facs.length})}</div>`;
+  }).join('');
+  return `<div class="grid">
+    <div class="card"><h3>${L('Phễu mốc')}</h3><p class="sub">${L('số style đã qua từng mốc (mùa và bộ lọc đang chọn); mốc FPP / DM chỉ thấy được khi có email hoặc tài liệu')}</p>${funnel}</div>
+    <div class="card"><h3>${L('Lead time từng chặng theo nhà máy')}</h3><p class="sub">${L('hộp = 50% style ở giữa, vạch = trung vị; chỉ nhà máy có ≥ 2 style')}</p><div class="grid g1" style="gap:4px;margin:0">${boxes}</div></div></div>`;
+}
+
+// Ship: ETD load heatmap week x factory (order qty by ETD VN week)
+function shipMore() {
+  const wk = T('weekly').filter(w => w.measure === 'ETD_PLAN' && w.factory_code && (STATE.syn || !w.is_synthetic));
+  const weeks = uniq(wk.map(w => w.week_start)), facs = uniq(wk.map(w => w.factory_code));
+  const g = group(wk, w => w.factory_code + '|' + w.week_start, w => w.qty);
+  const cells = []; facs.forEach((f, y) => weeks.forEach((w, x) => { const v = g.get(f + '|' + w); if (v) cells.push([x, y, v]); }));
+  return `<div class="card" style="margin-top:12px"><h3>${L('Lịch ETD theo tuần × nhà máy')}</h3><p class="sub">${L('SL đặt theo tuần ETD VN; ô đậm = tuần tải nặng. Bấm để lọc nhà máy.')}</p>
+    ${heat('cEtdHeat', weeks, facs, cells, {fmtv: v => fmt(v) + ' pcs', src: 'ORDER RECAP (ETD VN)', click: p => { STATE.factory = facs[p.value[1]]; refresh(); }})}</div>`;
+}
+
+// Quality: control chart (third-party monthly defect rate, p-chart limits) + pass-rate heatmap factory x month
+function qualityMore() {
+  const q = (D.quality || []).filter(r => keep(r, {syn: true}) && (STATE.syn || !r.is_synthetic));
+  const tp = q.filter(r => r.source === 'THIRD_PARTY'), months = uniq(tp.map(r => r.month));
+  const m = months.map(mo => { const r = tp.filter(x => x.month === mo); return {mo, d: sum(r, x => x.defects), n: sum(r, x => x.inspected)}; }).filter(x => x.n);
+  const pbar = sum(m, x => x.d) / Math.max(1, sum(m, x => x.n));
+  const lim = x => 3 * Math.sqrt(pbar * (1 - pbar) / x.n) * 100;
+  const pts = m.map(x => { const p = 100 * x.d / x.n, out = Math.abs(p - 100 * pbar) > lim(x); return {value: +p.toFixed(2), itemStyle: {color: out ? css('--critical') : css('--s1')}, out}; });
+  const control = chart('cControl', {grid: {left: 52, right: 16, top: 30, bottom: 34},
+    tooltip: {trigger: 'axis', formatter: ps => { const i = ps[0].dataIndex, x = m[i]; return `${esc(x.mo)}: <b>${nf1.format(100 * x.d / x.n)}%</b> (${fmt(x.d)} / ${fmt(x.n)})<br>${L('trung bình')} ${nf1.format(100 * pbar)}% · ${L('giới hạn')} ±${nf1.format(lim(x))}%${pts[i].out ? '<br><b>' + L('ngoài giới hạn') + '</b>' : ''}${srcLine('INPUT DATA')}`; }},
+    xAxis: {type: 'category', data: m.map(x => x.mo)}, yAxis: {type: 'value', name: '%', scale: true},
+    series: [{name: L('Tỉ lệ lỗi %'), type: 'line', data: pts, symbolSize: 8, lineStyle: {width: 2, color: css('--s1')}},
+      {name: L('Trung bình'), type: 'line', data: m.map(() => +(100 * pbar).toFixed(2)), showSymbol: false, itemStyle: {color: css('--text-2')}, lineStyle: {type: 'dashed', width: 1, color: css('--text-2')}},
+      {name: 'UCL / LCL', type: 'line', data: m.map(x => +(100 * pbar + lim(x)).toFixed(2)), showSymbol: false, itemStyle: {color: css('--critical')}, lineStyle: {type: 'dotted', width: 1, color: css('--critical')}},
+      {name: 'UCL / LCL', type: 'line', data: m.map(x => +Math.max(0, 100 * pbar - lim(x)).toFixed(2)), showSymbol: false, itemStyle: {color: css('--critical')}, lineStyle: {type: 'dotted', width: 1, color: css('--critical')}}]});
+  const rk = r => (r.source === 'THIRD_PARTY' ? L('bên thứ ba') : 'KLMAS') + ' · ' + r.factory_code;
+  const vol = group(q, rk, r => r.source === 'THIRD_PARTY' ? r.inspections : r.inspected);
+  const rows = [...vol.entries()].sort((a, b) => b[1] - a[1]).slice(0, 15).map(x => x[0]).sort(), mos = uniq(q.map(r => r.month));     // 15 busiest
+  const cells = [];
+  rows.forEach((rowKey, y) => mos.forEach((mo, x) => {
+    const r = q.filter(z => rk(z) === rowKey && z.month === mo);
+    const n = r[0]?.source === 'THIRD_PARTY' ? sum(r, z => z.inspections) : sum(r, z => z.inspected);
+    if (!n) return;
+    const ok = r[0].source === 'THIRD_PARTY' ? n - sum(r, z => z.rejects) : sum(r, z => z.passed);
+    cells.push([x, y, +(100 * ok / n).toFixed(1)]);
+  }));
+  const syn = STATE.syn && q.some(r => r.is_synthetic) ? synChip(['ASM-SIM-03', 'ASM-QC-02']) : '';
+  return `<div class="grid">
+    <div class="card"><h3>${L('Biểu đồ kiểm soát tỉ lệ lỗi (kiểm bên thứ ba)')} ${synChip(['ASM-QC-01'])}</h3><p class="sub">${L('điểm lỗi ÷ SL kiểm theo tháng; giới hạn = trung bình ± 3 độ lệch chuẩn (p-chart); điểm đỏ = ngoài giới hạn')}</p>${control}</div>
+    <div class="card"><h3>${L('Tỉ lệ đạt kiểm: nhà máy × tháng')} ${syn}</h3><p class="sub">${L('KLMAS: SL đạt ÷ SL kiểm; bên thứ ba: lần kiểm không REJECT ÷ số lần kiểm (Q25)')} · ${L('15 nhà máy kiểm nhiều nhất')}</p>
+      ${heat('cPassHeat', mos, rows, cells, {fmtv: v => nf1.format(v) + '%', src: 'KLMAS INSPECTION REPORT, INPUT DATA', max: 100})}</div></div>`;
+}
+
+// Factory: weekly load vs demonstrated capacity (planned qty vs sewn; capacity = best real week so far)
+function factoryMore() {
+  const sc = T('scurve'), wk = T('weekly').filter(w => w.measure === 'OUTPUT');
+  const wkOf = d => { const x = new Date(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x.toISOString().slice(0, 10); };
+  const plan = group(sc, r => wkOf(r.day), r => r.planned);
+  const real = group(wk.filter(w => !w.is_synthetic), w => w.week_start, w => w.qty);
+  const syn = group(wk.filter(w => w.is_synthetic && STATE.syn), w => w.week_start, w => w.qty);
+  const weeks = uniq([...plan.keys(), ...real.keys(), ...syn.keys()]);
+  const cap = Math.max(0, ...real.values());
+  const series = [{name: L('Kế hoạch (PRODUCTION PLAN)'), type: 'bar', data: weeks.map(w => Math.round(plan.get(w) || 0)), itemStyle: {color: css('--s1'), borderRadius: [4, 4, 0, 0]}},
+    {name: L('Đã may (thật)'), type: 'bar', data: weeks.map(w => real.get(w) || 0), itemStyle: {color: css('--s3'), borderRadius: [4, 4, 0, 0]}}];
+  if (STATE.syn && syn.size) series.push({name: L('Đã may (giả định)'), type: 'bar', data: weeks.map(w => syn.get(w) || 0), itemStyle: {color: css('--syn'), borderRadius: [4, 4, 0, 0]}});
+  if (cap) series.push({name: L('Công suất đã đạt (tuần cao nhất)'), type: 'line', showSymbol: false, data: weeks.map(() => cap), lineStyle: {type: 'dashed', width: 2, color: css('--text-2')}});
+  return `<div class="card" style="margin-top:12px"><h3>${L('Tải so với công suất theo tuần')} ${STATE.syn && syn.size ? synChip(['ASM-SIM-02']) : ''}</h3>
+    <p class="sub">${L('{f}: SL kế hoạch may mỗi tuần so với SL đã may; công suất = tuần may nhiều nhất đã đạt (chưa có số chuyền × target của KLMAS). Chọn một nhà máy ở bộ lọc để xem riêng.', {f: STATE.factory === ALL ? L('mọi nhà máy') : STATE.factory})}</p>
+    ${chart('cCap', {grid: {left: 60, right: 16, top: 34, bottom: 50}, dataZoom: [{type: 'inside'}], xAxis: {type: 'category', data: weeks}, yAxis: {type: 'value', name: 'pcs'},
+      tooltip: {trigger: 'axis', formatter: ps => ps.map(p => `${p.marker}${esc(p.seriesName)}: <b>${fmt(p.value)}</b>`).join('<br>') + srcLine('PRODUCTION PLAN, DAILY PRODUCTION REPORT')}, series})}</div>`;
+}
+
+// Change: quantity waterfall + age of pending proposals
+function changeMore() {
+  const qb = T('qty_bridge');
+  const s = k => sum(qb, r => r[k]);
+  const steps = [[L('Đặt ban đầu'), s('order_initial'), 'level'], [L('Giảm'), s('decreases'), 'delta'], [L('Tăng'), s('increases'), 'delta'],
+    [L('Đặt hiện tại'), s('order_now'), 'level'], [L('Cắt'), s('cut'), 'level'], [L('May'), s('sewn'), 'level'], [L('Xuất'), s('shipped'), 'level']];
+  let run = 0;
+  const base = [], vals = [];
+  for (const [, v, kind] of steps) {
+    if (kind === 'level') { base.push(0); vals.push({value: v, itemStyle: {color: css('--s1'), borderRadius: [4, 4, 0, 0]}}); run = v; }
+    else { const lo = v < 0 ? run + v : run; base.push(lo); vals.push({value: Math.abs(v), itemStyle: {color: v < 0 ? css('--critical') : css('--good'), borderRadius: 4}}); run += v; }
+  }
+  const pend = T('style_changes').filter(c => c.review_status === 'PENDING_REVIEW' && c.fact_date);
+  const today = IDX.today ? new Date(IDX.today) : new Date();
+  const bins = [[0, 7, '≤ 7'], [8, 14, '8–14'], [15, 30, '15–30'], [31, 60, '31–60'], [61, 1e9, '> 60']];
+  const ages = pend.map(c => Math.round((today - new Date(c.fact_date)) / 864e5));
+  return `<div class="grid">
+    <div class="card"><h3>${L('Cầu số lượng: đặt → thay đổi → cắt → may → xuất')}</h3><p class="sub">${L('cột xanh = mức; đỏ = giảm, xanh lá = tăng (ghi chú RECAP và khác biệt giữa các bản). Cắt: báo cáo ngày, style không có báo cáo lấy SL may. Chỉ dữ liệu thật.')}</p>
+      ${chart('cWaterfall', {grid: {left: 64, right: 16, top: 20, bottom: 30}, legend: {show: false},
+        tooltip: {trigger: 'axis', formatter: ps => { const i = ps[0].dataIndex; return `${esc(steps[i][0])}: <b>${fmt(steps[i][1])}</b> pcs${srcLine('mart.mgr_qty_bridge')}`; }},
+        xAxis: {type: 'category', data: steps.map(x => x[0]), axisLabel: {interval: 0, fontSize: 11}}, yAxis: {type: 'value'},
+        series: [{type: 'bar', stack: 'w', data: base, itemStyle: {color: 'transparent'}, emphasis: {disabled: true}, tooltip: {show: false}},
+          {type: 'bar', stack: 'w', data: vals, barMaxWidth: 46, label: {show: true, position: 'top', color: css('--text-2'), formatter: p => fmt(steps[p.dataIndex][1])}}]})}</div>
+    <div class="card"><h3>${L('Tuổi đề xuất chờ duyệt')}</h3><p class="sub">${L('{n} đề xuất từ email chưa duyệt, theo số ngày kể từ email', {n: pend.length})}</p>
+      ${chart('cPropAge', {grid: {left: 44, right: 16, top: 20, bottom: 30}, legend: {show: false}, tooltip: {trigger: 'axis', formatter: ps => `${esc(ps[0].name)} ${L('ngày')}: <b>${fmt(ps[0].value)}</b>${srcLine('fact.change (PENDING_REVIEW)')}`},
+        xAxis: {type: 'category', data: bins.map(b => b[2] + ' ' + L('ngày'))}, yAxis: {type: 'value', minInterval: 1},
+        series: [{type: 'bar', barMaxWidth: 40, itemStyle: {color: css('--s2'), borderRadius: [4, 4, 0, 0]}, data: bins.map(([a, b]) => ages.filter(x => x >= a && x <= b).length)}]})}</div></div>`;
+}
+
+// Trends page: size share, top colours, item x size, main fabric, brand comparison (real seasons only)
+const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', '2XL', 'XXL', '3XL', 'F', '130', '140', '150'];
+const sizeSort = a => [...a].sort((x, y) => (SIZE_ORDER.indexOf(x) + 1 || 99) - (SIZE_ORDER.indexOf(y) + 1 || 99) || String(x).localeCompare(String(y)));
+function pageTrends() {
+  const sz = T('trend_size'), co = T('trend_color'), it = T('trend_item'), fa = T('trend_fabric');
+  const seasonsS = uniq(sz.map(r => r.season)), sizes = sizeSort(uniq(sz.map(r => r.size_code)));
+  const keyS = r => r.season + ' · ' + r.customer, cols = uniq(sz.map(keyS));
+  const share = cols.map(k => { const rr = sz.filter(r => keyS(r) === k), t = sum(rr, r => r.qty); return sizes.map(s => t ? +(100 * sum(rr.filter(r => r.size_code === s), r => r.qty) / t).toFixed(1) : 0); });
+  const sizeChart = chart('cSizeShare', {grid: {left: 150, right: 16, top: 34, bottom: 30}, xAxis: {type: 'value', max: 100, name: '%'}, yAxis: {type: 'category', data: cols},
+    tooltip: {trigger: 'axis', axisPointer: {type: 'shadow'}, formatter: ps => `<b>${esc(ps[0].name)}</b><br>` + ps.filter(p => p.value).map(p => `${p.marker}${esc(p.seriesName)}: ${nf1.format(p.value)}%`).join('<br>') + srcLine('Shipment Status (assortment)')},
+    series: sizes.map((s, i) => ({name: s, type: 'bar', stack: 'sz', barMaxWidth: 26, itemStyle: {borderColor: css('--surface'), borderWidth: 1},
+      color: i < 8 ? css('--s' + (i + 1)) : css('--neutral'), data: cols.map((c, j) => share[j][i]), label: {show: true, formatter: p => p.value >= 8 ? p.value + '%' : '', color: '#fff', fontSize: 10}}))});
+  const topC = uniq(co.map(r => r.season)).map(se => { const g = group(co.filter(r => r.season === se), r => r.color, r => r.qty); return [se, [...g.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8)]; });
+  const colorCharts = topC.map(([se, list], i) => `<div><div class="note"><b>${esc(se)}</b></div>${chart('cColor' + i, {grid: {left: 110, right: 50, top: 6, bottom: 20}, legend: {show: false},
+    tooltip: {trigger: 'item', formatter: p => `${esc(p.name)}: <b>${fmt(p.value)}</b> pcs${srcLine('ORDER RECAP')}`},
+    xAxis: {type: 'value', axisLabel: {show: false}}, yAxis: {type: 'category', inverse: true, data: list.map(x => x[0]), axisLabel: {fontSize: 10, color: css('--text-2')}},
+    series: [{type: 'bar', barMaxWidth: 16, itemStyle: {color: css('--s1'), borderRadius: [0, 4, 4, 0]}, label: {show: true, position: 'right', fontSize: 10, color: css('--text-2'), formatter: p => fmt(p.value)}, data: list.map(x => x[1])}]})}</div>`).join('');
+  const items = uniq(sz.filter(r => r.item_type).map(r => r.gender + r.item_type));
+  const isz = sizeSort(uniq(sz.filter(r => r.item_type).map(r => r.size_code)));
+  const cells = [];
+  items.forEach((itm, y) => { const rr = sz.filter(r => r.gender + r.item_type === itm), t = sum(rr, r => r.qty);
+    isz.forEach((s, x) => { const v = sum(rr.filter(r => r.size_code === s), r => r.qty); if (v) cells.push([x, y, +(100 * v / t).toFixed(1)]); }); });
+  const seasonsF = uniq(fa.map(r => r.season)), sups = [...group(fa.filter(r => r.fabric_supplier !== '(?)'), r => r.fabric_supplier, r => r.styles).entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(x => x[0]);
+  const fabric = chart('cFabric', {grid: {left: 52, right: 16, top: 34, bottom: 50}, xAxis: {type: 'category', data: sups, axisLabel: {rotate: 30, fontSize: 10}}, yAxis: {type: 'value', name: 'style', minInterval: 1},
+    tooltip: {trigger: 'axis', formatter: ps => `<b>${esc(ps[0].name)}</b><br>` + ps.map(p => `${p.marker}${esc(p.seriesName)}: ${fmt(p.value)} style`).join('<br>') + srcLine('ORDER RECAP (MAIN FABRIC)')},
+    series: seasonsF.map((se, i) => ({name: se, type: 'bar', barMaxWidth: 22, itemStyle: {color: css('--s' + (i + 1)), borderRadius: [4, 4, 0, 0]}, data: sups.map(s => sum(fa.filter(r => r.season === se && r.fabric_supplier === s), r => r.styles))}))});
+  const st = (D.styles || []).filter(s => s.is_active && !s.style_syn && keep(s, {syn: true}) && !String(s.season).startsWith('25'));
+  const brands = uniq(st.map(s => s.brand)), bseasons = uniq(st.map(s => s.season));
+  const brand = chart('cBrand', {grid: {left: 110, right: 40, top: 34, bottom: 30}, xAxis: {type: 'value', name: 'pcs'}, yAxis: {type: 'category', data: brands},
+    tooltip: {trigger: 'axis', axisPointer: {type: 'shadow'}, formatter: ps => `<b>${esc(ps[0].name)}</b><br>` + ps.map(p => `${p.marker}${esc(p.seriesName)}: ${fmt(p.value)} pcs`).join('<br>') + srcLine('ORDER RECAP')},
+    series: bseasons.map((se, i) => ({name: se, type: 'bar', barMaxWidth: 16, itemStyle: {color: css('--s' + (i + 1)), borderRadius: [0, 4, 4, 0]},
+      data: brands.map(b => sum(st.filter(s => s.brand === b && s.season === se), s => s.order_qty))}))});
+  return `<div class="banner">${L('Chỉ 26FW và 27SS là dữ liệu thật (25SS, 25FW là giả định, không có size / màu). Size: CHALLENGER 26FW và MIZUNO (DKM) từ Shipment Status; màu, item, vải chính: CHALLENGER từ ORDER RECAP. Chọn "Mùa: tất cả" để so sánh các mùa.')}</div>
+  <div class="grid">
+    <div class="card"><h3>${L('Tỉ trọng size theo mùa')}</h3><p class="sub">${L('% SL đặt theo size (cột 100%)')}</p>${sizeChart}</div>
+    <div class="card"><h3>${L('Top màu theo mùa')}</h3><p class="sub">${L('SL đặt theo màu, 8 màu đầu')}</p><div class="grid" style="margin:0">${colorCharts}</div></div></div>
+  <div class="grid">
+    <div class="card"><h3>${L('Item × size')}</h3><p class="sub">${L('% SL của mỗi item (giới tính + loại hàng trong mã style) theo size; mỗi hàng cộng 100%')}</p>
+      ${heat('cItemSize', isz, items, cells, {fmtv: v => nf1.format(v) + '%', src: 'Shipment Status, ORDER RECAP'})}</div>
+    <div class="card"><h3>${L('Vải chính theo mùa')}</h3><p class="sub">${L('số style theo nhà cung cấp vải chính (file chỉ ghi nhà cung cấp + mã vải, không ghi thành phần)')}</p>${fabric}</div></div>
+  <div class="card"><h3>${L('So sánh brand')}</h3><p class="sub">${L('SL đặt theo brand và mùa (style còn hiệu lực, dữ liệu thật)')}</p>${brand}</div>`;
+}
+
 /* ---------------------------------------------------------------- profile + users (F-01) */
 const ROLE = {admin: L('Quản trị'), manager: L('Người quản lý'), viewer: L('Chỉ xem')};
 const PW_ERR = {old_wrong: L('Mật khẩu hiện tại không đúng'), too_short: L('Mật khẩu cần ít nhất 10 ký tự'),
@@ -878,7 +1089,6 @@ function bindNotes() {
     setNotes(ids, b.dataset.nact, note);
   });
 }
-function pageTrends() { return `<div class="card"><h3>${L('Xu hướng')}</h3><div class="empty">${L('Chưa có dữ liệu')}</div></div>`; }
 const GUIDE = () => [
   [L('Bắt đầu'), [L('Chọn mùa, khách, brand, nhà máy ở đầu trang: mọi trang dùng chung bộ lọc này.'),
     L('Tổng quan: số chính của mùa, 10 việc cần xử lý đầu tiên và thông báo mới. Đổi trang mở đầu trong Hồ sơ (menu người dùng).'),

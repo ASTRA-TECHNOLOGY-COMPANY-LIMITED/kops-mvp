@@ -26,3 +26,26 @@ Ví dụ là số **thật** của CHALLENGER 26FW, đo ngày 23/10/2026 (`KOPS_
 | Chênh lệch giữa các file | Recap vs Shipment / Production, SHIPPING SCHEDULE vs RECAP, PDF buyer vs kế hoạch, ô tổng sai | `mgr_recon` | các file | 22 + 11 + 18 + 49 dòng |
 | Scorecard nhà máy | Đúng hạn (lô đầu ≤ ETD VN), 100 − % lỗi, 100 − 10 × thay đổi / 1.000 pcs, độ tươi (FRESH 100 / STALE 50 / DARK 0); điểm = trung bình có trọng số `config.SCORECARD_WEIGHTS` (mặc định bằng nhau, PO giữ tới khi KLMAS trả lời Q21; ASM-SCORE-01); thành phần chưa có dữ liệu thì bỏ và chia lại trọng số; công thức hiện trên trang Nhà máy | nhà máy × khách × mùa → `mgr_factory` | các dòng trên | DONG MY đúng hạn 28,6%, NATEXCO lỗi 67,2% |
 | So với mùa trước | Cùng chỉ số, mùa cùng nửa năm trước (26FW ↔ 25FW). 25SS / 25FW chưa có dữ liệu thật → giả định ASM-SIM-01 | `mgr_season` | — | 25FW (giả định) đúng hạn chặt 14 / 96 |
+
+## Chart quản lý bổ sung (F-05)
+
+Màu: 8 ô phân loại đã kiểm định (bảng tham chiếu dataviz, đạt kiểm tra mù màu ở cả nền sáng `#ffffff` và tối `#191d22`);
+độ lớn dùng một thang xanh (sáng → đậm); màu trạng thái (đỏ / vàng / xanh lá) chỉ dùng cho trạng thái, luôn kèm nhãn.
+Mỗi chart có tooltip ghi nguồn; nhãn "Giả định" khi có phần dữ liệu `sim`. Không chart nào dùng hai trục Y.
+
+| Chart | Trang | Định nghĩa | Bảng / nguồn |
+|---|---|---|---|
+| Ma trận rủi ro | Tổng quan | Style còn hiệu lực, chưa xuất đủ (dung sai 5%): trục ngang = RDD − hôm nay (ngày), trục dọc = max(đã may, đã xuất) ÷ SL đặt, bong bóng = SL đặt; đỏ = có `risk_reason`, vàng = còn < 30 ngày mà < 50%, xanh = bình thường. Bấm → Style 360 | `mart.mgr_style` |
+| Phễu mốc | Tiến độ | Số style đã qua: FPP REQUEST, FPP CFMD, DM duyệt (mốc email / tài liệu), đã cắt (ngày cắt kế hoạch đã tới hoặc có sản lượng), đã may, đã kiểm, đã xuất; mốc sau kéo theo mốc trước (style đã xuất thì đã cắt, may, kiểm) | `mart.mgr_style_stage` |
+| Lead time từng chặng | Tiến độ | Box plot theo nhà máy (≥ 2 style): FPP REQUEST → FPP CFMD, FPP CFMD → ngày cắt kế hoạch, ngày cắt → ETD lô xuất đầu (ngày) | `mart.mgr_style_stage` |
+| Lịch ETD tuần × nhà máy | Xuất hàng | Heatmap SL đặt theo tuần ETD VN và nhà máy; bấm → lọc nhà máy | `mart.mgr_weekly` (ETD_PLAN) |
+| Tải so với công suất | Nhà máy | SL kế hoạch may mỗi tuần (PRODUCTION PLAN chia đều ngày làm việc) so với SL đã may; "công suất" = tuần may nhiều nhất đã đạt — KLMAS chưa có số chuyền × target | `mart.mgr_scurve`, `mart.mgr_weekly` |
+| Biểu đồ kiểm soát | Chất lượng | p-chart tỉ lệ lỗi kiểm bên thứ ba theo tháng: p = điểm lỗi ÷ SL kiểm, đường giữa p̄, giới hạn p̄ ± 3·√(p̄(1−p̄)/n) (ASM-QC-01, Q24); điểm ngoài giới hạn tô đỏ | `mart.mgr_quality` (INPUT DATA) |
+| Tỉ lệ đạt nhà máy × tháng | Chất lượng | KLMAS: SL đạt ÷ SL kiểm; bên thứ ba: (lần kiểm − REJECT) ÷ lần kiểm (ASM-QC-02, Q25); 15 nhà máy kiểm nhiều nhất | `mart.mgr_quality` |
+| Cầu số lượng (waterfall) | Thay đổi & email | Đặt ban đầu = đặt hiện tại − Σ thay đổi SL (ghi chú RECAP `QTY_NOTE` + khác biệt giữa các bản `VERSION_QTY`); giảm, tăng; cắt (báo cáo ngày; style không có báo cáo lấy SL may); may; xuất — chỉ dữ liệu thật | `mart.mgr_qty_bridge` |
+| Tuổi đề xuất chờ duyệt | Thay đổi & email | Số đề xuất `PENDING_REVIEW` theo số ngày từ email tới hôm nay | `fact.change` |
+| Tỉ trọng size theo mùa | Xu hướng | % SL đặt theo size (cột 100%), theo mùa × khách | `mart.trend_size` (Shipment Status) |
+| Top màu theo mùa | Xu hướng | 8 màu có SL đặt lớn nhất (màu còn hiệu lực) | `mart.trend_color` (ORDER RECAP) |
+| Item × size | Xu hướng | % SL của mỗi item (giới tính + loại hàng trong mã style) theo size, mỗi hàng 100% | `mart.trend_size` |
+| Vải chính theo mùa | Xu hướng | Số style theo nhà cung cấp vải chính (phần trước dấu `)` trong cột MAIN FABRIC) | `mart.trend_fabric` |
+| So sánh brand | Xu hướng | SL đặt theo brand × mùa (style còn hiệu lực, dữ liệu thật) | `mart.mgr_style` |
