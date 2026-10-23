@@ -36,12 +36,15 @@ RULES = {
     "rdd_offset_days": 12,             # RDD = ETD VN + 12 (Q26)
     "ready_buffer_days": 5,            # finishing + inspection after sewing
     "default_daily_output": 45,        # pcs/day when factory has not reported (meeting example)
-    "ontime_tolerance_days": 7,        # first lot ETD <= style ETD + 7 => on time
+    "ontime_tolerance_days": 7,        # secondary on-time rate: first lot ETD <= ETD VN + 7 (main: <= ETD VN, Q21)
     "qty_tolerance_pct": 5,            # Q13
     "as_of_fallback": "2026-10-12",    # when a file carries no report date
     "rate_window": 3,                  # forecast: mean of the last N days with output (spec §4.3)
     "rate_lookback_days": 10,          # ... within N days before the last report
 }
+# Factory scorecard (mart.mgr_factory, Nhà máy page): weighted mean of the components; equal until KLMAS answers Q21
+# (assumption ASM-SCORE-01). A weight of 0 drops the component.
+SCORECARD_WEIGHTS = {"on_time": 1, "quality": 1, "changes": 1, "freshness": 1}
 # Synthetic demo data in schema sim (D-04, kops_dw/sim.py); KOPS_SIM=0 builds without it.
 SIM = os.environ.get("KOPS_SIM", "1") == "1"
 # 'Today' for data freshness (spec §4.4): KOPS_TODAY=YYYY-MM-DD fixes it for tests; default the build day.
@@ -83,7 +86,7 @@ INSPECTION_SHEET_FACTORY = {"TP": "TRUONG PHUC", "HA HIEU": "HA HIEU", "FG": "FG
 CUSTOMER_NAMES = {"CHALLENGER": "CHALLENGER", "DHG": "Daehan Global", "JBEE": "JBEE", "KOFA": "KOFA",
                   "DKM": "Dakyung Mulsan"}
 # Party of an e-mail domain (dim_party): optional local, git-ignored file 'domain party_type [customer|factory]' per line
-# (BUYER / FACTORY / FORWARDER / OTHER). Without it: KLMAS by KOPS_KLMAS_DOMAINS, free mail = INDIVIDUAL, else EXTERNAL.
+# (BUYER / FACTORY / FORWARDER / OTHER; a full address may replace the domain). Without it: KLMAS by KOPS_KLMAS_DOMAINS, free mail = INDIVIDUAL, else EXTERNAL.
 PARTY_FILE = Path(os.environ.get("KOPS_PARTY_FILE", DW_DIR / "party_map.local.txt"))
 
 # --- Customers (who orders from KLMAS) and brands; first matching key wins (title, file name, then folder) ---

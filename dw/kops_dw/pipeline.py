@@ -463,9 +463,9 @@ def _load_reference(con):
         for line in config.PARTY_FILE.read_text(encoding="utf-8").splitlines():
             parts = line.split("#", 1)[0].split(None, 2)
             if len(parts) >= 2:
-                parties.append(dict(domain=parts[0].lower(), party_type=parts[1].upper(),
+                parties.append(dict(domain=parts[0].lower(), party_type=parts[1].upper(),   # domain or full address
                                     ref_code=parts[2].strip() if len(parts) > 2 else None))
-    _insert(con, "stg.party_domain", parties)
+    _insert(con, "stg.party_domain", list({p["domain"]: p for p in parties}.values()))   # one row per key, file wins
     _insert(con, "stg.style_alias", [dict(alias_style=k, style_no=v, confirmed=False)
                                      for k, v in config.STYLE_ALIASES.items()])
     _insert(con, "stg.rule", [dict(rule_key=k, rule_value=str(v)) for k, v in config.RULES.items()]

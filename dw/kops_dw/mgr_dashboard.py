@@ -119,7 +119,8 @@ def render(db_path=None, build_dir=None) -> dict:
     real = [s for s in seasons if not s.startswith("25")]
     default = "26FW" if "26FW" in seasons else (real[-1] if real else seasons[-1] if seasons else None)
     index = dict(built_at=dt.datetime.now().strftime("%Y-%m-%d %H:%M"), today=today[0] if today else None,
-                 seasons=seasons, default=default, sizes=sizes, sim=config.SIM, questions=questions.for_dashboard())
+                 seasons=seasons, default=default, sizes=sizes, sim=config.SIM, questions=questions.for_dashboard(),
+                 weights=config.SCORECARD_WEIGHTS, ontime_tol_days=config.RULES["ontime_tolerance_days"])
     (ddir / "index.json").write_text(dump(index), encoding="utf-8")
     (build / "vendor").mkdir(exist_ok=True)
     for f in VENDOR.glob("*.js"):

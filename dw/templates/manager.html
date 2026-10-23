@@ -100,6 +100,8 @@ const ASM = {'ASM-SIM-01': '2 mùa trước giả định từ 26FW/27SS', 'ASM-
 const qOf = i => IDX?.questions?.assumptions?.[i];
 const qTitle = c => c ? c + (IDX?.questions?.questions?.[c] ? '. ' + IDX.questions.questions[c] : '') : '';
 const qref = c => `<span class="qref" title="${esc(qTitle(c))}">${esc(c)}</span>`;
+const qchip = c => `<span class="chip qref" title="${esc('Chờ KLMAS trả lời ' + qTitle(c))}">chờ ${esc(c)}</span>`;
+const TOL = () => IDX?.ontime_tol_days ?? 7;
 const synChip = (ids, share) => { const qs = uniq((ids || []).map(qOf));
   const tip = (ids || []).map(i => i + ': ' + (ASM[i] || '') + (qOf(i) ? ' — câu hỏi KLMAS ' + qTitle(qOf(i)) : '')).join('\n') || 'dữ liệu giả định';
   return `<span class="syn" title="${esc(tip)}">Giả định${share != null ? ' ' + nf1.format(share) + '%' : ''}${qs.length ? ' · ' + qs.join(', ') : ''}</span>`; };
@@ -253,7 +255,7 @@ function pageOverview() {
   <div class="kpis">
     ${kpiTile('SL đặt (pcs)', fmt(k.order), `${fmt(k.styles)} style đang chạy`, 'Σ SL đặt của style còn hiệu lực — ORDER RECAP bản hiện hành', synS)}
     ${kpiTile('Đã xuất', ship == null ? '–' : nf1.format(ship) + '%', `${fmt(k.shipped)} pcs · ${delta(ship, prevShip)}`, 'SL lô SHIPMENT (không gồm mẫu) ÷ SL đặt còn hiệu lực — Shipment Status', synShip)}
-    ${kpiTile('Đúng hạn (lô đầu ≤ ETD)', ot == null ? '–' : nf1.format(ot) + '%', `≤ ETD + 7 ngày: ${otTol == null ? '–' : nf1.format(otTol) + '%'} · ${delta(ot, prevOt)} ${prevNote}`, 'Lô đầu tiên có ETD ≤ ETD VN trong ORDER RECAP (quy tắc chặt). Dòng dưới: quy tắc cũ của Control Tower, ETD VN + 7 ngày', synJ)}
+    ${kpiTile('Đúng hạn (lô đầu ≤ ETD VN)', ot == null ? '–' : nf1.format(ot) + '%', `≤ ETD + ${TOL()} ngày: ${otTol == null ? '–' : nf1.format(otTol) + '%'} · ${delta(ot, prevOt)} ${prevNote}`, `Số chính: lô đầu tiên có ETD ≤ ETD VN trong ORDER RECAP (quy tắc chặt, PO chốt 23/10). Số phụ: cho trễ ${TOL()} ngày (≤ ETD + ${TOL()} ngày). Chờ KLMAS xác nhận ${qTitle('Q21')}`, (synJ || '') + ' ' + qchip('Q21'))}
     ${kpiTile('Trễ ETD trung bình', k.delay == null ? '–' : nf1.format(k.delay) + ' ngày', `${fmt(k.judged)} style đã xuất`, 'ETD lô đầu − ETD VN (âm = xuất sớm)', synJ)}
     ${kpiTile('Style rủi ro', fmt(k.risk), 'dự báo sau RDD, BAL < 0, hoặc quá ETD chưa xuất', 'Còn hiệu lực, chưa xuất đủ và: ngày sẵn sàng dự báo + 12 ngày > RDD, hoặc BAL kế hoạch < 0, hoặc đã qua ETD — xem metrics.md', '')}
     ${kpiTile('Tỉ lệ lỗi kiểm', defR == null ? '–' : nf1.format(defR) + '%', `${fmt(k.defects)} lỗi / ${fmt(k.insp)} pcs kiểm`, 'Điểm lỗi ÷ SL đã kiểm (bảng kiểm KLMAS dòng D ÷ C) — giả định ASM-QC-01', synI || synChip(['ASM-QC-01']))}
@@ -366,6 +368,12 @@ function pageQuality() {
   </div>`;
 }
 
+function scoreFormula() {
+  const W = IDX.weights || {}, n = {on_time: '% đúng hạn (lô đầu ≤ ETD VN)', quality: '(100 − % lỗi)', changes: '(100 − 10 × số thay đổi / 1.000 pcs)',
+    freshness: 'độ tươi (FRESH 100, STALE 50, DARK 0)'};
+  const used = Object.keys(n).filter(k => (W[k] ?? 1) > 0), tot = sum(used, k => W[k] ?? 1);
+  return 'Điểm = ' + used.map(k => `${nf1.format((W[k] ?? 1) / tot)} × ${n[k]}`).join(' + ') + ' (thành phần chưa có dữ liệu thì bỏ, chia lại trọng số)';
+}
 function pageFactory() {
   const f = T('factory'), facs = uniq(f.map(r => r.factory_code));
   const rows = facs.map(code => {
@@ -375,17 +383,19 @@ function pageFactory() {
     const qty = sum(r, x => x.qty), changes = sum(r, x => x.changes);
     const otP = lots ? 100 * ot / lots : null, defP = ins ? 100 * def / ins : null, chg = qty ? 1000 * changes / qty : null;
     const fr = r.map(x => x.freshness).filter(Boolean), fresh = fr.includes('FRESH') ? 100 : fr.includes('STALE') ? 50 : 0;
-    const parts = [otP, defP == null ? null : Math.max(0, 100 - defP), chg == null ? null : Math.max(0, 100 - chg * 10), fresh].filter(v => v != null);
+    const W = IDX.weights || {}, parts = [['on_time', otP], ['quality', defP == null ? null : Math.max(0, 100 - defP)],
+      ['changes', chg == null ? null : Math.max(0, 100 - chg * 10)], ['freshness', fresh]].filter(([k, v]) => v != null && (W[k] ?? 1) > 0);
+    const wsum = sum(parts, ([k]) => W[k] ?? 1);
     return {factory_code: code, styles: sum(r, x => x.styles), qty, otP, defP, changes, chg, freshness: fr.includes('FRESH') ? 'FRESH' : fr.includes('STALE') ? 'STALE' : fr.length ? 'DARK' : 'chưa có báo cáo', risk: sum(r, x => x.risk_styles),
-      score: parts.length ? sum(parts, v => v) / parts.length : null, syn: r.some(x => x.lots_syn || x.insp_syn),
+      score: wsum ? sum(parts, ([k, v]) => (W[k] ?? 1) * v) / wsum : null, syn: r.some(x => x.lots_syn || x.insp_syn),
       _src: 'Đúng hạn: Shipment Status vs ORDER RECAP · Lỗi: bảng kiểm KLMAS · Thay đổi: ghi chú + các bản RECAP · Độ tươi: báo cáo ngày'};
   }).sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
   rows.forEach((r, i) => r.rank = i + 1);
   const wk = T('weekly').filter(w => w.measure === 'OUTPUT'), weeks = uniq(wk.map(w => w.week_start));
   const mv = D.factory_moves || [];
   return `
-  <div class="card"><h3>Scorecard nhà máy ${STATE.syn && rows.some(r => r.syn) ? synChip(['ASM-SIM-01', 'ASM-SIM-03', 'ASM-SIM-04']) : ''}</h3>
-    <p class="sub">Điểm = trung bình của: % đúng hạn (lô đầu ≤ ETD), 100 − % lỗi, 100 − 10 × số thay đổi / 1.000 pcs, độ tươi (FRESH 100, STALE 50, DARK 0). Trọng số bằng nhau — chờ PO chốt. Bấm để lọc.</p>
+  <div class="card"><h3>Scorecard nhà máy ${STATE.syn && rows.some(r => r.syn) ? synChip(['ASM-SIM-01', 'ASM-SIM-03', 'ASM-SIM-04']) : ''} ${qchip('Q21')}</h3>
+    <p class="sub">${scoreFormula()}. Trọng số đặt trong config (SCORECARD_WEIGHTS); hiện tại PO giữ bằng nhau tới khi KLMAS trả lời ${qref('Q21')}. Bấm để lọc.</p>
     ${table('tScore', rows, [{k: 'rank', l: '#', n: 1}, {k: 'factory_code', l: 'Nhà máy'}, {k: 'styles', l: 'Style', n: 1}, {k: 'qty', l: 'SL', n: 1},
       {k: 'otP', l: 'Đúng hạn %', n: 1}, {k: 'defP', l: 'Lỗi %', n: 1}, {k: 'changes', l: 'Thay đổi', n: 1}, {k: 'freshness', l: 'Độ tươi'},
       {k: 'risk', l: 'Style rủi ro', n: 1}, {k: 'score', l: 'Điểm', n: 1}], {limit: 20, onClick: r => { STATE.factory = r.factory_code; refresh(); }})}</div>

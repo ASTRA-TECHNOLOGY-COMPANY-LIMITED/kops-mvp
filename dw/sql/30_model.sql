@@ -126,17 +126,19 @@ FROM dim.style_alias GROUP BY alias_code, season;
 CREATE TEMP TABLE style_lookup_any AS          -- when the fact has no season
 SELECT alias_code, any_value(style_key) AS style_key, count(DISTINCT style_key) AS n FROM dim.style_alias GROUP BY alias_code;
 
--- Parties of e-mail (address grain): KLMAS domains, local party file, free mail = INDIVIDUAL, else EXTERNAL.
+-- Parties of e-mail (address grain): KLMAS domains, local party file (address or domain), free mail = INDIVIDUAL, else EXTERNAL.
 CREATE TABLE dim.party AS
 WITH a AS (
   SELECT DISTINCT lower(x) AS address
   FROM core.email, unnest(regexp_extract_all(coalesce(sender_email, '') || ' ' || coalesce(recipients, '') || ' ' || coalesce(cc, ''),
                                              '[\w.+-]+@[\w-]+(?:\.[\w-]+)+')) AS u(x))
 SELECT row_number() OVER (ORDER BY a.address) AS party_key, a.address, split_part(a.address, '@', 2) AS domain,
-       coalesce(p.party_type, CASE WHEN split_part(a.address, '@', 2) IN (SELECT domain FROM stg.free_mail) THEN 'INDIVIDUAL'
-                                   ELSE 'EXTERNAL' END) AS party_type,
-       p.ref_code, CASE WHEN p.domain IS NOT NULL THEN 'domain rule' ELSE 'default' END AS source
-FROM a LEFT JOIN stg.party_domain p ON p.domain = split_part(a.address, '@', 2);
+       coalesce(pa.party_type, p.party_type, CASE WHEN split_part(a.address, '@', 2) IN (SELECT domain FROM stg.free_mail)
+                                                  THEN 'INDIVIDUAL' ELSE 'EXTERNAL' END) AS party_type,
+       coalesce(pa.ref_code, p.ref_code) AS ref_code,
+       CASE WHEN pa.domain IS NOT NULL THEN 'address rule' WHEN p.domain IS NOT NULL THEN 'domain rule' ELSE 'default' END AS source
+FROM a LEFT JOIN stg.party_domain pa ON pa.domain = a.address         -- a full address in the party file wins
+       LEFT JOIN stg.party_domain p ON p.domain = split_part(a.address, '@', 2);
 
 -- ================================================================ facts (is_synthetic = false: real files only)
 -- Every fact first gets the conformed columns customer, season, style_code, factory_code, factory_raw, fact_date; the

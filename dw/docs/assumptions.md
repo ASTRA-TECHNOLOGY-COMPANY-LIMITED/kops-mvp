@@ -12,6 +12,9 @@ của mọi số có phần giả định). Thay bằng dữ liệu / câu trả
 | ASM-FRESH-01 | Độ tươi dữ liệu nhà máy | Đếm ngày thứ 2–6 nằm giữa ngày báo cáo cuối và hôm nay (không tính 2 đầu); ≤ 2 FRESH, 3–5 STALE, > 5 DARK | Q32 nhà máy có gửi báo cáo thứ Bảy không | KLMAS chốt lịch gửi |
 | ASM-QC-01 | Tỉ lệ lỗi (bảng kiểm KLMAS dòng D, INPUT DATA cột DEFECT QTY) | DEFECT QTY là số **điểm lỗi**; tỉ lệ = lỗi ÷ SL đã kiểm | Q24 | KLMAS trả lời Q24 |
 | ASM-QC-02 | Kết quả lần kiểm bên thứ ba | REMARK có chữ `REJECT` → REJECT, còn lại PASS | Q25 | sheet DATA có cột kết quả |
+| ASM-ONTIME-01 | Đúng hạn xuất | Số chính = lô đầu ≤ ETD VN; số phụ cho trễ 7 ngày (PO chốt 23/10) | Q21 | KLMAS chốt định nghĩa |
+| ASM-SCORE-01 | Scorecard nhà máy | 4 thành phần trọng số bằng nhau (`config.SCORECARD_WEIGHTS`) | Q21 | KLMAS nêu tiêu chí quan trọng |
+| ASM-DAILY-02 | Sản lượng ngày (báo cáo ngày) | Sản lượng một ngày = chênh lệch cột TTL giữa 2 báo cáo; cột TODAY chỉ dùng khi không có báo cáo trước | Q22 | KLMAS xác nhận cách ghi cột TODAY |
 | ASM-LINK-01 | Đổi lô hàng email → style | Lô thành phẩm trong email gắn với style có lô cùng nhà máy trong Shipment Status, ETD lệch ≤ 3 ngày | Q27 | AI đọc email (D-03) hoặc booking trong Shipment Status |
 
 ## Dữ liệu giả định (schema `sim`, `is_synthetic = true`)
