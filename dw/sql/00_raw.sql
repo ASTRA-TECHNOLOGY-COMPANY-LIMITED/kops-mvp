@@ -85,6 +85,19 @@ CREATE TABLE raw.email (
   folder VARCHAR,    -- mailbox folder (.pst) or Gmail labels (.mbox)
   text_source VARCHAR);   -- PDF exports: 'text' (text layer) or 'ocr' (scanned page read by tesseract, H-08)
 
+-- SHIPPING SCHEDULE (CHALLENGER export plan per style; ingest/shipping_schedule.py)
+CREATE TABLE raw.shipping_schedule (
+  file_id INTEGER, sheet VARCHAR, row_no INTEGER, block_no INTEGER, status VARCHAR, season VARCHAR, as_of DATE,
+  style_no VARCHAR, type VARCHAR, item VARCHAR, input_plan DATE, input_plan_txt VARCHAR, sewing_finish_plan DATE,
+  sewing_finish_plan_txt VARCHAR, order_qty INTEGER, etd_vn DATE, rdd DATE, shipped_qty INTEGER, ship_plan_qty INTEGER,
+  bal_qty INTEGER, pcs_per_box DOUBLE, box_qty DOUBLE, remark VARCHAR, remark2 VARCHAR, factory_raw VARCHAR,
+  factory_code VARCHAR, factory_moved BOOLEAN, fixed_exfact DATE, fixed_exfact_txt VARCHAR, fixed_etd DATE,
+  fixed_etd_txt VARCHAR, fixed_eta DATE, fixed_eta_txt VARCHAR, ship_mode VARCHAR);
+-- Buyer's own order status PDF (DHG '생산계획표 · 오더 현황표'; ingest/buyer_order_status.py): comparison only.
+CREATE TABLE raw.buyer_order_status (
+  file_id INTEGER, page INTEGER, line_no INTEGER, brand VARCHAR, season VARCHAR, printed_on DATE, file_no VARCHAR,
+  style_no VARCHAR, item VARCHAR, factory_raw VARCHAR, factory_code VARCHAR, qty INTEGER, cut_plan DATE,
+  input_plan DATE, finish_plan DATE, etd DATE, eta DATE, rdd DATE, margin_days INTEGER, status VARCHAR);
 -- Milestone / shipment named by an email subject (N-03, milestones.py; rule-based hints, not facts).
 CREATE TABLE stg.email_event (
   file_id INTEGER, msg_key VARCHAR, milestone VARCHAR, sent_at TIMESTAMP, factory VARCHAR, style_candidates VARCHAR,
@@ -118,7 +131,10 @@ CREATE TABLE raw.production_plan (
   line_worker VARCHAR, daily_target DOUBLE, work_days DOUBLE, fabric_etd DATE, accs_etd DATE, accs_eta_factory DATE,
   cut_plan DATE, input_plan DATE, finish_plan DATE, exf_plan DATE, etd_plan DATE, eta_plan DATE, due_etd DATE,
   due_eta DATE, rdd DATE, bal_days INTEGER, bal_offset INTEGER, bal_calc INTEGER, actual_exf DATE, actual_etd DATE,
-  actual_eta DATE, remark VARCHAR);
+  actual_eta DATE, remark VARCHAR,
+  due_exf DATE,            -- '공장 출고일자 / EX-FACT' due column (some layouts)
+  due_etd_rule VARCHAR, due_eta_rule VARCHAR, bal_rule VARCHAR,   -- the file's own rules: 'RDD-14', 'RDD-3', 'ETA+2' ...
+  header_row INTEGER);
 
 CREATE TABLE stg.qty_change (
   file_id INTEGER, season VARCHAR, style_no VARCHAR, color_raw VARCHAR, change_date DATE, kind VARCHAR,

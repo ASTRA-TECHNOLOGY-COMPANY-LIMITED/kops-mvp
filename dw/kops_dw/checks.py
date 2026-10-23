@@ -80,6 +80,23 @@ CHECKS = [
      "CHG1MPT7131:ETD"),
     ("History JBEE 261006 -> 261019: factory assignments", ("file", "261006 MJ) 27SS JBEE"),
      "SELECT count(*) FROM mart.version_change WHERE family='JBEE|NEPA' AND kind='FACTORY'", 8),
+    # ---- new / new-version files (N-04) ----
+    ("Production plans: every file read with a known layout", None,
+     "SELECT count(*) FILTER (WHERE status <> 'LOADED') FROM etl.source_file WHERE parser = 'production_plan'", 0),
+    ("Production plans: due / BAL rules kept per file (not hard-coded)", ("file", "261022R 27SS NEPA PRODUCTION PLAN"),
+     """SELECT string_agg(DISTINCT bal_rule, ',' ORDER BY bal_rule) || ' | ' || string_agg(DISTINCT due_eta_rule, ',' ORDER BY due_eta_rule)
+        FROM raw.production_plan""", "ETA VN-ETA,ETA+1,ETA+2,ETD VN-ETD | ETD+7,RDD-2,RDD-3"),
+    ("Production plan GIA NGUYEN: year typo reported, not corrected", ("file", "261020_NEPA - GIA NGUYEN"),
+     """SELECT (SELECT count(*) FROM etl.data_issue WHERE code = 'YEAR_SUSPECT' AND entity = '7N30613') || ' / ' ||
+        (SELECT any_value(exf_plan) FROM raw.production_plan WHERE style_no = '7N30613')""", "2 / 2026-02-08"),
+    ("SHIPPING SCHEDULE: SHIPPED STYLES order qty = total row (SHIPPED STYLES!G134)", ("file", "261015) 26FW CHALLENGER SHIPPING SCHEDULE"),
+     "SELECT sum(order_qty) FROM core.shipping_schedule WHERE status = 'SHIPPED'", 74447),
+    ("SHIPPING SCHEDULE: styles with RDD = ETD VN + 12 (Q20 evidence)", ("file", "261015) 26FW CHALLENGER SHIPPING SCHEDULE"),
+     "SELECT count(*) FILTER (WHERE rdd_minus_etd = 12) || ' of ' || count(*) FROM core.shipping_schedule", "137 of 138"),
+    ("Buyer order status PDF: styles / pcs = page totals ('이 장 합계')", ("file", "오더리캡 현황"),
+     """SELECT string_agg(brand || ' ' || n || ' / ' || q, ', ' ORDER BY brand) FROM (
+          SELECT brand, count(*) AS n, sum(qty) AS q FROM core.buyer_order_status GROUP BY brand)""",
+     "8 SECONDS 17 / 28600, BEANPOLE KIDS 12 / 10370"),
     # ---- technical documents: name only (N-02) ----
     ("No report above KOPS_MAX_PARSE_MB was opened", None,
      f"""SELECT count(*) FROM etl.source_file WHERE size_bytes > {config.MAX_PARSE_MB} * 1e6

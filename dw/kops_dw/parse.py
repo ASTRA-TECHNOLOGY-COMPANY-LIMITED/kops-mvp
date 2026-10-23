@@ -23,7 +23,8 @@ from .excel import open_workbook, xlsx_path
 from .util import MissingTool
 
 LAKE_FORMAT = "1"          # bump to re-parse everything (e.g. after a change in how rows are stored)
-EXCEL_PARSERS = ("order_recap", "order_recap_ext", "production_plan", "shipment_status", "production_status")
+EXCEL_PARSERS = ("order_recap", "order_recap_ext", "production_plan", "shipment_status", "production_status",
+                 "shipping_schedule")
 _COMMON = ["parse.py", "util.py"]
 _EXCEL = [*_COMMON, "excel.py", "templates.py"]
 _CUSTOMERS = ["CUSTOMER_KEYS", "BRAND_ALIASES", "FACTORY_ALIASES"]
@@ -35,15 +36,19 @@ PARSER_DEPS = {
     "order_recap": ([*_EXCEL, "ingest/order_recap.py"], []),
     "order_recap_ext": ([*_EXCEL, "ingest/order_recap_generic.py"], _CUSTOMERS),
     "production_plan": ([*_EXCEL, "ingest/production_plan.py", "ingest/order_recap_generic.py"], _CUSTOMERS),
-    "shipment_status": ([*_EXCEL, "ingest/shipment_status.py"], ["SHIPMENT_SHEET_FACTORY"]),
-    "production_status": ([*_EXCEL, "ingest/production_status.py"], []),
+    "shipment_status": ([*_EXCEL, "ingest/shipment_status.py", "ingest/order_recap_generic.py"],
+                        ["SHIPMENT_SHEET_FACTORY", *_CUSTOMERS]),
+    "production_status": ([*_EXCEL, "ingest/production_status.py", "ingest/order_recap_generic.py"], _CUSTOMERS),
+    "shipping_schedule": ([*_EXCEL, "ingest/shipping_schedule.py", "ingest/order_recap_generic.py"], _CUSTOMERS),
+    "buyer_order_status": ([*_COMMON, "ingest/buyer_order_status.py", "ingest/order_recap_generic.py", "milestones.py",
+                            "docmeta.py"], _CUSTOMERS),
     "meeting_notes": ([*_COMMON, "ingest/meeting_notes.py"], []),
     "emails": (_EMAIL, _EMAIL_CFG),
     "mailbox": ([*_EMAIL, "ingest/mailbox.py"],
                 [*_EMAIL_CFG, "MAIL_EXCLUDE_FOLDERS", "MAIL_ALLOW", "MAIL_SINCE", "MAIL_UNTIL"]),
 }
 # Optional tools: installing one changes the version, so files quarantined for MISSING_TOOL are parsed again.
-PARSER_TOOLS = {"mailbox": ["readpst"]}
+PARSER_TOOLS = {"mailbox": ["readpst"], "buyer_order_status": ["pdftotext"]}
 
 
 class Ctx:
@@ -152,7 +157,7 @@ def _run_one(t: dict, writer: lake.Writer, timeout: int, verbose: bool) -> dict:
         seasons, n = set(), 0
         for part in [tables] if isinstance(tables, dict) else tables:      # mailboxes yield parts
             n += writer.add(part, t["key"], t["parser"])
-            if t["parser"] in ("order_recap_ext", "production_plan"):
+            if t["parser"] in ("order_recap_ext", "production_plan", "buyer_order_status"):
                 seasons |= {r["season"] for rows in part.values() for r in rows if r.get("season")}
         meta.update(report_date=report_date or ctx.report_date, family=family, rows_loaded=n)
         if len(seasons) == 1:
@@ -185,8 +190,8 @@ def _finish(meta, ctx, writer, t, t0) -> dict:
 
 def parse_file(t: dict, ctx: Ctx):
     """-> (tables, report_date, family). family groups versions of one report (None = parser + season)."""
-    from .ingest import (emails, meeting_notes, order_recap, order_recap_generic, production_plan,
-                         production_status, shipment_status)
+    from .ingest import (buyer_order_status, emails, meeting_notes, order_recap, order_recap_generic, production_plan,
+                         production_status, shipment_status, shipping_schedule)
     from .pipeline import file_date
     path, parser, season, digest = Path(t["path"]), t["parser"], t["season"], t["sha256"]
     if parser in ("order_recap", "shipment_status", "production_status"):
@@ -196,12 +201,22 @@ def parse_file(t: dict, ctx: Ctx):
         mod = {"order_recap": order_recap, "shipment_status": shipment_status,
                "production_status": production_status}[parser]
         tables, report_date = mod.parse(wb, season, ctx)
-        return tables, report_date or file_date(path.name), None
+        # One status file per customer (CHALLENGER, MIZUNO ...): versions of one customer supersede each other only
+        family = order_recap_generic.customer_of(path.name) if parser != "order_recap" else None
+        return tables, report_date or file_date(path.name), family
     if parser in ("order_recap_ext", "production_plan"):
         wb = open_workbook(path, digest)
         mod = order_recap_generic if parser == "order_recap_ext" else production_plan
         tables, report_date, family = mod.parse(wb, season, ctx, path.name, t["rel"])
         return tables, report_date or file_date(path.name), family
+    if parser == "shipping_schedule":
+        if not season:
+            raise ValueError("Season code (e.g. 26FW) not found in file name")
+        tables, report_date = shipping_schedule.parse(open_workbook(path, digest), season, ctx)
+        return tables, report_date or file_date(path.name), None
+    if parser == "buyer_order_status":
+        tables, printed, brand = buyer_order_status.parse(path, ctx)
+        return tables, printed or file_date(path.name), brand
     if parser == "meeting_notes":
         tables, d = meeting_notes.parse(path, ctx)
         return tables, (dt.date.fromisoformat(d) if d else None), None

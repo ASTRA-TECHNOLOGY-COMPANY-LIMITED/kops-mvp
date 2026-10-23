@@ -60,6 +60,8 @@ QUERIES = {
     "style_events": "SELECT * FROM mart.style_event ORDER BY style_no, event_date, milestone",
     "ship_events": "SELECT * EXCLUDE (source_ref) FROM core.shipment_event ORDER BY etd_new DESC",
     "material_delay": "SELECT * FROM mart.material_delay ORDER BY delayed DESC, shipments DESC",
+    "sched_recap": "SELECT * EXCLUDE (file_id, sheet, row_no) FROM mart.schedule_vs_recap ORDER BY recap_check NULLS LAST, style_no",
+    "buyer_view": "SELECT * EXCLUDE (file_id) FROM mart.plan_vs_buyer_view ORDER BY brand, file_no",
 }
 
 

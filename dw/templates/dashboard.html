@@ -452,6 +452,19 @@ function viewQuality() {
     {k: 'order_recap_qty', l: 'Đặt (Recap)', n: 1}, {k: 'shipment_file_qty', l: 'Đặt (Shipment)', n: 1}, {k: 'production_file_qty', l: 'Đặt (Production)', n: 1},
     {k: 'shipped_shipment_file', l: 'Xuất (Shipment)', n: 1}, {k: 'shipped_production_file', l: 'Xuất (Production)', n: 1}, {k: 'mismatch', l: 'Lệch'}],
     {filters: [{key: 'mismatch', label: 'Loại lệch'}]})}
+  <h2 class="sec">SHIPPING SCHEDULE so với ORDER RECAP (${TB.sched_recap.length})</h2>
+  <p class="note">Kế hoạch xuất chính thức (FIXED EX-FACT / ETD / ETA) đối chiếu với ORDER RECAP hiện hành. RDD − ETD VN: quy tắc đang dùng là 12 ngày (Q20).</p>
+  ${table('t-sch', TB.sched_recap, [{k: 'style_no', l: 'Style', r: styleLink}, {k: 'status', l: 'Trạng thái'}, {k: 'factory_raw', l: 'Nhà máy (file)'}, {k: 'factory_recap', l: 'Nhà máy (Recap)'},
+    {k: 'order_qty', l: 'SL (schedule)', n: 1}, {k: 'order_qty_recap', l: 'SL (Recap)', n: 1}, {k: 'etd_vn', l: 'ETD VN'}, {k: 'etd_recap', l: 'ETD (Recap)'},
+    {k: 'rdd_minus_etd', l: 'RDD−ETD', n: 1}, {k: 'fixed_etd', l: 'FIXED ETD'}, {k: 'fixed_eta', l: 'FIXED ETA'}, {k: 'remark', l: 'Ghi chú'}, {k: 'recap_check', l: 'Lệch'}],
+    {filters: [{key: 'recap_check', label: 'Lệch'}, {key: 'status', label: 'Trạng thái'}]})}
+  <h2 class="sec">Bảng hiện trạng đơn của buyer (PDF) so với kế hoạch KLMAS (${TB.buyer_view.length})</h2>
+  <p class="note">PDF "생산계획표 · 오더 현황표" do buyer in, chỉ dùng để đối chiếu. 납기 여유 của buyer = RDD − ETA; BAL của kế hoạch theo quy tắc ghi trong từng file.</p>
+  ${table('t-byr', TB.buyer_view, [{k: 'brand', l: 'Brand'}, {k: 'file_no', l: 'File no'}, {k: 'style_no', l: 'Style'}, {k: 'factory_code', l: 'Nhà máy'},
+    {k: 'qty_buyer', l: 'SL buyer', n: 1}, {k: 'qty_plan', l: 'SL kế hoạch', n: 1}, {k: 'cut_buyer', l: 'Cắt (buyer)'}, {k: 'cut_plan', l: 'Cắt (KH)'},
+    {k: 'etd_buyer', l: 'ETD (buyer)'}, {k: 'etd_plan', l: 'ETD (KH)'}, {k: 'rdd_buyer', l: 'RDD (buyer)'}, {k: 'rdd_plan', l: 'RDD (KH)'},
+    {k: 'margin_days', l: '납기 여유', n: 1}, {k: 'bal_plan', l: 'BAL KH', n: 1}, {k: 'check_result', l: 'Kết quả'}],
+    {filters: [{key: 'check_result', label: 'Kết quả'}, {key: 'brand', label: 'Brand'}]})}
   <h2 class="sec">Danh sách vấn đề dữ liệu</h2>
   ${table('t-iss', I, [{k: 'severity', l: 'Mức', r: v => chip(SEV[v] || {c: '--neutral'}, v)}, {k: 'code', l: 'Mã'}, {k: 'entity', l: 'Đối tượng'},
     {k: 'message', l: 'Mô tả'}, {k: 'location', l: 'Vị trí'}, {k: 'file_name', l: 'File'}], {filters: [{key: 'severity', label: 'Mức'}, {key: 'code', label: 'Mã'}]})}`;

@@ -19,6 +19,7 @@ from pathlib import Path
 import duckdb
 
 from . import config, docmeta, lake, manifest, ocr, parse, templates
+from .ingest import buyer_order_status
 from .util import nfc, norm_key
 
 SQL_DIR = config.DW_DIR / "sql"
@@ -60,6 +61,8 @@ def classify(path: Path):
             return "excel", "order_recap_ext", season
         if "PRODUCTION PLAN" in name:
             return "excel", "production_plan", season
+        if "SHIPPING SCHEDULE" in name:
+            return "excel", "shipping_schedule", season
         if "SHIPMENT STATUS" in name:
             return "excel", "shipment_status", season
         if "PRODUCTION AND SHIPPING STATUS" in name:
@@ -74,6 +77,8 @@ def classify(path: Path):
         return "meeting_note", "meeting_notes", season
     if ext in (".eml", ".mhtml"):           # .mhtml: Gmail threads saved inside style packages (STYLES/...)
         return "email", "emails", season
+    if ext == ".pdf" and buyer_order_status.is_buyer_status(path.name):
+        return "tracking_pdf", "buyer_order_status", season
     if ext in docmeta.OFFICE_EXT and docmeta.is_meta_only(path):
         return "document", None, season
     if ext in (".pdf", ".jpg", ".jpeg", ".png"):
