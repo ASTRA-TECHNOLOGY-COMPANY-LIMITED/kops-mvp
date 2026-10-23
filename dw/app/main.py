@@ -20,7 +20,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 
 from kops_dw import config
 
-from . import auth, state
+from . import auth, notify, settings, state
 
 TEMPLATES = config.DW_DIR / "templates"
 _NAME = re.compile(r"^[\w.-]+\.json$")
@@ -56,6 +56,10 @@ def create_app(bootstrap: bool = True) -> FastAPI:
     if bootstrap:                     # first admin from .env (tests use a throw-away state DB and skip it)
         from .bootstrap import ensure_admin
         ensure_admin()
+    try:
+        notify.sync()                 # notices of the current build (also re-checked on every notification request)
+    except Exception as e:            # noqa: BLE001 - the app must start even without a DW
+        print(f"notifications not synced: {e}", flush=True)
     app = FastAPI(title="KOPS", docs_url=None, redoc_url=None, openapi_url=None)
 
     @app.exception_handler(auth.LoginRequired)
@@ -223,6 +227,45 @@ def create_app(bootstrap: bool = True) -> FastAPI:
                 if f.is_file():
                     return FileResponse(f, media_type=mt, headers={"Cache-Control": "no-cache"})
         raise HTTPException(404)
+
+    # ---------------------------------------------------------------- notifications (F-03)
+    @app.get("/api/notifications")
+    def notifications(closed: int = 0, user: dict = Depends(auth.require_user)):
+        notify.sync()
+        return notify.for_user(user, include_closed=bool(closed))
+
+    @app.get("/api/notifications/count")
+    def notification_count(user: dict = Depends(auth.require_user)):
+        notify.sync()
+        return {"unread": notify.unread_count(user), "build_id": notify.build_id()}
+
+    @app.post("/api/notifications/state")
+    async def notification_state(request: Request, user: dict = Depends(auth.require_csrf)):
+        body = await request.json()
+        status, ids = body.get("status"), [int(i) for i in body.get("ids", [])][:1000]
+        if status not in ("read", "unread", "snoozed", "done"):
+            raise HTTPException(400, "status")
+        if status in ("snoozed", "done"):           # handling a notice is for managers; viewers only mark as read
+            auth.require_role("manager")(request)
+        n = notify.set_status(user, ids, status, (body.get("note") or None) and str(body["note"])[:500])
+        if status == "done":
+            state.audit("notification_done", user, ",".join(map(str, ids[:20])), body.get("note"))
+        return {"ok": True, "n": n}
+
+    # ---------------------------------------------------------------- settings (admin, F-03)
+    @app.get("/api/settings")
+    def get_settings(user: dict = Depends(auth.require_role("admin"))):
+        return {"values": settings.current(), "limits": settings.EDITABLE, "history": settings.history()}
+
+    @app.post("/api/settings")
+    async def post_settings(request: Request, user: dict = Depends(auth.require_csrf)):
+        auth.require_role("admin")(request)
+        body = await request.json()
+        try:
+            changed = settings.update(user, body.get("values", {}), body.get("note"))
+        except (ValueError, TypeError) as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+        return {"ok": True, "changed": changed}
 
     @app.get("/vendor/{name}")
     def vendor(name: str):

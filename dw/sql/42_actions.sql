@@ -6,7 +6,7 @@
 --   FORECAST_LATE     daily-report forecast ready + transit > RDD, or ETD passed and not shipped (mgr_style.risk_reason)
 --   MATERIAL_LATE     material for the factory arrives after the planned cut date (inbound_material events in e-mail;
 --                     arrival = ETA, else ETD + 7 days, assumption ASM-MAT-01)
---   APPROVAL_MISSING  cut planned from 7 days ago to 21 days ahead, nothing shipped, and no FPP CFMD / DM approval milestone
+--   APPROVAL_MISSING  cut planned from approval_days_before (7) days ago to approval_days_after (21) days ahead, nothing shipped, and no FPP CFMD / DM approval milestone
 --                     on or before the cut date in e-mails or documents
 --   DAILY_STALE       factory with running styles has sent no daily report for more than 1 weekday (Q32, ASM-FRESH-01)
 --   PROPOSAL_PENDING  change read from an e-mail waiting for review (PENDING_REVIEW)
@@ -30,7 +30,7 @@ pl AS (
   WHERE p.style_key IS NOT NULL AND NOT p.is_synthetic),
 plan_late AS (
   SELECT 'PLAN_LATE' AS action_type,
-         CASE WHEN coalesce(p.cut_plan, s.etd) <= core.today() + 14 THEN 1 ELSE 2 END AS severity,
+         CASE WHEN coalesce(p.cut_plan, s.etd) <= core.today() + core.rule_int('critical_days_plan') THEN 1 ELSE 2 END AS severity,
          greatest(coalesce(p.cut_plan, s.etd), core.today()) AS due_date, s.style_key, s.factory_code,
          p.finish_plan AS d1, coalesce(p.rdd, s.rdd) AS d2, p.bal_calc AS n1,
          CASE WHEN p.bal_calc < 0 THEN 'BAL' ELSE 'TRANSIT' END AS txt,
@@ -47,23 +47,23 @@ mat AS (
   FROM fact.shipment_event e JOIN dim.factory f USING (factory_key)
   WHERE e.direction = 'inbound_material' AND NOT e.is_sample),
 material_late AS (
-  SELECT 'MATERIAL_LATE', CASE WHEN p.cut_plan <= core.today() + 7 THEN 1 ELSE 2 END, greatest(p.cut_plan, core.today()),
+  SELECT 'MATERIAL_LATE', CASE WHEN p.cut_plan <= core.today() + core.rule_int('critical_days_cut') THEN 1 ELSE 2 END, greatest(p.cut_plan, core.today()),
          s.style_key, s.factory_code, m.arrival, p.cut_plan, date_diff('day', p.cut_plan, m.arrival), m.booking,
          'Email: ' || m.subject
   FROM pl p JOIN open_st s USING (style_key)
   JOIN mat m ON m.ev_factory = s.factory_code AND (m.customer IS NULL OR m.customer = s.customer)
-  WHERE NOT s.cut_suspect AND p.cut_plan >= core.today() - 7 AND m.arrival > p.cut_plan AND m.etd_new >= p.cut_plan - 45),
+  WHERE NOT s.cut_suspect AND p.cut_plan >= core.today() - core.rule_int('approval_days_before') AND m.arrival > p.cut_plan AND m.etd_new >= p.cut_plan - 45),
 appr AS (
   SELECT style_key, max(event_date) FILTER (WHERE milestone = 'FPP_CFMD') AS fpp, max(event_date) FILTER (WHERE milestone = 'DM_APPROVAL') AS dm
   FROM fact.milestone WHERE NOT is_sample AND style_key IS NOT NULL GROUP BY 1),
 approval_missing AS (
-  SELECT 'APPROVAL_MISSING', CASE WHEN p.cut_plan <= core.today() + 7 THEN 1 ELSE 2 END, greatest(p.cut_plan, core.today()),
+  SELECT 'APPROVAL_MISSING', CASE WHEN p.cut_plan <= core.today() + core.rule_int('critical_days_cut') THEN 1 ELSE 2 END, greatest(p.cut_plan, core.today()),
          s.style_key, s.factory_code, p.cut_plan, NULL::DATE, NULL::BIGINT,
          concat_ws(',', CASE WHEN a.fpp IS NULL OR a.fpp > p.cut_plan THEN 'FPP_CFMD' END,
                         CASE WHEN a.dm IS NULL OR a.dm > p.cut_plan THEN 'DM_APPROVAL' END),
          p.file_name || ' (CUT) · e-mail / documents (FPP CFMD, DM)'
   FROM pl p JOIN open_st s USING (style_key) LEFT JOIN appr a USING (style_key)
-  WHERE NOT s.cut_suspect AND p.cut_plan BETWEEN core.today() - 7 AND core.today() + 21 AND coalesce(s.shipped, 0) = 0
+  WHERE NOT s.cut_suspect AND p.cut_plan BETWEEN core.today() - core.rule_int('approval_days_before') AND core.today() + core.rule_int('approval_days_after') AND coalesce(s.shipped, 0) = 0
     AND (a.fpp IS NULL OR a.fpp > p.cut_plan OR a.dm IS NULL OR a.dm > p.cut_plan)),
 running AS (     -- factory x customer x season with styles on the line: cut planned / reported, not shipped, ETD not long past
   SELECT s.customer, s.season, s.factory_code, count(*) AS n
@@ -79,7 +79,7 @@ daily_stale AS (
          coalesce('DAILY PRODUCTION REPORT ' || strftime(l.last_report, '%d/%m'), 'DAILY PRODUCTION REPORT: –'),
          r.customer, r.season
   FROM running r LEFT JOIN last_rep l USING (customer, factory_code)
-  WHERE l.last_report IS NULL OR mart.weekdays_between(l.last_report, core.today()) > 1),
+  WHERE l.last_report IS NULL OR mart.weekdays_between(l.last_report, core.today()) > core.rule_int('stale_weekdays')),
 proposal AS (
   SELECT 'PROPOSAL_PENDING', 3, greatest(coalesce(s.etd, core.today()), core.today()), c.style_key, coalesce(c.factory_code, s.factory_code),
          c.fact_date, NULL::DATE, NULL::BIGINT, c.change_type || ': ' || coalesce(c.before_v || ' → ', '') || coalesce(c.after_v, ''),

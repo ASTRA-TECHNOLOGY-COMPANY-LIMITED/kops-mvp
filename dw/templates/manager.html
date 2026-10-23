@@ -61,6 +61,7 @@ main{padding:18px 20px 40px;min-width:0;max-width:1400px}
 .form{display:grid;gap:8px;max-width:420px}.form input,.form select{max-width:none;width:100%}.form label{color:var(--text-2);font-size:12.5px}
 button.primary{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:7px 14px;font:inherit;font-weight:600;cursor:pointer}
 .ok{color:var(--good)}.bad{color:var(--critical)}
+.nlist{list-style:none;padding:0;margin:0}.nlist li{padding:6px 0;border-bottom:1px solid var(--line)}
 .card h4{margin:12px 0 4px;font-size:13.5px}.card ul{margin:0;padding-left:20px}.card li{margin:3px 0}
 .qref{text-decoration:underline dotted;cursor:help}
 .syn{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;background:color-mix(in srgb,var(--syn) 18%,transparent);color:var(--syn);border:1px solid color-mix(in srgb,var(--syn) 40%,transparent);cursor:help}
@@ -259,6 +260,7 @@ document.addEventListener('click', e => {
   if (cv) { downloadCsv(cv.dataset.csv); return; }
   const pg = e.target.closest('[data-pg]');
   if (pg) { const id = pg.closest('.tw').id; TABLES[id].page += +pg.dataset.pg; drawTable(id); return; }
+  if (e.target.closest('input, select, button, a, label')) return;     // controls inside a clickable row
   const tr = e.target.closest('tr.click');
   if (tr) { const t = TABLES[tr.closest('.tw').id]; t.onClick(t.rows[+tr.dataset.i]); }
 });
@@ -664,6 +666,33 @@ function pageProfile() {
       <form class="form" id="prefForm"><label>${L('Trang mở đầu sau khi đăng nhập')}<select id="prefPage">${opts}</select></label>
         <button class="primary" type="submit">${L('Lưu')}</button><div id="prefMsg"></div></form></div></div>`;
 }
+/* settings (F-03): thresholds of the action list / notifications, admin only, with history */
+const SETTING_LABEL = {approval_days_before: L('Thiếu duyệt mẫu: xét ngày cắt từ N ngày trước'), approval_days_after: L('Thiếu duyệt mẫu: tới N ngày sau'),
+  critical_days_plan: L('Kế hoạch trễ là "nghiêm trọng" khi ngày cắt / ETD còn ≤ N ngày'), critical_days_cut: L('Thiếu duyệt / vật tư trễ là "nghiêm trọng" khi ngày cắt còn ≤ N ngày'),
+  stale_weekdays: L('Thiếu báo cáo ngày khi quá N ngày làm việc (Q32)'), year_suspect_days: L('Nghi gõ sai năm khi ETD sớm hơn đầu mùa quá N ngày (Q46)'),
+  qty_tolerance_pct: L('Dung sai số lượng % (Q13)'), ontime_tolerance_days: L('Số phụ "đúng hạn": cho trễ N ngày (Q21)')};
+function pageSettings() {
+  if (!isAdmin()) return `<div class="banner">${L('Chỉ quản trị viên được vào trang này')}</div>`;
+  return `<div class="card" style="margin-bottom:12px"><h3>${L('Ngưỡng cảnh báo')}</h3><p class="sub">${L('Áp dụng từ lần làm mới dữ liệu tiếp theo (make refresh). Mọi thay đổi được ghi lịch sử.')}</p>
+    <form class="form" id="setForm" style="max-width:640px"><div id="setFields"></div>
+      <label>${L('Ghi chú thay đổi')}<input id="setNote" maxlength="300"></label><button class="primary" type="submit">${L('Lưu')}</button><div id="setMsg"></div></form>
+    <h4>${L('Lịch sử thay đổi')}</h4><div id="setHist" class="tw"></div></div>` + pageUsers();
+}
+async function bindSettings() {
+  const f = $('#setForm'); if (!f) return;
+  const s = await getJSON('api/settings');
+  $('#setFields').innerHTML = Object.entries(s.values).map(([k, v]) => `<label>${esc(SETTING_LABEL[k] || k)}
+    <input type="number" name="${k}" value="${v}" min="${s.limits[k][0]}" max="${s.limits[k][1]}" required></label>`).join('');
+  $('#setHist').innerHTML = s.history.length ? `<table><thead><tr><th>${L('Thời điểm')}</th><th>${L('Người dùng')}</th><th>${L('Ngưỡng')}</th><th>${L('Trước')}</th><th>${L('Sau')}</th><th>${L('Ghi chú')}</th></tr></thead><tbody>${
+    s.history.map(h => `<tr><td>${esc(h.at)}</td><td>${esc(h.by_user)}</td><td>${esc(SETTING_LABEL[h.key] || h.key)}</td><td>${esc(h.old_value)}</td><td>${esc(h.new_value)}</td><td>${esc(h.note || '')}</td></tr>`).join('')}</tbody></table>`
+    : `<div class="note">${L('Chưa có thay đổi')}</div>`;
+  f.onsubmit = async e => { e.preventDefault();
+    const values = Object.fromEntries([...f.querySelectorAll('#setFields input')].map(i => [i.name, +i.value]));
+    const r = await api('api/settings', {values, note: $('#setNote').value});
+    $('#setMsg').className = r.ok ? 'ok' : 'bad';
+    $('#setMsg').textContent = r.ok ? (Object.keys(r.data.changed).length ? L('Đã lưu; áp dụng ở lần làm mới dữ liệu tiếp theo') : L('Không có gì thay đổi')) : (r.data.error || L('Lỗi, thử lại sau'));
+    if (r.ok) bindSettings(); };
+}
 function pageUsers() {
   if (!isAdmin()) return `<div class="banner">${L('Chỉ quản trị viên được vào trang này')}</div>`;
   return `<div class="card"><h3>${L('Người dùng')}</h3><p class="sub">${L('Quản trị: người dùng và cài đặt; Quản lý: xem tất cả, xử lý thông báo, chatbot; Chỉ xem: xem.')}</p>
@@ -720,8 +749,73 @@ $('#userMenu').onclick = async e => { const b = e.target.closest('[data-go]'); i
 document.addEventListener('click', e => { if (!e.target.closest('.umenu')) $('#userMenu').hidden = true; });
 
 /* ---------------------------------------------------------------- notifications (F-03), trends (F-05), guide (F-08) */
-function notesBlock() { return `<div class="empty">${L('Chưa có thông báo')}</div>`; }
-function pageNotifications() { return `<div class="card"><h3>${L('Thông báo')}</h3>${notesBlock()}</div>`; }
+/* notifications (F-03): rebuilt by the app from the marts after each build; status per user */
+let NOTES = [], NOTE_FILTER = {status: 'open', kind: ALL};
+const NKIND = {LATE: L('Trễ'), AT_RISK: L('Nguy cơ trễ'), DATA: L('Dữ liệu')};
+const NSTATUS = {read: L('Đã đọc'), snoozed: L('Tạm ẩn'), done: L('Đã xử lý')};
+async function loadNotes() {
+  try { NOTES = await getJSON('api/notifications?closed=1'); } catch { NOTES = []; }
+  const unread = NOTES.filter(n => !n.closed_at && !n.status).length;
+  $('#bellCount').textContent = unread ? String(unread) : '';
+  $('#bellBtn').title = L('Thông báo') + (unread ? ' · ' + L('{n} chưa đọc', {n: unread}) : '');
+}
+const daysLeft = d => d && IDX.today ? Math.round((new Date(d) - new Date(IDX.today)) / 864e5) : null;
+const noteReason = n => actReason({...n.args, action_type: n.rule, d1: n.args.d1, d2: n.args.d2, n1: n.args.n1 == null ? null : +n.args.n1});
+const NOTE_COLS = () => [
+  {k: '_sel', l: '', r: (v, r) => `<input type="checkbox" class="nsel" value="${r.id}" aria-label="${esc(L('Chọn'))}">`, csv: () => ''},
+  {k: 'severity', l: L('Mức'), r: v => sevChip(v), csv: r => (SEV[r.severity] || SEV[3])[0]},
+  {k: 'kind', l: L('Loại'), r: (v, r) => esc(NKIND[v] || v) + (r.is_synthetic && STATE.syn ? ' ' + synChip(null) : ''), csv: r => NKIND[r.kind] || r.kind},
+  {k: 'style_no', l: 'Style', r: (v, r) => r.style_nk ? styleCell(v, r) : '–'},
+  {k: 'reason', l: L('Lý do'), r: (v, r) => noteReason(r), csv: r => plain(noteReason(r))},
+  {k: 'due_date', l: L('Còn lại'), r: (v, r) => { const d = r.kind === 'DATA' ? null : daysLeft(r.due_date); return d == null ? '–' : d <= 0 ? `<b class="bad">${L('đến hạn')}</b>` : L('{n} ngày', {n: d}); },
+   csv: r => daysLeft(r.due_date)},
+  {k: 'customer', l: L('Khách')}, {k: 'factory_code', l: L('Nhà máy')},
+  {k: 'source', l: L('Nguồn'), r: v => `<span class="note">${esc(v || '')}</span>`},
+  {k: 'status', l: L('Trạng thái'), r: (v, r) => r.closed_at ? L('Đã đóng (hết điều kiện)') : v ? esc(NSTATUS[v] || v) + (r.note ? ` <span class="note">· ${esc(r.note)}</span>` : '') : `<b>${L('Chưa đọc')}</b>`,
+   csv: r => r.closed_at ? 'closed' : r.status || 'unread'}];
+function notesBlock() {
+  const ns = NOTES.filter(n => !n.closed_at && !n.status && keep(n, {syn: false})).slice(0, 8);
+  if (!ns.length) return `<div class="empty">${L('Chưa có thông báo mới')}</div>`;
+  return `<ul class="nlist">${ns.map(n => `<li><a href="#" onclick="${n.style_nk ? `openStyle('${esc(n.style_nk)}')` : `showTab('notifications')`};return false">${sevChip(n.severity)} ${esc(n.style_no || n.factory_code || '')}</a>
+    <span class="note">${esc(NKIND[n.kind] || '')}</span> ${noteReason(n)}</li>`).join('')}</ul><a href="#" onclick="showTab('notifications');return false">${L('xem tất cả thông báo')}</a>`;
+}
+function pageNotifications() {
+  const f = NOTE_FILTER;
+  const rows = NOTES.filter(n => keep(n, {syn: false}) && (f.kind === ALL || n.kind === f.kind) &&
+    (f.status === 'all' ? true : f.status === 'open' ? !n.closed_at && n.status !== 'done' && n.status !== 'snoozed' : f.status === 'unread' ? !n.closed_at && !n.status :
+     f.status === 'closed' ? !!n.closed_at : n.status === f.status));
+  const canHandle = ME && ME.role !== 'viewer';
+  const cnt = k => NOTES.filter(n => !n.closed_at && n.kind === k && keep(n, {syn: false})).length;
+  return `<div class="banner">${L('Thông báo được tạo lại sau mỗi lần làm mới dữ liệu từ "Việc cần xử lý" (trễ, có nguy cơ trễ, lệch dữ liệu); tự đóng khi hết điều kiện. Ngưỡng: Cài đặt (quản trị viên). Không gửi email hay chat ra ngoài.')}</div>
+  <div class="kpis">${Object.entries(NKIND).map(([k, l]) => kpiTile(l, fmt(cnt(k)), L('đang mở'), l, '', 'notes_' + k, cnt(k))).join('')}</div>
+  <div class="card"><div class="filters" style="margin-bottom:8px">
+      <select id="nStatus">${[['open', L('Đang mở')], ['unread', L('Chưa đọc')], ['read', L('Đã đọc')], ['snoozed', L('Tạm ẩn')], ['done', L('Đã xử lý')], ['closed', L('Đã đóng')], ['all', L('Tất cả')]]
+        .map(([k, l]) => `<option value="${k}"${f.status === k ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>
+      <select id="nKind"><option value="${ALL}">${L('Mọi loại')}</option>${Object.entries(NKIND).map(([k, l]) => `<option value="${k}"${f.kind === k ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>
+      <label class="tog"><input type="checkbox" id="nAll"> ${L('Chọn tất cả')}</label>
+      <button class="icon" data-nact="read">${L('Đánh dấu đã đọc')}</button><button class="icon" data-nact="unread">${L('Chưa đọc')}</button>
+      ${canHandle ? `<button class="icon" data-nact="snoozed">${L('Tạm ẩn 7 ngày')}</button><button class="icon" data-nact="done">${L('Đã xử lý…')}</button>` : ''}
+      <span class="note" id="nMsg"></span></div>
+    ${table('tNotes', rows, NOTE_COLS(), {limit: 30, onClick: async r => { if (!r.status) await setNotes([r.id], 'read'); if (r.style_nk) openStyle(r.style_nk); }})}</div>`;
+}
+async function setNotes(ids, status, note) {
+  if (!ids.length) { $('#nMsg') && ($('#nMsg').textContent = L('Chưa chọn thông báo nào')); return; }
+  const r = await api('api/notifications/state', {ids, status, note});
+  if ($('#nMsg')) $('#nMsg').textContent = r.ok ? L('Đã cập nhật {n} thông báo', {n: r.data.n}) : L('Lỗi, thử lại sau');
+  await loadNotes(); if (STATE.tab === 'notifications') render();
+}
+function bindNotes() {
+  const s = $('#nStatus'); if (!s) return;
+  s.onchange = () => { NOTE_FILTER.status = s.value; render(); };
+  $('#nKind').onchange = e => { NOTE_FILTER.kind = e.target.value; render(); };
+  $('#nAll').onchange = e => document.querySelectorAll('.nsel').forEach(c => { c.checked = e.target.checked; });
+  document.querySelectorAll('[data-nact]').forEach(b => b.onclick = () => {
+    const ids = [...document.querySelectorAll('.nsel:checked')].map(c => +c.value);
+    let note = null;
+    if (b.dataset.nact === 'done') { note = prompt(L('Ghi chú cách đã xử lý (không bắt buộc)')); if (note === null) return; }
+    setNotes(ids, b.dataset.nact, note);
+  });
+}
 function pageTrends() { return `<div class="card"><h3>${L('Xu hướng')}</h3><div class="empty">${L('Chưa có dữ liệu')}</div></div>`; }
 const GUIDE = () => [
   [L('Bắt đầu'), [L('Chọn mùa, khách, brand, nhà máy ở đầu trang: mọi trang dùng chung bộ lọc này.'),
@@ -736,7 +830,7 @@ const GUIDE = () => [
 function pageGuide() {
   return `<div class="card"><h3>${L('Hướng dẫn')}</h3>${GUIDE().map(([h, ps]) => `<h4>${esc(h)}</h4><ul>${ps.map(p => `<li>${esc(p)}</li>`).join('')}</ul>`).join('')}</div>`;
 }
-const VIEW = {profile: pageProfile, users: pageUsers, settings: pageUsers, notifications: pageNotifications, trends: pageTrends, guide: pageGuide,
+const VIEW = {profile: pageProfile, users: pageUsers, settings: pageSettings, notifications: pageNotifications, trends: pageTrends, guide: pageGuide,
   actions: pageActions, overview: pageOverview, production: pageProduction, ship: pageShip, quality: pageQuality, factory: pageFactory, change: pageChange, style: pageStyle, health: pageHealth};
 function render() {
   CHARTS.length = 0; Object.keys(TABLES).forEach(k => delete TABLES[k]);
@@ -745,7 +839,7 @@ function render() {
   $('#main').innerHTML = html;
   Object.keys(TABLES).forEach(drawTable); drawCharts();
   const sp = $('#stylePick'); if (sp) sp.onchange = () => openStyle(sp.value);
-  bindAccountPages();
+  bindAccountPages(); bindNotes(); bindSettings();
   document.querySelectorAll('nav button').forEach(b => b.setAttribute('aria-selected', b.dataset.t === STATE.tab));
 }
 /* New data (E-08): `make refresh` rebuilds while this page stays open; every minute the page checks index.json and,
@@ -823,6 +917,9 @@ $('#themeBtn').onclick = () => { const r = document.documentElement, dark = r.da
   STATE.tab = q.get('tab') || ME.default_page || 'overview';     // start page: Tổng quan, or the user's choice (profile)
   if (!VIEW[STATE.tab] || (ADMIN_PAGES.has(STATE.tab) && !isAdmin())) STATE.tab = 'overview';
   if (q.get('style')) STATE.style = q.get('style');
+  await loadNotes();
+  setInterval(async () => { const before = $('#bellCount').textContent; await loadNotes();
+    if ($('#bellCount').textContent !== before && ['notifications', 'overview'].includes(STATE.tab)) render(); }, 60000);
   await refresh();
   document.body.dataset.loadMs = Math.round(performance.now());
 })();

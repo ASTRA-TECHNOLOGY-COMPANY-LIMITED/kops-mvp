@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import datetime as dt
 import fcntl
+import os
 import re
 import shutil
 import time
@@ -203,11 +204,15 @@ def build(verbose=True, retry_failed=False, pins: list[str] | None = None, db_pa
             src = "cached" if r["from_cache"] else ("parsed" if r["parse_key"] else "")
             print(f"  [{r['status']:9}] {r['file_name']}  rows={r['rows_loaded']}  {src}")
     _mark_current(registry, pins)
-    db = db_path or config.DB_PATH
+    final = db_path or config.DB_PATH
+    # the main DB is written next to the old one and swapped in at the end, so the web app (F-00) reading it during
+    # `make refresh` never sees a half-built warehouse; snapshots (pins) are written in place
+    db = final if pins is not None else final.with_name(final.name + ".new")
 
     config.BUILD_DIR.mkdir(parents=True, exist_ok=True)
-    if db.exists():
-        db.unlink()
+    for f in (db, db.with_name(db.name + ".wal")):
+        if f.exists():
+            f.unlink()
     con = duckdb.connect(str(db))
     con.execute((SQL_DIR / "00_raw.sql").read_text())
     _load_reference(con)
@@ -250,6 +255,7 @@ def build(verbose=True, retry_failed=False, pins: list[str] | None = None, db_pa
         return db
     _save_manifest(con, entries, removed, run)
     con.close()
+    os.replace(db, final)
     lake.compact_results(results, run_id)
     lock.close()
     _write_quarantine(quarantine, verbose)

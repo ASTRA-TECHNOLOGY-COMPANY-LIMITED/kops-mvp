@@ -44,12 +44,31 @@ RULES = {
     "as_of_fallback": "2026-10-12",    # when a file carries no report date
     "rate_window": 3,                  # forecast: mean of the last N days with output (spec §4.3)
     "rate_lookback_days": 10,          # ... within N days before the last report
+    # action list / notifications (E-04, F-03); editable by an admin on the Settings page (state/rules.json)
+    "approval_days_before": 7,         # missing FPP CFMD / DM approval: cut planned from N days ago ...
+    "approval_days_after": 21,         # ... to N days ahead
+    "critical_days_plan": 14,          # late plan is critical when cutting (or ETD) is within N days
+    "critical_days_cut": 7,            # missing approval / late material is critical when cutting is within N days
+    "stale_weekdays": 1,               # factory without a daily report for more than N weekdays (Q32)
     "year_suspect_days": 240,          # ETD / cut date this long before the season starts = year typed wrong (Q46);
                                        # typos are about a year early, MIZUNO 27SS ships from 21/09/2026 (~130 days)
 }
 # Factory scorecard (mart.mgr_factory, Nhà máy page): weighted mean of the components; equal until KLMAS answers Q21
 # (assumption ASM-SCORE-01). A weight of 0 drops the component.
 SCORECARD_WEIGHTS = {"on_time": 1, "quality": 1, "changes": 1, "freshness": 1}
+# Thresholds changed on the app's Settings page (admin, with history) are written to state/rules.json and override
+# RULES from the next build on (app/settings.py); only keys already in RULES, integer values.
+def _rule_overrides() -> dict:
+    import json
+    f = Path(os.environ.get("KOPS_STATE", DW_DIR / "state")) / "rules.json"
+    try:
+        data = json.loads(f.read_text(encoding="utf-8")) if f.is_file() else {}
+    except (OSError, ValueError):
+        return {}
+    return {k: int(v) for k, v in data.items() if k in RULES and isinstance(v, (int, float))}
+
+
+RULES.update(_rule_overrides())
 # Synthetic demo data in schema sim (D-04, kops_dw/sim.py); KOPS_SIM=0 builds without it.
 SIM = os.environ.get("KOPS_SIM", "1") == "1"
 # 'Today' for data freshness (spec §4.4): KOPS_TODAY=YYYY-MM-DD fixes it for tests; default the build day.

@@ -334,7 +334,8 @@ def run_checks(db_path=None) -> bool:
         print(f"  FAIL  source failed to parse: {f}: {m}")
     from .i18n import check as i18n_check
     from .questions import check as question_check
-    for name, good, detail in question_check() + i18n_check():
+    from app.selfcheck import check as app_check          # web app: notifications, security (dw/app)
+    for name, good, detail in question_check() + i18n_check() + app_check():
         ok &= good
         print(f"  {'PASS' if good else 'FAIL'}  {name}: {detail}")
     print("ALL PASS" if ok else "SOME CHECKS FAILED")
