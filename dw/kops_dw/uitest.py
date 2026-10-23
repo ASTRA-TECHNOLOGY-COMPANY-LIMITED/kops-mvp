@@ -23,7 +23,8 @@ import duckdb
 from . import config
 from .report import find_chrome
 
-PAGES = ("actions", "overview", "production", "ship", "quality", "factory", "change", "style", "health")
+PAGES = ("overview", "actions", "notifications", "production", "ship", "quality", "factory", "trends", "change", "style", "health",
+         "guide", "settings")
 SIM_PAGES = ("overview", "production", "ship", "quality", "factory")       # 26FW pages that show synthetic data
 VIEWPORTS = {"desktop": (1366, 900), "mobile": (390, 844)}
 

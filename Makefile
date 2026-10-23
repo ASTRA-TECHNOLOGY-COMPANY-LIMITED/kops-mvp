@@ -11,6 +11,8 @@
 #   make check-ui  UI test (Playwright + Chromium): every page x theme x desktop/mobile x VI/KO x synthetic off/on;
 #                  screenshots into UI_OUT (default /tmp/kops-ui, outside the repo)
 COMPOSE = docker compose
+# app version shown in the footer: short git hash of this checkout
+export KOPS_VERSION := $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
 
 SEASON ?=
 REPORT_LANG ?= vi

@@ -17,6 +17,7 @@ x-common: &common
     - ./analys-docs/open_questions.md:/data/open_questions.md:ro   # question codes / titles (read only)
     - kops_build:/app/build
     - kops_state:/app/state                # app state (users, sessions, notifications): kept across rebuilds
+    - ./branding:/app/branding:ro          # logo / favicon: replace the files, reload the page (no rebuild)
   env_file:
     - path: .env
       required: false
@@ -24,6 +25,8 @@ x-common: &common
     KOPS_SIM: ${KOPS_SIM:-1}
     KOPS_TODAY: ${KOPS_TODAY:-}
     KOPS_QUESTIONS_FILE: /data/open_questions.md
+    KOPS_BRANDING: /app/branding
+    KOPS_VERSION: ${KOPS_VERSION:-dev}
 
 services:
   kops-build:

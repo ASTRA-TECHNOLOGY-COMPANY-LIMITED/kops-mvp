@@ -30,6 +30,27 @@ def _data_dir(kind: str) -> Path:
     return {"mgr": config.BUILD_DIR / "data" / "mgr", "analyst": config.BUILD_DIR / "data"}[kind]
 
 
+def _version() -> str:
+    """KOPS_VERSION (set by `make up` from git), else the short git hash of this checkout."""
+    import os
+    import subprocess
+    if os.environ.get("KOPS_VERSION"):
+        return os.environ["KOPS_VERSION"]
+    try:
+        return subprocess.run(["git", "-C", str(config.REPO_DIR), "rev-parse", "--short", "HEAD"], capture_output=True, text=True,
+                              timeout=5).stdout.strip() or "dev"
+    except (OSError, subprocess.SubprocessError):
+        return "dev"
+
+
+VERSION = _version()
+
+
+def brand_name() -> str:
+    from .bootstrap import env
+    return env("KOPS_BRAND_NAME") or "KLMAS"
+
+
 def create_app(bootstrap: bool = True) -> FastAPI:
     state.init()
     if bootstrap:                     # first admin from .env (tests use a throw-away state DB and skip it)
@@ -164,6 +185,10 @@ def create_app(bootstrap: bool = True) -> FastAPI:
     @app.get("/api/audit")
     def audit_log(user: dict = Depends(auth.require_role("admin"))):
         return state.rows("SELECT at, username, action, target, detail, ip FROM audit ORDER BY id DESC LIMIT 500")
+
+    @app.get("/api/app")
+    def app_info(user: dict = Depends(auth.require_user)):
+        return {"version": VERSION, "brand_name": brand_name()}
 
     @app.get("/", response_class=HTMLResponse)
     def home(user: dict = Depends(auth.require_page_user)):
