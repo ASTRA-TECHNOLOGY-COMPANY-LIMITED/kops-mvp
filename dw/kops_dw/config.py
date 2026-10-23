@@ -58,6 +58,20 @@ FACTORY_ALIASES.update({
     "SH": "SON HA",
 })
 
+# Factory names seen in new files but not confirmed by KLMAS (Q08): used only by the linked model (dim_factory_alias),
+# never by the parsers, so core numbers do not move. alias -> (factory code, confidence, open question)
+FACTORY_ALIAS_REVIEW = {
+    "HD2": ("HAGACO", "MEDIUM", "Q08"),            # 'HAGACO = May Hai Duong 2 (HD2)' in mails, not confirmed
+    "HAGACO HD2": ("HAGACO", "MEDIUM", "Q08"),
+    "FG BG": ("FG BAC GIANG", "LOW", "Q08"),       # SHIPPING SCHEDULE 'NATEXCO>FG BG'
+    "CHI ANH": ("CHI ANH", "LOW", "Q08"),          # SHIPPING SCHEDULE 'TP>> CHI ANH': new factory?
+}
+CUSTOMER_NAMES = {"CHALLENGER": "CHALLENGER", "DHG": "Daehan Global", "JBEE": "JBEE", "KOFA": "KOFA",
+                  "DKM": "Dakyung Mulsan"}
+# Party of an e-mail domain (dim_party): optional local, git-ignored file 'domain party_type [customer|factory]' per line
+# (BUYER / FACTORY / FORWARDER / OTHER). Without it: KLMAS by KOPS_KLMAS_DOMAINS, free mail = INDIVIDUAL, else EXTERNAL.
+PARTY_FILE = Path(os.environ.get("KOPS_PARTY_FILE", DW_DIR / "party_map.local.txt"))
+
 # --- Customers (who orders from KLMAS) and brands; first matching key wins (title, file name, then folder) ---
 CUSTOMER_KEYS = [
     ("CHALLENGER", "CHALLENGER"), ("CLGR", "CHALLENGER"),

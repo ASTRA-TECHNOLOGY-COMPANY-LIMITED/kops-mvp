@@ -159,6 +159,11 @@ CREATE TABLE stg.email_change (
 
 -- Reference data maintained in code (config.py) and loaded each build.
 CREATE TABLE stg.factory_alias (alias_key VARCHAR, factory_code VARCHAR);
+-- Linked model reference data (D-01): unconfirmed factory aliases, customer names, e-mail domain parties (local file)
+CREATE TABLE stg.factory_alias_review (alias_key VARCHAR, factory_code VARCHAR, confidence VARCHAR, question VARCHAR);
+CREATE TABLE stg.customer_ref (customer VARCHAR, name VARCHAR);
+CREATE TABLE stg.party_domain (domain VARCHAR, party_type VARCHAR, ref_code VARCHAR);
+CREATE TABLE stg.free_mail (domain VARCHAR);
 CREATE TABLE stg.style_alias (alias_style VARCHAR, style_no VARCHAR, confirmed BOOLEAN);
 CREATE TABLE stg.rule (rule_key VARCHAR, rule_value VARCHAR);
 CREATE TABLE stg.requirement_coverage (

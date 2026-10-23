@@ -13,3 +13,4 @@ __pycache__/
 dw/.venv-mac/
 dw/lake/
 dw/mail_allow.local.txt
+dw/party_map.local.txt

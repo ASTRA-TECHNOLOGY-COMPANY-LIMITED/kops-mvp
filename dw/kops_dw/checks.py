@@ -136,6 +136,18 @@ CHECKS = [
      """SELECT string_agg(brand || ' ' || n || ' / ' || q, ', ' ORDER BY brand) FROM (
           SELECT brand, count(*) AS n, sum(qty) AS q FROM core.buyer_order_status GROUP BY brand)""",
      "8 SECONDS 17 / 28600, BEANPOLE KIDS 12 / 10370"),
+    # ---- linked model (D-01): style link rate, no fuzzy match ----
+    ("Linked model: CHALLENGER 26FW fact rows linked to dim.style >= 98%", _R26,
+     """SELECT CASE WHEN link_pct >= 98 THEN 'OK' ELSE link_pct::VARCHAR END FROM mart.link_rate
+        WHERE customer = 'CHALLENGER' AND season = '26FW'""", "OK"),
+    ("Linked model: other customers (all seasons) linked >= 90%", None,
+     """SELECT coalesce(string_agg(customer || ' ' || pct, ', '), 'OK') FROM (
+          SELECT customer, round(100.0 * sum(linked) / nullif(sum(rows_with_style) - sum(no_master), 0), 1) AS pct
+          FROM mart.link_rate WHERE customer NOT IN ('CHALLENGER', '?') GROUP BY customer) WHERE pct < 90""", "OK"),
+    ("Linked model: every unlinked fact row has a reason", None,
+     "SELECT count(*) FROM etl.link_orphan WHERE reason IS NULL", 0),
+    ("Linked model: every fact row with a factory text has a factory_key or is listed", None,
+     """SELECT count(*) FROM fact.plan WHERE factory_key IS NULL AND coalesce(factory_code, factory_raw) IS NOT NULL""", 0),
     # ---- technical documents: name only (N-02) ----
     ("No report above KOPS_MAX_PARSE_MB was opened", None,
      f"""SELECT count(*) FROM etl.source_file WHERE size_bytes > {config.MAX_PARSE_MB} * 1e6

@@ -442,6 +442,18 @@ def _insert(con, table: str, rows: list[dict]):
 def _load_reference(con):
     _insert(con, "stg.factory_alias", [dict(alias_key=norm_key(k), factory_code=v)
                                        for k, v in config.FACTORY_ALIASES.items()])
+    _insert(con, "stg.factory_alias_review", [dict(alias_key=norm_key(k), factory_code=v[0], confidence=v[1], question=v[2])
+                                              for k, v in config.FACTORY_ALIAS_REVIEW.items()])
+    _insert(con, "stg.customer_ref", [dict(customer=k, name=v) for k, v in config.CUSTOMER_NAMES.items()])
+    _insert(con, "stg.free_mail", [dict(domain=d) for d in sorted(config.FREE_MAIL)])
+    parties = [dict(domain=d, party_type="KLMAS", ref_code=None) for d in config.KLMAS_EMAIL_DOMAINS]
+    if config.PARTY_FILE.exists():           # local, git-ignored: 'domain PARTY_TYPE [code]'
+        for line in config.PARTY_FILE.read_text(encoding="utf-8").splitlines():
+            parts = line.split("#", 1)[0].split(None, 2)
+            if len(parts) >= 2:
+                parties.append(dict(domain=parts[0].lower(), party_type=parts[1].upper(),
+                                    ref_code=parts[2].strip() if len(parts) > 2 else None))
+    _insert(con, "stg.party_domain", parties)
     _insert(con, "stg.style_alias", [dict(alias_style=k, style_no=v, confirmed=False)
                                      for k, v in config.STYLE_ALIASES.items()])
     _insert(con, "stg.rule", [dict(rule_key=k, rule_value=str(v)) for k, v in config.RULES.items()]
