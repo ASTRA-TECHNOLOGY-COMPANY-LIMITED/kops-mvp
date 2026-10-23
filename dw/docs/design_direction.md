@@ -60,3 +60,20 @@ Các font này có đủ dấu tiếng Việt và Hangul trên macOS, Windows, L
 Đã áp dụng (tóm tắt): biểu tượng SVG thay emoji; KPI là chữ trong một khối chia bằng đường mảnh, không icon / sparkline;
 bảng không sọc, header xám nhỏ, số căn phải; chart ít khung; màu đổi chiều nói tốt / xấu chứ không chỉ lên / xuống; trạng
 thái rỗng giữ khung và một câu hướng dẫn; tiêu đề nói kết luận khi có thể.
+
+## Đã triển khai (G-03 / G-04, 23/10/2026)
+
+Giá trị thật trong `dw/templates/manager.html` (`:root`, sáng / tối) và `login.html`:
+
+| Token | Sáng | Tối | Ghi chú |
+|---|---|---|---|
+| `--line-strong` | #868e9a | #646d78 | viền điều khiển ≥ 3:1 |
+| `--accent` / `--on-accent` | #2f5bd3 / #fff | #7b9cf0 / #0d1420 | chữ trên nút chính ≥ 5,9:1 |
+| `--good` | #187340 | #4cc27e | chữ ≥ 4,5:1 trên mọi bề mặt |
+| `--syn` / `--syn-ink` | #8a5cc7 / #6a3dab | #b18ae8 / #c3a3f0 | `--syn` cho chấm / viền, `--syn-ink` cho chữ chip "Giả định" |
+| `--r1` / `--r2` | 6 px / 10 px | | bo góc điều khiển / khối |
+
+Component dùng chung: `kpiTile` (dải KPI, định nghĩa mở bằng focus / chạm), `table()` (header dính, tìm, phân trang, CSV, cột `m: 1`
+ẩn trên điện thoại, dòng mở bằng Enter), `chart()` (`role=img` + mô tả), `synChip`, `sevChip`, `qchip`, `.empty`. Icon: bộ SVG
+`#i-*` nhúng trong trang. Ngày hiển thị theo ngôn ngữ (`dfmt`: VI dd/mm/yyyy, KO yyyy.mm.dd), CSV giữ ISO. check-ui khoá lại
+các điểm này: axe-core 0 serious / critical, tương phản AA, 390 px, luồng bàn phím (dw/README.md).

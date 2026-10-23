@@ -59,7 +59,7 @@ make reset-state   # xoá trạng thái app (hỏi gõ YES); make logs / down / 
 - Bí mật (`KOPS_ADMIN_PASSWORD`, `ANTHROPIC_API_KEY`) đặt trong `.env` ở gốc repo (không commit), compose đọc lúc chạy, không
   đưa vào image. Múi giờ container: Asia/Ho_Chi_Minh; `KOPS_TODAY=YYYY-MM-DD make up` để cố định "hôm nay".
 - Đo ngày 23/10/2026 (MacBook Apple Silicon 8 CPU, sau F-07): `make up` với volume trống 2 phút 50 giây (build kho lạnh 133 s);
-  lần sau khoảng 1 phút; `make refresh` khoảng 45 s; `make check-ui` khoảng 3 phút 40 giây (221 lượt mở trang, 1.276 kiểm tra).
+  lần sau khoảng 1 phút; `make refresh` khoảng 45 s; `make check-ui` khoảng 4 phút (221 lượt mở trang, 1.617 kiểm tra; trên Mac ~3 phút).
 
 ### Đăng nhập lần đầu
 
@@ -245,8 +245,14 @@ Gồm 12 tab, sáng/tối, chạy tốt trên điện thoại. **Bộ lọc mùa
 
 **Kiểm thử giao diện (E-07):** `python -m kops_dw check-ui --out <thư mục ngoài repo>` (Docker: `make check-ui`): mọi trang ×
 sáng/tối × desktop/mobile × VI/KO × giả định tắt/bật (mùa 26FW) + các trang 27SS: không lỗi console, mọi biểu đồ có dữ liệu hoặc
-"Chưa có dữ liệu", chip giả định chỉ có khi bật, không cuộn ngang trên mobile, KPI chính = mart (đọc DuckDB), trang đang mở nhận
-bản build mới mà không tải lại. Dùng Chromium của hệ thống (macOS: Google Chrome; `KOPS_CHROME` để chỉ đường dẫn).
+"Chưa có dữ liệu", chip giả định chỉ có khi bật, không cuộn ngang và không phần tử nào ra ngoài màn hình 390 px, KPI chính = mart
+(đọc DuckDB), trang đang mở nhận bản build mới mà không tải lại. Từ G-04 thêm: axe-core 4.10.2 (tự host trong
+`kops_dw/testvendor/`, chỉ dùng khi test) trên mọi lượt giả định bật và mọi trang 27SS — 0 lỗi serious / critical và tương phản
+chữ AA; luồng chỉ dùng bàn phím: đăng nhập + đổi mật khẩu, chuông → Thông báo → dòng → Style 360, chatbot (Enter mở, Esc đóng).
+Dùng Chromium của hệ thống (macOS: Google Chrome; `KOPS_CHROME` để chỉ đường dẫn).
+
+**Bảng trong app (G-03):** bảng dài hơn một trang có ô "Tìm trong bảng…" (CSV xuất đúng các dòng đang tìm); ngày hiển thị theo
+ngôn ngữ (VI 21/10/2026, KO 2026.10.21), CSV vẫn ISO. Trên điện thoại bộ lọc nằm sau nút mùa ở header.
 
 ## Giới hạn của MVP
 

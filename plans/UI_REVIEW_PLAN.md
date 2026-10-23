@@ -97,3 +97,16 @@ BÁO CÁO LẠI (tiếng Việt, ngắn)
 4. Kết quả kiểm: check / check-ui / axe / bảo mật (x/y); commit (hash), đã push.
 5. Việc cần PO quyết (vd. chọn giữa 2 phương án màu / bố cục nếu skill đề xuất khác nhau).
 ```
+
+## Trạng thái (23/10/2026, Claude Code)
+
+| Task | Trạng thái | Commit |
+|---|---|---|
+| G-00 Cài skill | Xong: Impeccable (commit 5cb95ee, plugin 4.7.0, engine 0.1.16, telemetry tắt, không cài hook), UI/UX Pro Max (28327f2, v2.15.0), Taste `design-taste-frontend` (6010f91; `redesign-existing-projects` đã gộp vào skill này; không chạy `assets.mjs`), Frontend Design (marketplace chính thức), Playwright CLI 0.1.22 + skill. Mục "Design skills" trong CLAUDE.md | d89dd8c |
+| G-01 Hướng thiết kế | Xong: `dw/docs/design_direction.md` (Operate, màu cho dữ liệu, system font có Hangul, lời khuyên đã bỏ + lý do) | 484ee9c |
+| G-02 Duyệt | Xong: `dw/docs/ui_review_2026-10-23.md`, 23 phát hiện (P1 5, P2 14, P3 4); ảnh ngoài repo | 3b47f66 |
+| G-03 Sửa | Xong: P1 5/5, P2 14/14, P3 3/4 (UI-23 backlog) | 9b3580e |
+| G-04 Kiểm lại | Xong: axe 0 vi phạm / 104 lượt (trước: 2 critical, 2 serious), detector 77 → 0, check 102/102, check-ui 1.617/1.617 (thêm axe, AA, 390 px, bàn phím), bảo mật 5/5 | 8f25de8 |
+| G-05 Tài liệu + Docker | Xong: ui_review (trạng thái), design_direction (token thật), dw/README.md; `make up` chạy bản mới, `make check-ui` trong Docker 1.617/1.617 | (commit này) |
+
+Chờ PO: người Hàn đọc lại 36 câu tiếng Hàn mới (nhãn trợ năng, tiêu đề kết luận, header bảng chatbot); xem UI-23 trên màn hình thật.
