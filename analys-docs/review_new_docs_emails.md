@@ -1,6 +1,12 @@
-# Rà soát `raw-docs/new-docs` (tài liệu mới + email export) — 23/10/2026
+# Rà soát tài liệu mới và email export (bộ `new-docs` 22–23/10/2026)
 
-Nguồn: thư mục `new-docs` KLMAS chia sẻ ngày 22–23/10 (cây thư mục theo khách → style → từng email, giống cây Drive). Manifest đầy đủ từng file (loại, khách, style, ngày, md5, trùng): `raw-docs/_REORG/2026-10-23_new_docs_manifest.tsv` (local, không commit).
+Nguồn: thư mục `new-docs` KLMAS chia sẻ ngày 22–23/10 (cây thư mục theo khách → style → từng email, giống cây Drive), nay đã sắp lại: ORDER RECAP → `ORDER/<KHÁCH>/<MÙA>/`; kế hoạch → `PRODUCTION PLAN/<KHÁCH>/<MÙA>/`; Shipment/Production status, SHIPPING SCHEDULE, PDF hiện trạng đơn DHG → `TRACKING/<BRAND>/<MÙA>/`; gói theo style (email + tài liệu + rập) → `STYLES/<KHÁCH>/<MÙA>/<STYLE> - <NHÀ MÁY>/`; email không thuộc style → `inbox/mhtml/<KHÁCH>/`; hàng loại B, nhãn, huỷ bán thành phẩm → `QUALITY/<KHÁCH>/<MÙA>/`. Nhật ký `_REORG/2026-10-23b_moves.tsv`, hoàn tác `_REORG/undo_2026-10-23b.sh`. Manifest đầy đủ từng file (loại, khách, style, ngày, md5, trùng): `raw-docs/_REORG/2026-10-23_new_docs_manifest.tsv` (local, không commit).
+**Quyết định PO / KLMAS ngày 23/10 (sau bản đầu của tài liệu này):**
+- KLMAS **đồng ý** cho dùng AI (Claude API) đọc nội dung email → P2 = được; bỏ câu hỏi về AI khỏi bộ câu hỏi. Mọi thay đổi AI đọc ra vẫn là đề xuất `PENDING_REVIEW`.
+- Tiêu đề email **không theo quy ước**, viết tự do vì nhiều bên cùng gửi (buyer, forwarder, nhà máy, KLMAS). Các mẫu tiêu đề ở mục 2 chỉ là quan sát trên bộ này, không dùng làm luật; regex chỉ là gợi ý, nội dung do AI đọc.
+- Dashboard có **bộ lọc theo mùa**.
+- `new-docs` đã được sắp vào cây chung của `raw-docs` (mục 1). Từ nay commit trực tiếp trên `dev`.
+
 Ký hiệu: **[Q]** quan sát, **[S]** suy luận, **[R]** đề xuất. Mã câu hỏi theo `open_questions.md` bản 23/10.
 
 ## 1. Tổng quan
@@ -13,7 +19,7 @@ Ký hiệu: **[Q]** quan sát, **[S]** suy luận, **[R]** đề xuất. Mã câ
 | File rập CAD (`.dxf .PDS .sty .rul .mdl .pax`) | 99 | 57 MB | Chỉ metadata |
 | Tài liệu kỹ thuật Excel/PDF (W.S, CMT, FPP/INLINE comment, mini marker) | 91 | **1.365 MB** (10 file > 20 MB, lớn nhất 217 MB) | Chỉ metadata (tên, ngày, style, nhà máy, giai đoạn) |
 | Định mức / cân đối vật tư (`FACTORY CONSUMPTION & BALANCE`, `최종요척`) | 15 | 12 MB | Metadata; đọc số sau |
-| Assort, xác nhận số lượng / vật liệu (NEPA `수량확정`, `소재확정`), thiếu hàng, hàng B, huỷ bán thành phẩm, packing | 12 | 174 MB | Metadata; Q44 |
+| Assort, xác nhận số lượng / vật liệu (NEPA `수량확정`, `소재확정`), thiếu hàng, hàng B, huỷ bán thành phẩm, packing | 12 | 174 MB | Metadata; Q42 |
 | ORDER RECAP | 9 (3 trùng) | 44 MB | Parser có sẵn (bản mới của family cũ) |
 | Kế hoạch sản xuất | 6 | 21 MB | Parser `production_plan` có sẵn (kiểm lại mẫu cột) |
 | Shipment Status, Production & Shipping Status, **Shipping Schedule** | 6 | 5 MB | Có sẵn, trừ SHIPPING SCHEDULE (**mới**) |
@@ -47,8 +53,8 @@ Ký hiệu: **[Q]** quan sát, **[S]** suy luận, **[R]** đề xuất. Mã câ
 
 ### Insight chính
 1. **[Q] Vòng đời style hiện rõ qua email** (CHF3WJK6701): tài liệu + rập (14/05) → FPP CMT (24/06) → FPP CFMD = gói đại trà (29/06) → kiểm vải `검단 리포트` (07/07) → đổi assort do vải lỗi (20/07) → định mức (10/08) → INLINE CMT (12/08) → xuất `260819ETD … #LCL ABKHPH2608058`. **[R]** Dùng làm khung T&A: mỗi mốc = (style, loại mốc, ngày, người gửi, nguồn email). Q17.
-2. **[Q] Tiêu đề email theo quy ước khá chặt**: `<YYMMDD>ETD SEA|AIR SHIPMENT <nhà máy> TO <khách> #LCL|FCL <booking>`; vật tư vào: `<M/D>-><M/D>ETD (delay) FROM ICH|SH TO <nhà máy> SHIPMENT - <booking>`. **[S]** Trích được ETD, ETD đổi/trễ, phương thức, nhà máy, booking bằng regex, không cần AI. Q43.
-3. **[Q] Một nhà máy = một booking LCL** cho CHALLENGER (ABKHPH2608037 MTT, ABKHPH2608058 TP, ABKHPH2609012 DONG MY); đầu mùa dùng forwarder khác (`SMKCHAP…`). Trả lời gần như hết Q22 (lô xuất). Booking là khoá nối email ↔ Shipment Status ↔ chứng từ.
+2. **[Q] Một số tiêu đề có dạng lặp lại, nhưng KLMAS xác nhận tiêu đề viết tự do (23/10)**: `<YYMMDD>ETD SEA|AIR SHIPMENT <nhà máy> TO <khách> #LCL|FCL <booking>`; vật tư vào: `<M/D>-><M/D>ETD (delay) FROM ICH|SH TO <nhà máy> SHIPMENT - <booking>`. **[S→R]** Không dựa vào tiêu đề: dùng AI đọc tiêu đề + nội dung để lấy ETD, ETD đổi/trễ, phương thức, nhà máy, booking; regex (mã style, số booking) chỉ để gợi ý và kiểm tra chéo kết quả AI.
+3. **[Q] Một nhà máy = một booking LCL** cho CHALLENGER (ABKHPH2608037 MTT, ABKHPH2608058 TP, ABKHPH2609012 DONG MY); đầu mùa dùng forwarder khác (`SMKCHAP…`). Trả lời gần như hết Q21 (lô xuất). Booking là khoá nối email ↔ Shipment Status ↔ chứng từ.
 4. **[Q] Đổi số lượng xảy ra qua email trước khi vào ORDER RECAP**: CHALLENGER báo đổi assort do vải lỗi (20/07 07:27, tiếng Hàn), KLMAS chuyển cho nhà máy 2 giờ sau (tiếng Việt, kèm hướng dẫn giữ 2 cây vải lỗi, cắt giảm đều các cỡ). **[R]** Đây đúng là use-case `change_proposal` (PENDING_REVIEW) — đối chiếu với ORDER RECAP bản sau ngày 20/07.
 5. **[Q] Báo cáo ngày đi 2 chiều**: nhà máy → KLMAS (HAGACO gửi `HD2- DAILY PRODUCTION T10 -26.xlsx` gần như mỗi ngày, luồng 19 thư) và KLMAS → buyer (Elena, văn phòng HN). Có email báo cáo của **NATEXCO 14/10, TIEN THANH 21/10** mà ASTRA chưa có file → D2 là "KLMAS chưa chuyển", không phải "không có". Q03.
 6. **[Q] Factory master mới**: B85 là nhà máy may (cho DHG và NEPA); HAGACO = May Hải Dương 2 (HD2, xưởng Nam Sách); CHF3MJK6301 đi qua NATEXCO → HA HIEU → MTT; Thành Vân xuất hiện cạnh TRUONG PHUC. PRODUCTION STATUS 21/10 có 8 nhà máy CHALLENGER. Q08.
@@ -60,22 +66,22 @@ Ký hiệu: **[Q]** quan sát, **[S]** suy luận, **[R]** đề xuất. Mã câ
 
 | File | Quan sát | Hành động |
 |---|---|---|
-| `261015) 26FW CHALLENGER SHIPPING SCHEDULE.xlsx` | 2 sheet `SHIPPING SCHEDULE` (26 dòng, đang xuất) và `SHIPPED STYLES` (138 dòng). Cột: STYLE NO, INPUT/SEWING FINISH PLAN, ORDER Q'TY, ETD VN, RDD, SHIPPED Q'TY, SHIP(PLAN) Q'TY, BAL, pcs/box, box q'ty, FACTORY, **FIXED EX-FACT / FIXED ETD / FIXED ETA**, SHIP MODE, RMKS (`DOWN ISSUE`, `SHADING…`) | Parser mới; ETD VN − RDD = 12 ngày (bằng chứng Q21) |
+| `261015) 26FW CHALLENGER SHIPPING SCHEDULE.xlsx` | 2 sheet `SHIPPING SCHEDULE` (26 dòng, đang xuất) và `SHIPPED STYLES` (138 dòng). Cột: STYLE NO, INPUT/SEWING FINISH PLAN, ORDER Q'TY, ETD VN, RDD, SHIPPED Q'TY, SHIP(PLAN) Q'TY, BAL, pcs/box, box q'ty, FACTORY, **FIXED EX-FACT / FIXED ETD / FIXED ETA**, SHIP MODE, RMKS (`DOWN ISSUE`, `SHADING…`) | Parser mới; ETD VN − RDD = 12 ngày (bằng chứng Q20) |
 | `261021 HUONG) 26FW CLGR PRODUCTION AND SHIPPING STATUS(~10.20).xlsx` | Bản mới của [PRODUCTION STATUS]: 110 style, **62.357** pcs (RECAP 15/10: 62.131), 8 nhà máy | Parser có sẵn; golden theo bản cụ thể |
 | `261022 MJ) 26FW/27SS CHALLENGER ORDER RECAP.xlsb` | Bản mới nhất của 2 family → sẽ thành bản hiện hành | Golden hiện tại (62.131 / 87.940) đang theo bản 15/10 → phải ghim check theo file, thêm golden bản 22/10 |
 | `261022 MJ) (CLGR - ALL) 26FW PRODUCTION PLAN.xlsx`, `261022 MJ) CHALLENGER 27SS PRODUCTION PLAN.xlsx` | Kế hoạch CHALLENGER lần đầu có (trước đây Q15 hỏi) | Kiểm `production_plan` đọc được |
-| `261022R 27SS NEPA PRODUCTION PLAN.xlsx` (WISER MAX), `261020_NEPA - GIA NGUYEN…` | Cùng mẫu cột: A) ex-fact, B) ETD Hải Phòng, C) ETA Incheon, D) `DUE ETD / RDD-14`, E) `ETA / RDD-2` (WISER MAX) vs `RDD-3` (GIA NGUYEN), F) buyer delivery. GIA NGUYEN: due ETD 08/02/**2026** trước ngày cắt 12/2026 | Q15.4, Q41 (lỗi năm) |
+| `261022R 27SS NEPA PRODUCTION PLAN.xlsx` (WISER MAX), `261020_NEPA - GIA NGUYEN…` | Cùng mẫu cột: A) ex-fact, B) ETD Hải Phòng, C) ETA Incheon, D) `DUE ETD / RDD-14`, E) `ETA / RDD-2` (WISER MAX) vs `RDD-3` (GIA NGUYEN), F) buyer delivery. GIA NGUYEN: due ETD 08/02/**2026** trước ngày cắt 12/2026 | Q15.4, Q40 (lỗi năm) |
 | `260620 HUONG - DONGMY + HAGACO - 26FW - MIZUNO PRODUCTION PLAN (RE_CHECK).xlsx` | 2 sheet theo nhà máy, có ghi chú `재확인요청`, `6/16 요청` | production_plan |
 | MIZUNO `260804/260824 … 26FW ALL STYLES SHIPMENT STATUS`, `261013) 27SS …`, `260821 HANG) 26FW MIZUNO (DKMS) ORDER RECAP` | Mùa 26FW MIZUNO lần đầu có | Parser shipment chung; history |
 | `8 SECONDS_오더현황_2026-10-21.pdf`, `오더리캡 현황 · DHG 빈폴키즈.pdf` | PDF có text: FILE NO · STYLE, nhà máy (B85/HGC/SH/XT), SL, CUT/INPUT/FINISH, ETD, ETA, RDD, 납기 여유, 상태 | Parser PDF đơn giản để đối chiếu với RECAP/plan |
 | `261019 27SS NEPA PANTS ASSORT.xlsx` | Ma trận màu × size cho 7ND1709 (10.000 pcs) | Đọc sau (assort) |
 | NEPA `… 08.19 수량확정.pdf`, `… 소재확정.원단발주.pdf` | Xác nhận số lượng / vật liệu + đặt vải của buyer | Mốc T&A |
 
-## 4. Đề xuất cho DW (đưa vào prompt Claude Code 23/10)
-1. Parser `.mhtml` (Gmail print) dùng lại `email_pdf.split_messages`; charset từ meta; NFC; lấy tên file đính kèm + kích thước + link-hết-hạn.
-2. Phân loại file kỹ thuật / CAD **chỉ metadata** trước khi mở Excel (theo đuôi file, từ khoá tên, và giới hạn kích thước) — tránh mở file 217 MB.
-3. `core.style_milestone` từ tiêu đề email + tên file/thư mục: FPP_REQUEST, FPP_CMT, FPP_CFMD, DM_APPROVAL, FABRIC_INSPECTION, INLINE_CMT, FINAL_INSPECTION, DAILY_REPORT, EX_FACTORY, ETD, ETA, ASSORT_CHANGE.
-4. `core.shipment_event` từ tiêu đề: hướng (outbound / inbound material), ETD cũ → mới (delay), ETA, mode, nhà máy, khách, booking, forwarder.
-5. Parser SHIPPING SCHEDULE + PDF "오더 현황표"; đối chiếu ETD/RDD với RECAP và plan.
-6. `KOPS_MAIL_ALLOW` = tên miền KLMAS, buyer, nhà máy, forwarder quan sát được (mục 2) + danh sách địa chỉ Gmail/naver cụ thể (không mở cả `gmail.com`).
-7. Golden ghim theo file/bản (không theo "bản hiện hành") để thêm bản mới không làm đỏ check cũ; thêm golden cho bản 22/10 từ ô tổng trong file.
+## 4. Đề xuất cho DW (prompt Claude Code bản 2, 23/10)
+1. Parser `.mhtml` (Gmail print) dùng lại `email_pdf.split_messages`; charset từ meta; NFC; lấy tên file đính kèm + kích thước + link hết hạn. Đọc `.mhtml` ở mọi nơi trong `raw-docs` (`STYLES/…` và `inbox/mhtml/…`).
+2. Phân loại file kỹ thuật / CAD **chỉ metadata** trước khi mở Excel (đuôi file, từ khoá tên, giới hạn kích thước) — tránh mở file 217 MB.
+3. Bóc tách bằng AI (P2 đã duyệt): mỗi thư → JSON gồm mốc style (FPP_REQUEST, FPP_CMT, FPP_CFMD, DM_APPROVAL, FABRIC_INSPECTION, INLINE_CMT, FINAL_INSPECTION, DAILY_REPORT, ASSORT_CHANGE, SHIPMENT…), sự kiện xuất hàng / vật tư (hướng, ETD cũ → mới, ETA, mode, nhà máy, booking), đề xuất thay đổi đơn; có trích dẫn nguyên văn. Chạy theo lô, cache theo `msg_key`, chạy thử 200 thư + ước tính chi phí trước. Regex chỉ là gợi ý.
+4. Parser SHIPPING SCHEDULE + PDF "오더 현황표"; đối chiếu ETD/RDD với RECAP và plan.
+5. `KOPS_MAIL_ALLOW` = tên miền KLMAS, buyer, nhà máy, forwarder quan sát được (mục 2) + danh sách địa chỉ Gmail/naver cụ thể (không mở cả `gmail.com`).
+6. Golden ghim theo file/bản để thêm bản mới không làm đỏ check cũ; thêm golden cho bản 22/10 từ ô tổng trong file.
+7. Dashboard: bộ lọc theo mùa trên mọi tab, dữ liệu tải theo mùa (H-11).

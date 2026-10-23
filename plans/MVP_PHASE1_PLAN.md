@@ -13,7 +13,7 @@ spec: analys-docs/mvp_phase1_spec.md
 
 ## 1. Nguyên tắc làm việc
 
-- Mỗi task một nhánh `feat/M1-xx-<tên-ngắn>` tách từ `main`, một PR. Không push thẳng lên `main`, không tự merge.
+- ~~Mỗi task một nhánh `feat/M1-xx-…` tách từ `main`, một PR.~~ Từ 23/10/2026: mỗi task một commit **trực tiếp trên `dev`**; push `origin dev` khi mọi check xanh; không push/force-push `main`.
 - Chạy được mọi lúc: sau mỗi task, `cd dw && .venv/bin/python -m kops_dw` phải build xong và **mọi golden test PASS**, kể cả test cũ.
 - Code, comment, commit, PR bằng tiếng Anh, theo conventional commits. Tài liệu bằng tiếng Việt.
 - Không sửa file trong `raw-docs/`. Không commit `dw/build/`, `raw-docs/`, dữ liệu thật hay tên kiểm viên.
