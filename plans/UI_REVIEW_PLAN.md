@@ -110,3 +110,4 @@ BÁO CÁO LẠI (tiếng Việt, ngắn)
 | G-05 Tài liệu + Docker | Xong: ui_review (trạng thái), design_direction (token thật), dw/README.md; `make up` chạy bản mới, `make check-ui` trong Docker 1.617/1.617 | (commit này) |
 
 Chờ PO: người Hàn đọc lại 36 câu tiếng Hàn mới (nhãn trợ năng, tiêu đề kết luận, header bảng chatbot); xem UI-23 trên màn hình thật.
+PO chọn (b) cho header điện thoại: ngôn ngữ + sáng / tối chuyển vào menu người dùng, header 1 hàng (57 px); check 102/102, check-ui 1.617/1.617.
