@@ -14,6 +14,7 @@ count. Screenshots go to <dir> (outside the repo: they show KLMAS data).
 from __future__ import annotations
 
 import itertools
+import json
 import time
 from pathlib import Path
 from urllib.parse import urlencode
@@ -110,6 +111,62 @@ def run(argv: list[str]) -> int:
                     check(f"{name}: synthetic-data chips shown", r["sim"] > 0, "0 chip")
                 page.screenshot(path=str(out / f"{season}_{page_id}_{theme}_{vp}_{lang}_syn{syn}.png"), full_page=True)
                 ctx.close()
+            # ---- F-07: the real login form (first login -> forced password change -> start page with header / footer / logo)
+            from app import auth as app_auth
+            first_pw, new_pw = "First-login-pass-1", "Changed-pass-2026!"
+            app_auth.create_user("ui-first", first_pw, "manager", must_change=True)
+            lc = browser.new_context(viewport={"width": 1366, "height": 900})
+            lp = lc.new_page()
+            lerr: list[str] = []
+            lp.on("pageerror", lambda e: lerr.append(str(e)))
+            lp.goto(f"{base}/?tab=quality")
+            check("Login: a page without session opens the login form", "/login" in lp.url and lp.is_visible("#fLogin"), lp.url)
+            lp.fill("#u", "ui-first"); lp.fill("#p", first_pw); lp.click("#fLogin button[type=submit]")
+            lp.wait_for_selector("#fChange", state="visible", timeout=10000)
+            lp.fill("#n1", new_pw); lp.fill("#n2", new_pw); lp.click("#fChange button[type=submit]")
+            lp.wait_for_selector("body[data-load-ms]", timeout=30000)
+            lp.wait_for_timeout(300)
+            shell = lp.evaluate("""() => ({tab: document.querySelector('aside nav button[aria-selected=true]')?.dataset.t,
+              logo: document.querySelector('#logo')?.naturalWidth || 0, kops: document.querySelector('.brand')?.textContent.includes('KOPS'),
+              foot: document.querySelector('footer')?.textContent || '', bell: document.querySelector('#bellCount')?.textContent || '',
+              chat: !document.querySelector('#chatBtn').hidden, user: document.querySelector('#userBtn')?.textContent || ''})""")
+            check("Login: password changed at first login, back to the page asked for", shell["tab"] == "quality" and not lerr, f"{shell['tab']} {lerr[:2]}")
+            check("Shell: header logo + KOPS, footer company / version / data date, user menu", shell["logo"] > 0 and shell["kops"] and
+                  "©" in shell["foot"] and "KOPS " in shell["foot"] and "ui-first" in shell["user"], json.dumps(shell, ensure_ascii=False)[:200])
+            api_unread = lp.evaluate("async () => (await (await fetch('/api/notifications/count')).json()).unread")
+            check("Bell: unread count = notifications API", shell["bell"] == (str(api_unread) if api_unread else ""), f"bell {shell['bell']!r} / api {api_unread}")
+            lp.goto(f"{base}/?tab=overview&lang=vi"); lp.wait_for_selector("body[data-load-ms]")
+            check("Start page after login: Overview with top-10 actions and new notifications", lp.evaluate(
+                "() => !!document.querySelector('#tTopAct') && !!document.querySelector('#newNotes')"), "")
+            # chatbot: 5 sample questions, each answered with a source and the data date
+            lp.click("#chatBtn"); lp.wait_for_selector(".chips button")
+            qs = ["Style CHF3WJK6701 đang ở bước nào? Đã xuất bao nhiêu?", "BI7139UE1 có rủi ro gì? Vì sao?",
+                  "Nhà máy nào không gửi báo cáo ngày quá 1 ngày làm việc?", "Màu nào được đặt nhiều nhất mùa FW, mùa SS?",
+                  "Còn bao nhiêu đề xuất thay đổi chờ duyệt? Của khách nào?"]
+            for i, qq in enumerate(qs, 1):
+                lp.fill("#chatInput", qq); lp.press("#chatInput", "Enter")
+                lp.wait_for_function(f"document.querySelectorAll('.chat-a .meta').length >= {i} && !document.getElementById('chatWait')", timeout=20000)
+            metas = lp.evaluate("() => [...document.querySelectorAll('.chat-a .meta')].map(m => m.textContent)")
+            check("Chatbot: 5 sample questions answered with source and data date", len(metas) == 5 and all("Nguồn" in m and "dữ liệu tới" in m for m in metas),
+                  " | ".join(m[:60] for m in metas))
+            lc.close()
+            # replace the logo (branding/ folder): the page shows the new file without a rebuild
+            import tempfile
+            old_brand = config.BRANDING_DIR
+            with tempfile.TemporaryDirectory(prefix="kops-brand-") as bd:
+                (Path(bd) / "logo.svg").write_text('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32"><rect width="64" height="32" fill="#e34948"/>'
+                                                   '<!-- ui-test-logo --></svg>', encoding="utf-8")
+                config.BRANDING_DIR = Path(bd)
+                try:
+                    bctx = browser.new_context(viewport={"width": 1366, "height": 900}, color_scheme="light")
+                    bctx.add_cookies([app["cookie"]])
+                    bp = bctx.new_page()
+                    bp.goto(f"{base}/?theme=light&noanim=1"); bp.wait_for_selector("body[data-load-ms]")
+                    got = bp.evaluate("async () => [(await (await fetch('/branding/logo.svg')).text()).includes('ui-test-logo'), document.querySelector('#logo').naturalWidth]")
+                    check("Branding: a replaced branding/logo.svg shows without rebuild", got[0] and got[1] == 64, str(got))
+                    bctx.close()
+                finally:
+                    config.BRANDING_DIR = old_brand
             # no session: pages go to the login page, data answers 401 (full route list: security check, F-07)
             anon = browser.new_context()
             r = anon.request.get(f"{base}/api/data/mgr/index.json")
