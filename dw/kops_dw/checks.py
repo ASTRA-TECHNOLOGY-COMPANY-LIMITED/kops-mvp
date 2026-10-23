@@ -173,6 +173,22 @@ CHECKS = [
         || ' = ' || (SELECT sum(order_qty) || ' / ' || sum(output_ttl) FROM raw.daily_prod_row r
                 JOIN etl.source_file f USING (file_id) WHERE f.file_name LIKE '261015. DHG-HAGACO%' AND r.sheet = '10.15')""",
      "8 / 12740 / 10230 = 12740 / 10230"),
+    # ---- style funnel colour x size (E-03, M1-07) ----
+    ("Funnel HA HIEU = sheet '9.28' GRAND TOTAL: ORDERQTY J31 / CUTTING TTL N31 / OUT PUT TTL Z31",
+     ("file", "260928 - 26FW  - (CHALLENGER - HA HIEU)"),
+     """SELECT sum(order_daily) || ' / ' || sum(cut) || ' / ' || sum(sewn) FROM mart.style_funnel
+        WHERE level = 'SIZE' AND factory_code = 'HA HIEU'""", "740 / 740 / 90"),
+    ("Funnel sewn (colour x size) = last-seen OUT PUT TTL of every daily report row", ("file", "261016  26FW (CHALLENGER - TBM) DAILY"),
+     """SELECT (SELECT sum(sewn) FROM mart.style_funnel WHERE level = 'SIZE') - (SELECT sum(sewn) FROM mart.style_funnel WHERE level = 'COLOR')
+        + (SELECT sum(output_ttl) FROM core.daily_progress) - (SELECT sum(sewn) FROM mart.style_funnel WHERE level = 'SIZE')""", 0),
+    # SHIP_GT_ORDER = the 3 styles cut by 20 % in ORDER RECAP while the factory made and shipped the old qty (Q04)
+    ("Funnel SHIP_GT_ORDER styles (colour shipped > RECAP order + 5 %, Q13)", _SH,
+     "SELECT string_agg(DISTINCT style_no, ', ' ORDER BY style_no) FROM mart.style_funnel WHERE flags LIKE '%SHIP_GT_ORDER%'",
+     "CHF3MPT6334, CHF3WPT6745, CHF3WSK6751"),
+    # TRUONG PHUC report sheet '10.14' row 173: CUTTING TTL 32, OUT PUT TTL 64 (TODAY 32 added twice)
+    ("Funnel OUTPUT_GT_CUT: CHF4MJK6404 BEIGE S (TRUONG PHUC sheet '10.14' row 173)", ("file", "261014 - 26FW  -(CHALLENGER - TRUONG PHUC"),
+     """SELECT string_agg(style_no || ' ' || color || ' ' || size_code || ' ' || sewn || '/' || cut, ', ') FROM mart.style_funnel
+        WHERE flags LIKE '%OUTPUT_GT_CUT%'""", "CHF4MJK6404 BEIGE S 64/32"),
     ("Daily output: per factory the daily series adds up to no more than the last-seen TTL", ("file", "261016  26FW (CHALLENGER - TBM) DAILY"),
      """SELECT count(*) FROM (SELECT s.factory_code, sum(s.output_day) AS days,
                                    (SELECT sum(output_ttl) FROM core.daily_progress p WHERE p.factory_code = s.factory_code) AS ttl

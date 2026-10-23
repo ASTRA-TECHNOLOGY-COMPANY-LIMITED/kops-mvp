@@ -55,6 +55,8 @@ QUERIES = {
     "documents": f"""SELECT {STYLE_NK} AS style_nk, s.season, s.customer, s.brand, s.factory_code, d.file_name, d.doc_kind, d.stage, d.doc_date
                      FROM fact.document d JOIN dim.style s USING (style_key)""",
     "recon": "SELECT * FROM mart.mgr_recon",
+    "funnel": f"""SELECT f.customer || '|' || f.season || '|' || f.style_no AS style_nk, f.* EXCLUDE (is_synthetic)
+                  FROM mart.style_funnel f ORDER BY style_no, color, size_code""",
     # _common (no season column)
     "season_summary": "SELECT * EXCLUDE (season), season AS season_code FROM mart.mgr_season",
     "quality": "SELECT * EXCLUDE (season), season AS season_code FROM mart.mgr_quality",

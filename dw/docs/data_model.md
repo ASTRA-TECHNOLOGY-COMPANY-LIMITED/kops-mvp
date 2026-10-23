@@ -86,6 +86,8 @@ thì `style_key` rỗng) và `link_issue` (lý do không nối được style).
 | `bridge.email_style` | Thư ↔ style (mã trong tiêu đề + nội dung, khớp bằng token N-07) | 607 |
 | `bridge.email_party` | Thư ↔ địa chỉ (FROM / TO / CC) | 4.542 |
 
+**Mart dựng trên mô hình:** `mart.style_funnel` (E-03, `sql/34_funnel.sql`) — grain style × màu × size (`level = 'SIZE'`) và style × màu (`level = 'COLOR'`): đặt → cắt → may → đạt kiểm → xuất, cờ `CUT_SHORT` / `OUTPUT_GT_CUT` / `SHIP_GT_ORDER`; chỉ dữ liệu thật. Định nghĩa trong `metrics.md`.
+
 ## Quy tắc alias style (không fuzzy match)
 
 Một mã trong fact nối được style khi nó có trong `dim.style_alias` với đúng mùa (hoặc chỉ một style nếu fact không có mùa).

@@ -422,6 +422,11 @@ function pageChange() {
     ${table('tPend', pend, [{k: 'fact_date', l: 'Ngày'}, {k: 'style_no', l: 'Style'}, {k: 'change_type', l: 'Loại'}, {k: 'after_v', l: 'Yêu cầu'}, {k: 'detail', l: 'Trích dẫn'}], {limit: 10, onClick: r => openStyle(r.style_nk)})}</div>`;
 }
 
+const FLAG = {CUT_SHORT: 'cắt thiếu: SL cắt < SL đặt − 5% khi đã xuất hoặc đã qua ETD', OUTPUT_GT_CUT: 'may nhiều hơn cắt',
+  SHIP_GT_ORDER: 'xuất > SL đặt (RECAP) + 5%'};
+const flagCell = v => (v || '').split(',').filter(Boolean).map(f => `<span class="chip" title="${esc(FLAG[f] || '')} (dung sai ${qTitle('Q13')})"><i style="background:var(--critical)"></i>${esc(f)}</span>`).join(' ');
+const FUNNEL_COLS = [{k: 'color', l: 'Màu'}, {k: 'size_code', l: 'Size', r: (v, r) => r.level === 'COLOR' ? '<b>Σ màu</b>' : fmt(v)}, {k: 'order_qty', l: 'Đặt', n: 1},
+  {k: 'cut', l: 'Cắt', n: 1}, {k: 'sewn', l: 'May', n: 1}, {k: 'passed', l: 'Đạt kiểm', n: 1}, {k: 'shipped', l: 'Xuất', n: 1}, {k: 'flags', l: 'Cờ', r: flagCell}];
 function pageStyle() {
   const st = D.styles || [];
   const s = st.find(x => x.style_nk === STATE.style) || styles().find(x => x.risk_reason) || styles()[0];
@@ -430,6 +435,7 @@ function pageStyle() {
   const by = k => (D[k] || []).filter(r => r.style_nk === s.style_nk);
   const ms = by('milestones'), lots = by('lots').filter(l => STATE.syn || !l.is_synthetic), daily = by('daily').filter(d => STATE.syn || !d.is_synthetic).sort((a, b) => a.fact_date.localeCompare(b.fact_date));
   const ch = by('style_changes'), em = by('style_emails'), docs = by('documents');
+  const fun = by('funnel').sort((a, b) => (a.color || '').localeCompare(b.color || '') || (a.level === 'COLOR' ? -1 : b.level === 'COLOR' ? 1 : 0));
   const events = [...ms.map(m => ({name: m.milestone, date: m.event_date, src: (m.source_kind === 'email' ? 'Email: ' : 'File: ') + (m.source_title || '')})),
     ...(s.cut_plan ? [{name: 'CUT (kế hoạch)', date: s.cut_plan, src: 'PRODUCTION PLAN'}] : []), ...(s.finish_plan ? [{name: 'FINISH (kế hoạch)', date: s.finish_plan, src: 'PRODUCTION PLAN'}] : []),
     ...(s.ready_date ? [{name: 'Sẵn sàng (dự báo)', date: s.ready_date, src: 'dự báo từ báo cáo ngày / Production Status'}] : []),
@@ -468,7 +474,9 @@ function pageStyle() {
   <div class="grid">
     <div class="card"><h3>Thay đổi (${fmt(ch.length)})</h3>${table('tCh', ch.map(c => ({...c, _src: c.source + ' ' + (c.source_ref || '')})), [{k: 'fact_date', l: 'Ngày'}, {k: 'change_type', l: 'Loại'}, {k: 'before_v', l: 'Trước'}, {k: 'after_v', l: 'Sau'}, {k: 'source', l: 'Nguồn'}, {k: 'review_status', l: 'Trạng thái'}], {limit: 8})}</div>
     <div class="card"><h3>Tài liệu kỹ thuật (${fmt(docs.length)})</h3>${table('tDoc', docs, [{k: 'doc_date', l: 'Ngày'}, {k: 'doc_kind', l: 'Loại'}, {k: 'stage', l: 'Giai đoạn'}, {k: 'file_name', l: 'File'}], {limit: 8})}</div>
-  </div>`;
+  </div>
+  <div class="card"><h3>Funnel theo màu × size</h3><p class="sub">đặt → cắt → may → đạt kiểm → xuất (dữ liệu thật). Đặt: ORDER RECAP theo màu, báo cáo ngày theo size; cắt, may: báo cáo ngày (last-seen); đạt kiểm: bảng kiểm KLMAS (chỉ theo màu); xuất: Shipment Status. Dung sai ${qref('Q13')}.</p>
+    ${table('tFunnel', fun, FUNNEL_COLS, {limit: 24})}</div>`;
 }
 
 function pageHealth() {
@@ -487,6 +495,8 @@ function pageHealth() {
     <div class="card"><h3>Dòng không nối được với style</h3><p class="sub">không ghép tay / fuzzy; tỉ lệ nối theo khách: ${lr.filter(r => r.customer !== '?').map(r => esc(r.customer + ' ' + r.season_code + ' ' + (r.link_pct ?? '–') + '%')).join(' · ')}</p>
       ${table('tOr', orph, [{k: 'fact', l: 'Bảng'}, {k: 'customer', l: 'Khách'}, {k: 'season_code', l: 'Mùa'}, {k: 'reason', l: 'Lý do'}, {k: 'n', l: 'Dòng', n: 1}, {k: 'codes', l: 'Mã'}], {limit: 10})}</div>
   </div>
+  <div class="card" style="margin-bottom:12px"><h3>Cờ funnel màu × size</h3><p class="sub">${Object.entries(FLAG).map(([k, v]) => `${k}: ${v}`).join(' · ')}. Bấm để mở Style 360.</p>
+    ${table('tFlags', T('funnel').filter(r => r.flags), [{k: 'style_no', l: 'Style'}, {k: 'factory_code', l: 'Nhà máy'}, ...FUNNEL_COLS], {limit: 12, onClick: r => openStyle(r.style_nk)})}</div>
   <div class="card"><h3>Chênh lệch giữa các file</h3><p class="sub">Recap vs Shipment / Production, SHIPPING SCHEDULE vs RECAP, PDF của buyer vs kế hoạch, ô tổng trong file sai</p>
     ${table('tRec', rec, [{k: 'check_name', l: 'Kiểm tra'}, {k: 'season', l: 'Mùa'}, {k: 'ref', l: 'Style / file'}, {k: 'detail', l: 'Chi tiết'}], {limit: 12})}</div>`;
 }
