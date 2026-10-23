@@ -150,7 +150,7 @@ MAIL_SINCE, MAIL_UNTIL = _env_date("KOPS_MAIL_SINCE"), _env_date("KOPS_MAIL_UNTI
 
 # Optional LLM extractor (off by default; needs PO decision P2 in plans/EMAIL_READINESS_PLAN.md).
 EMAIL_LLM = os.environ.get("KOPS_EMAIL_LLM", "0") == "1"
-EMAIL_LLM_MODEL = os.environ.get("KOPS_EMAIL_LLM_MODEL", "claude-sonnet-5-5")
+EMAIL_LLM_MODEL = os.environ.get("KOPS_EMAIL_LLM_MODEL") or os.environ.get("KOPS_LLM_MODEL") or "claude-sonnet-5-5"
 
 # How the DW MVP covers the 14 requirements from KOPS meeting #1 (req_no -> status, where, next step).
 REQUIREMENT_COVERAGE = {

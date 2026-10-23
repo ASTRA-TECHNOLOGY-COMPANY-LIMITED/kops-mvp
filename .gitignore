@@ -18,3 +18,4 @@ dw/party_map.local.txt
 # Secrets (ANTHROPIC_API_KEY ...) for docker compose / local runs
 .env
 .env.*
+!.env.example
