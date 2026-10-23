@@ -1,7 +1,7 @@
 # CLAUDE.md — kops-mvp (KOPS · KLMAS Order & Production System)
 
 Project context for Claude Code. Team-wide rules live in `GUIDELINES.md`; read it before changing anything.
-Next step: `plans/APP_V3_PLAN.md` (F-00..F-08: login, header/footer + default logo, notifications, chatbot, manager charts).
+Next step: `plans/UI_REVIEW_PLAN.md` (G-00..G-05: install design skills, UI/UX review and fixes).
 Done: `plans/APP_V3_PLAN.md` (F-00..F-08: web app with login, notifications, chatbot, manager charts, two Docker images; status section
 lists open PO decisions); before that `plans/DASHBOARD_V2_PLAN.md` and `plans/DASHBOARD_DOCKER_PLAN.md`. Latest hand-off: `plans/HANDOFF_2026-10-23.md` (decisions 23/10, new-docs + emails, prompt for the next Claude Code run); before that `plans/HANDOFF_2026-10-22.md`.
 
