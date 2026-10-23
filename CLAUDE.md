@@ -24,17 +24,21 @@ Latest hand-off (what was done, open decisions, next step): `plans/HANDOFF_2026-
 # macOS: dw/.venv was created in a Linux VM and does not run on the Mac -> use a Mac venv
 python3 -m venv .venv-mac && .venv-mac/bin/pip install -r requirements.txt   # once
 brew install --cask libreoffice                                            # needed for .xlsb
-.venv-mac/bin/python -m kops_dw            # build + test (33 checks) + dashboard -> build/dashboard.html
-.venv-mac/bin/python -m kops_dw test       # golden / structural checks only
+.venv-mac/bin/python -m kops_dw            # build + test (53 checks) + dashboard -> build/dashboard.html + build/data/<season>.json
+.venv-mac/bin/python -m kops_dw test       # golden / structural checks only (golden pinned to file versions, snapshot DBs)
+.venv-mac/bin/python -m kops_dw serve --open   # dashboard on http://127.0.0.1:8765/ (loads one season at a time)
 .venv-mac/bin/python -m kops_dw fetch-imap --host … --user … --folder … --since YYYY-MM-DD   # read-only, KOPS_IMAP_PASSWORD env
 .venv-mac/bin/python -m kops_dw attachments  # .eml attachments -> raw-docs/EMAIL_ATTACHMENTS/
 .venv-mac/bin/python -m kops_dw ocr          # OCR queued scanned PDF pages (tesseract kor+vie+eng), then rebuild
 .venv-mac/bin/python -m kops_dw templates    # Excel layouts quarantined as UNKNOWN_TEMPLATE; `templates accept <fp>`
+.venv-mac/bin/python -m kops_dw mail-allow suggest --write   # dw/mail_allow.local.txt (git-ignored) from loaded emails; `report`
 .venv-mac/bin/python -m kops_dw bench accept --out /tmp/kops-bench   # history-scale acceptance (data outside repo)
 ```
 Builds are incremental (manifest + Parquet lake in `dw/build/lake`, parallel parse, quarantine in
 `dw/build/quarantine.csv`); deleting `dw/build/lake` forces a full re-parse. Details: `dw/README.md`.
-Emails: drop `.pdf` / `.eml` / `.msg` anywhere under `raw-docs/inbox/`. Gmail page exports (`.mhtml`) live in `raw-docs/STYLES/…` and `raw-docs/inbox/mhtml/…` and need the N-01 parser (HANDOFF_2026-10-23). Questionnaire export: see `analys-docs/exports/tools/README.md`.
+Emails: drop `.pdf` / `.eml` / `.msg` / `.mbox` anywhere under `raw-docs/inbox/`; Gmail threads saved as `.mhtml` are read
+anywhere in `raw-docs/` (`STYLES/…`, `inbox/mhtml/…`). Technical documents / CAD in style packages are never opened (name only,
+`core.document`); report files above `KOPS_MAX_PARSE_MB` (30) are quarantined as TOO_LARGE. Questionnaire export: see `analys-docs/exports/tools/README.md`.
 
 ## Hard rules
 - Never modify, rename or delete files in `raw-docs/` without PO approval; reorganisations are logged with an undo

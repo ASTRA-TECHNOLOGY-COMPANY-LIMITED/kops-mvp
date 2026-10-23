@@ -305,7 +305,7 @@ def accept(out: Path) -> bool:
     print(f"Acceptance in {out}")
     b1 = run_build(env)
     ok, last = test_ok()
-    check("Cold build + 33 checks", ok, f"{b1['seconds']} s, parsed {b1['run']['n_parsed']}, {last}")
+    check("Cold build + checks", ok, f"{b1['seconds']} s, parsed {b1['run']['n_parsed']}, {last}")
     b2 = run_build(env)
     check("H-01/H-02 second build, no change: nothing parsed, < 10 s", b2["run"]["n_parsed"] == 0 and b2["seconds"] < 10,
           f"parsed {b2['run']['n_parsed']}, hashed {b2['run']['n_hashed']}, {b2['seconds']} s")

@@ -119,7 +119,7 @@ Tổng khoảng 56 giờ. Làm trước (không cần chờ dữ liệu): H-01, 
 - **Template quá khác** ở mùa cũ: báo cáo cách ly cho biết cần viết thêm parser nào, thay vì nạp sai.
 - **Chi phí LLM:** luôn chạy thử 200 thư và báo ước tính trước khi chạy toàn bộ; dùng batch + cache.
 
-## 9. Trạng thái (22/10/2026, nhánh `feat/dw-history-scale`)
+## 9. Trạng thái (22/10/2026, nhánh `feat/dw-history-scale`; cập nhật 23/10 trên `dev`: H-10 một phần, H-11)
 
 | ID | Trạng thái | Nghiệm thu (lệnh `python -m kops_dw bench accept --out <thư mục ngoài repo>`, 10/10 PASS) |
 |---|---|---|
@@ -130,7 +130,9 @@ Tổng khoảng 56 giờ. Làm trước (không cần chờ dữ liệu): H-01, 
 | H-06 | DONE | `.mbox` 1.000 thư (870 nghiệp vụ, 50 trùng, 80 tự động): 1,4 s; `core.email` = 870, `raw.email_filtered` = 80. `.pst` qua `readpst`: đã thử nhánh thiếu công cụ và file hỏng; **chưa thử với file .pst thật** (chưa có mẫu) |
 | H-08 | DONE | PDF scan KO/VI/EN tự sinh → OCR đúng người gửi, ngày, tiêu đề, nội dung tiếng Hàn và tiếng Việt; chạy lại: OCR 0 trang, build parse 0 file |
 | H-13 | DONE | Xem bảng dưới |
-| H-05, H-07, H-09…H-12 | Chưa làm | Chờ dữ liệu thật / quyết định của PO |
+| H-10 (một phần, N-07, 23/10) | DONE phần khớp mã | Khớp style trong email bằng token + so bằng (không còn `strpos` × mã): `12_core_email.sql` 68,7 s → 1,0 s trên 50.000 thư, cặp (thư, style) giống hệt; tìm kiếm n-gram / `search` chưa làm |
+| H-11 (N-08, 23/10) | DONE | `build/data/<mùa>.json` + `_common.json` + `index.json`, `python -m kops_dw serve`, lọc mùa trên mọi tab. Benchmark: 7 mùa, file mùa lớn nhất 3,7 MB (< 5 MB), mở trang 1,5–1,7 s kể cả khởi động Chrome (< 3 s). Danh sách chi tiết > 2.000 dòng/mùa bị cắt (`KOPS_DASH_ROWS`), trang ghi rõ |
+| H-05, H-07, H-09, H-12 | Chưa làm | Chờ dữ liệu thật / quyết định của PO |
 
 **Khác với thiết kế ở §1:**
 - Lake ghi theo **lô** (`lake/<bảng>/<parser>/<batch>.parquet`, mỗi dòng có `_key`), không phải một Parquet cho mỗi sha256: 50.000 thư thành 100.000 file nhỏ sẽ chậm. Không phân vùng theo customer/season (một lô trộn nhiều mùa); `lake-compact` gom file khi cần.
@@ -150,3 +152,16 @@ Tổng khoảng 56 giờ. Làm trước (không cần chờ dữ liệu): H-01, 
 - **Điểm nghẽn 1 — `12_core_email.sql` 64 s** (mục tiêu SQL < 1 phút: trượt nhẹ): `core.email_mention` so từng thư với 1.193 mã trong từ điển bằng `strpos` (46 nghìn × 1.193 phép tìm chuỗi). Các file SQL khác < 1 s. Hướng xử lý: tách token mã trong thư rồi join bằng `=` (cùng chỉ mục n-gram của H-10); đổi cách khớp nên cần thêm golden check trên email thật trước khi làm.
 - **Điểm nghẽn 2 — parse ORDER RECAP CHALLENGER** (~2,3 s/file, 70% thời gian CPU lần đầu): openpyxl đọc cả workbook kèm định dạng ô (cần màu trạng thái). Chấp nhận được vì mỗi file chỉ parse một lần.
 - **Điểm nghẽn 3 — dashboard một file**: 160 MB HTML với dữ liệu giả lập → cần H-11 (dashboard theo mùa, tải lười) trước khi nạp dữ liệu lịch sử thật.
+
+**Benchmark lại sau N-01..N-08 (23/10/2026, cùng bộ dữ liệu giả lập + 10 file / 100 thư thêm của lần trước):**
+
+| Lượt build | Thời gian | Parse | SQL | File parse | RAM lớn nhất |
+|---|---|---|---|---|---|
+| Lần đầu | 624 s | 598 s | **1,9 s** (trước 62 s) | 4.295 | 1,0 GB |
+| Lần sau, không đổi | **19 s** (trước 79 s) | 0 s | 1,8 s | 0 | 0,9 GB |
+| Thêm 10 file + 100 thư | **20 s** (trước 84 s) | 2,3 s | 1,8 s | 5 | 1,1 GB |
+
+- Điểm nghẽn 1 đã xử lý (N-07). Thời gian còn lại của build ấm: quét manifest 22,8 GB (stat 6.025 file) + nạp lake ~2,4 s + dựng DuckDB.
+- Parse lần đầu chậm hơn lần trước (598 s so với 438 s) vì máy đang chạy việc khác cùng lúc (Chrome headless, build dữ liệu thật); parser Excel không đổi về thuật toán. Chấp nhận: mỗi file chỉ parse một lần.
+- Dashboard: xem H-11 ở bảng trên.
+- Dữ liệu thật sau new-docs (474 file, 1,9 GB): build lạnh 26 s (gồm hash + chuyển `.xlsb` bằng LibreOffice), RAM 0,94 GB; build lại 1,7 s; `bench accept` 10/10.
