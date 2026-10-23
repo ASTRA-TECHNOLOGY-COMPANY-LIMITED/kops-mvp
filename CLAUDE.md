@@ -1,7 +1,7 @@
 # CLAUDE.md — kops-mvp (KOPS · KLMAS Order & Production System)
 
 Project context for Claude Code. Team-wide rules live in `GUIDELINES.md`; read it before changing anything.
-Latest hand-off (what was done, open decisions, next step): `plans/HANDOFF_2026-10-22.md`.
+Latest hand-off (what was done, open decisions, next step): `plans/HANDOFF_2026-10-23.md` (new-docs + emails, prompt for the next Claude Code run); before that `plans/HANDOFF_2026-10-22.md`.
 
 ## What this is
 - Customer: **KLMAS** (Korean garment sourcing office in Vietnam: production management + third-party QC).
@@ -34,7 +34,7 @@ brew install --cask libreoffice                                            # nee
 ```
 Builds are incremental (manifest + Parquet lake in `dw/build/lake`, parallel parse, quarantine in
 `dw/build/quarantine.csv`); deleting `dw/build/lake` forces a full re-parse. Details: `dw/README.md`.
-Emails: drop `.pdf` / `.eml` / `.msg` anywhere under `raw-docs/inbox/`. Questionnaire export: see `analys-docs/exports/tools/README.md`.
+Emails: drop `.pdf` / `.eml` / `.msg` anywhere under `raw-docs/inbox/`. Gmail page exports (`.mhtml`, in `raw-docs/new-docs/`) need the N-01 parser (see HANDOFF_2026-10-23). Questionnaire export: see `analys-docs/exports/tools/README.md`.
 
 ## Hard rules
 - Never modify, rename or delete files in `raw-docs/` without PO approval; reorganisations are logged with an undo

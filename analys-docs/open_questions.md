@@ -7,8 +7,8 @@ Tài liệu này dành cho **người phụ trách nghiệp vụ của KLMAS**, 
 | Mức | Các câu | Khi nào trả lời |
 |---|---|---|
 | **Ưu tiên 1 · Quan trọng nhất** | Q01–Q06 | Trả lời trước tiên. Hiểu sai thì con số chính trên dashboard sẽ sai |
-| **Ưu tiên 2 · Cần cho giai đoạn 1** | Q07–Q15 | Trả lời ngay khi có thể, không cần chờ buổi demo |
-| **Ưu tiên 3 · Có thể trả lời sau** | Q16–Q40 | Giai đoạn 1 chưa cần. Câu nào biết ngay thì trả lời luôn |
+| **Ưu tiên 2 · Cần cho giai đoạn 1** | Q07–Q20 | Trả lời ngay khi có thể, không cần chờ buổi demo |
+| **Ưu tiên 3 · Có thể trả lời sau** | Q21–Q49 | Giai đoạn 1 chưa cần. Câu nào biết ngay thì trả lời luôn |
 
 **Cách trả lời:** điền vào ô "**Trả lời của KLMAS**" ngay dưới mỗi câu, rồi gửi lại file. Cũng có thể trả lời qua nhóm Zalo, ghi kèm mã câu (vd. "Q04: …"). Chưa chắc thì ghi "chưa rõ, sẽ hỏi lại anh/chị X", vẫn có ích.
 
@@ -31,6 +31,12 @@ Số dòng và số ô trong tài liệu là theo **đúng bản có ngày ghi t
 | **[BẢNG KIỂM]** | `260727 HOA) 26SS CHALLENGER (TP+NATEXCO + MTT) KLMAS INSPECTION REPORT.xlsx` | HOA |
 | **[DỮ LIỆU KIỂM BÊN THỨ BA]** | `INPUT DATA.xlsx` | Văn phòng kiểm hàng |
 | **[PHIẾU KIỂM]** | `KLMAS INSPECTION REPORT (FORM) - 2026.xlsx` (và bản `.pdf`) | — |
+| **[RECAP BPK]** | `261021 DHG) BPK 27SS ORDER RECAP.xlsx` (bản trước: `261003.DUNG) BPK 27SS ORDER RECAP.xlsx`) | DHG |
+| **[KẾ HOẠCH BPK]** | `261016 MJ_DHG BPK -ALL 27SS PRODUCTION PLAN.xlsx` (kế hoạch sản xuất Beanpole Kids, mỗi sheet một nhà máy) | MJ |
+| **[KẾ HOẠCH NEPA]** | `261020_NEPA - GIA NGUYEN _27SS_PRODUCTION_PLAN.xlsx`; `261022R 27SS NEPA PRODUCTION PLAN.xlsx` (nhà máy WISER MAX) | — |
+| **[KẾ HOẠCH CHALLENGER]** | `261022 MJ) (CLGR - ALL) 26FW PRODUCTION PLAN.xlsx`; `261022 MJ) CHALLENGER 27SS PRODUCTION PLAN.xlsx` | MJ |
+| **[KẾ HOẠCH XUẤT]** | `261015) 26FW CHALLENGER SHIPPING SCHEDULE.xlsx` (sheet `SHIPPING SCHEDULE` và `SHIPPED STYLES`) | — |
+| **[HIỆN TRẠNG ĐƠN DHG]** | `8 SECONDS_오더현황_2026-10-21.pdf`; `오더리캡 현황 · DHG 빈폴키즈.pdf` (Daehan Global in ngày 21/10) | Daehan Global |
 | **[BÁO CÁO KIỂM MẪU]** | `FNJWD8411 261001 (REPORT FJ).pdf`; ảnh phiếu đã điền `REPORT.jpg` | — |
 
 Các file [BÁO CÁO NGÀY &lt;nhà máy&gt;] đã nhận (bản mới nhất của mỗi nhà máy):
@@ -41,6 +47,8 @@ Các file [BÁO CÁO NGÀY &lt;nhà máy&gt;] đã nhận (bản mới nhất c�
 - DONG MY: `260928 - 26FW  - (CHALLENGER - DM) - DAILY PRODUCTION REPORT.xlsx`
 - HA HIEU: `260928 - 26FW  - (CHALLENGER - HA HIEU) - DAILY PRODUCTION REPORT.xlsx`
 - NATEXCO: `260908 - 26FW  - (CHALLENGER - NATEXCO) - DAILY PRODUCTION REPORT.xlsx`
+
+**Email:** ghi theo **ngày gửi và tiêu đề** (tìm trong Gmail bằng tiêu đề). ASTRA đã nhận 184 luồng thư (bản lưu từ Gmail, 01/09/2025 → 22/10/2026) của CHALLENGER, Daehan Global, MIZUNO và JBEE; bản lưu chỉ có **tên** file đính kèm, không có nội dung file.
 
 Trong [RECAP], mỗi style chiếm một khối 4 dòng (dài hơn nếu có trên 4 màu). Dòng ghi ở đây là **dòng đầu của khối**: dòng có mã style ở cột D.
 
@@ -98,9 +106,13 @@ Nếu hiểu sai các câu này, **con số chính trên dashboard** (số đặ
   | NATEXCO | 13/08 | **08/09** | ví dụ: style CHF4WVT6813 mới cắt 200/700 và chưa ra chuyền vào 08/09, nhưng [PRODUCTION STATUS] dòng của style này ghi đã may xong 700 |
   | TIEN THANH, FG VINA | — | — | không có file nào |
 
+  **Cập nhật 23/10 từ email:** có email gửi báo cáo ngày mà ASTRA chưa có file: `261014 - (CHALLENGER// NATEXCO) - 26FW - DAILY PRODUCTION REPORT`, `261021 - (CHALLENGER// TIEN THANH) - 26FW - DAILY PRODUCTION REPORT`, `261021 (CHALLENGER// TRUONG PHUC) - 26FW - DAILY PRODUCTION REPORT`. Vậy NATEXCO và TIEN THANH **có** báo cáo, chỉ là chưa chuyển cho ASTRA.
+
 - **9 style đang chạy không có trong bất kỳ báo cáo ngày nào:** CHF2MPT6248, CHF3WVT6706, CHF4MJK6402, CHF4MJK6403, CHF4MJK6405, CHF4MJK6406, CHF4WJK6803, CHF4WJK6806, CHF4WVT6814.
-- **Câu hỏi:** các khoảng thiếu ở trên là do nhà máy không gửi, do KLMAS chưa chuyển cho ASTRA, hay do giai đoạn đó không sản xuất? Nếu có file, xin gửi bổ sung (xem D2 ở cuối phần Ưu tiên 2).
-- *ASTRA đang hiểu:* thiếu file. Dashboard sẽ đánh dấu các nhà máy và style này là "thiếu dữ liệu".
+- **Câu hỏi:**
+  1. Các khoảng thiếu ở trên là do nhà máy không gửi, do KLMAS chưa chuyển cho ASTRA, hay do giai đoạn đó không sản xuất? Nếu có file, xin gửi bổ sung (xem D2 ở cuối phần Ưu tiên 2).
+  2. Email cho thấy hai loại báo cáo ngày: nhà máy gửi KLMAS (vd. HAGACO, luồng `TIẾN ĐỘ SẢN XUẤT HD2 - THÁNG 10/2026`, file `HD2- DAILY PRODUCTION T10 -26.xlsx`), và văn phòng KLMAS Hà Nội gửi buyer (vd. `260926 - (CHALLENGER// DONGMY+MTT) - 26FW - DAILY PRODUCTION REPORT`). Các file [BÁO CÁO NGÀY &lt;nhà máy&gt;] ASTRA đang dùng là loại nào? Nếu là bản KLMAS gửi buyer, số trong đó có được KLMAS chỉnh so với bản nhà máy không?
+- *ASTRA đang hiểu:* thiếu file (KLMAS chưa chuyển). Các file ASTRA có là bản KLMAS gửi buyer, số giống bản nhà máy. Dashboard sẽ đánh dấu các nhà máy và style chưa có file là "thiếu dữ liệu".
 
 **Trả lời của KLMAS:**
 
@@ -133,7 +145,8 @@ Nếu hiểu sai các câu này, **con số chính trên dashboard** (số đặ
   | **CHF4WSK6852** (mã W41, dòng 375; sheet `FAB(0615)` cũng dùng mã này) | **CHF4WHP6852** ở: [SHIPMENT] sheet `TBM(35)` ô X205; [PRODUCTION STATUS] dòng 120 |
   | **CHF4WWT6817** (mã W22, dòng 293) | **CHFWWT6817** (thiếu số 4) ở [SHIPMENT] sheet `DM(27)` ô AI204 |
 
-- **Câu hỏi:** với mỗi dòng, mã nào là mã đúng in trên nhãn sản phẩm? Mã kia là gõ nhầm, hay style đã từng đổi mã (ví dụ đổi từ quần HP sang váy SK)?
+- **Thêm (mùa 27SS):** trong file `261005 MJ) 27SS CHALLENGER ORDER RECAP.xlsb`, sheet `ORDER RECAP` dòng 638 (mã O25) ghi **CHG2WSK6979**. Ở bản [RECAP 27SS] (15/10), cùng dòng 638 lại ghi **CHG2WSK7970** (nhà máy TAN BINH MINH), và có thêm dòng 685 (mã O35) ghi **CHF2WSK6979** (chữ thứ 3 là F, không phải G).
+- **Câu hỏi:** với mỗi dòng, mã nào là mã đúng in trên nhãn sản phẩm? Mã kia là gõ nhầm, hay style đã từng đổi mã (ví dụ đổi từ quần HP sang váy SK)? Riêng 27SS: CHG2WSK6979 có phải gõ nhầm của CHG2WSK7970 không? CHF2WSK6979 là style đặt lại từ mùa trước?
 - *ASTRA đang hiểu:* là cùng một style. Dùng mã trong [RECAP 26FW] và ghép dữ liệu các file khác vào.
 
 **Trả lời của KLMAS:**
@@ -188,7 +201,14 @@ KLMAS có thể trả lời các câu này ngay, không cần chờ buổi demo.
   | NTC, HH (trong ghi chú đổi nhà máy) | [RECAP 26FW] dòng cuối của khối, cột E, vd. `260407 FIXED FACT(NTC)` (khối dòng 5–8) |
 
 - **Thêm:** trong [DỮ LIỆU KIỂM BÊN THỨ BA] (sheet DATA, cột I FACTORY, cột H VENDOR) có nhà máy **SON HA GLOBAL** và **FG** thuộc vendor DAEHAN GLOBAL KOREA.
-- **Câu hỏi:** xin danh sách nhà máy KLMAS đang làm việc, mỗi nhà máy một tên chuẩn và các tên viết tắt. Cụ thể: FG VINA và FG BAC GIANG là một hay hai nhà máy? SON HA và JM là nhà máy nào? NTC = NATEXCO, HH = HA HIEU, đúng không?
+- **Thêm (các khách khác):** **B85** (nhiều nhất trong file của Daehan Global; [KẾ HOẠCH BPK] có hẳn sheet `B85` tiêu đề `27SS [DHG BPK-B85] PRODUCTION PLAN`), **XUAN THANH** ([KẾ HOẠCH BPK] sheet `XT`), **WISER MAX** và **HA THANH PLAN** (`261019 MJ) 27SS JBEE ORDER RECAP.xlsx`, cột E), **GIA NGUYEN** ([KẾ HOẠCH NEPA]), **TRI DUC**, **MINH TUAN** và **DANG SON** (`261019 HANG) 27SS MIZUNO (DKMS) ORDER RECAP.xlsx`; DANG SON ở cột T `ARTWORK FACTORY`).
+- **Thêm (từ email, 23/10):**
+  - **B85** là nhà máy may: tiêu đề `260810 (DHG-B85) LEV- 26111 #456Y21CCU FACTORY MINI MARKER & CONSUMPTION`, `260928 (NEPA-B85) - FPP SAMPLE REQUEST…`, vật tư gửi tới `FROM ICH TO B85 SHIPMENT`. B85 làm cho cả Daehan Global và JBEE (NEPA).
+  - **HAGACO** = Công ty CP May Hải Dương 2 (địa chỉ email `@hafashion.com.vn`); luồng `TIẾN ĐỘ SẢN XUẤT HD2 - THÁNG 10/2026` có nhắc xưởng **Nam Sách**. [HIỆN TRẠNG ĐƠN DHG] dùng mã `HGC` (HAGACO), `SH` (SON HA), `XT` (XUAN THANH), `B85`.
+  - Style **CHF3MJK6301** qua 3 tên nhà máy: `0430) NATEXCO_ CHF3MJK6301 FPP REQUEST W,S` → `260616 (CLGR-HA HIEU) … FPP CFMD MAIN W.S…` → `260725 (CLGR-MTT) … INLINE CFMD W.S + CMMT`, xuất hàng `260811ETD SEA SHIPMENT MTT TO CHALLENGER`.
+  - Email `260720 (CHALLENGER- TRUONG PHUC) CHF3WJK6701- THAY ĐỔI SỐ LƯỢNG ĐƠN HÀNG…` gửi đồng thời tới TRUONG PHUC và địa chỉ `congtymaythanhvan@gmail.com` (Công ty may Thành Vân?).
+  - [PRODUCTION STATUS] bản `261021 HUONG) 26FW CLGR PRODUCTION AND SHIPPING STATUS(~10.20).xlsx` cột F có 8 nhà máy: DONG MY, MTT, HA HIEU, TRUONG PHUC, TIẾN THÀNH, NATEXCO, FG BAC GIANG, TAN BINH MINH.
+- **Câu hỏi:** xin danh sách nhà máy KLMAS đang làm việc (cho mọi khách), mỗi nhà máy một tên chuẩn và các tên viết tắt. Cụ thể: FG VINA và FG BAC GIANG là một hay hai nhà máy? SON HA và JM là nhà máy nào? NTC = NATEXCO, HH = HA HIEU, đúng không? **B85** tên đầy đủ là gì? HD2 = HAGACO (Hải Dương 2), Nam Sách là một xưởng của HAGACO, đúng không? Với CHF3MJK6301: HA HIEU làm mẫu, MTT may đại trà, hay HA HIEU và MTT là một? Thành Vân là xưởng gia công của TRUONG PHUC? DANG SON là xưởng in thêu, không phải nhà máy may, đúng không?
 - *ASTRA đang hiểu:* như bảng trên; FG VINA và FG BAC GIANG là một; SON HA và JM tạm để riêng.
 
 **Trả lời của KLMAS:**
@@ -248,20 +268,120 @@ KLMAS có thể trả lời các câu này ngay, không cần chờ buổi demo.
 
 **Trả lời của KLMAS:**
 
-### Q14. Dữ liệu của Daehan Global / 8 SECONDS có nằm trong giai đoạn 1 không?
+### Q14. Giai đoạn 1 theo dõi những khách và brand nào?
 
-- **Ở đâu:** [BÁO CÁO NGÀY HAGACO]: 8 style mã dạng `LEV-24059 #424939LYD`, cột BUYER ghi SAMSUNG, tổng đặt 12.740, đã may 10.230 (sheet `10.15`).
+- **Ở đâu:** ngoài CHALLENGER, KLMAS đã chia sẻ ORDER RECAP của 4 khách khác. Số liệu lấy từ ô tổng của từng file:
+
+  | Khách (đặt hàng với KLMAS) | Brand | File | Số style | Tổng SL |
+  |---|---|---|---|---|
+  | CHALLENGER | CHALLENGER | [RECAP 26FW], [RECAP 27SS] | 110 + 137 | 62.131 + 87.940 |
+  | Daehan Global (DHG) | 8 SECONDS | `261006. DUNG) DHG 8S 26FW ORDER RECAP.xlsx`; `261020. DHG) 27SS_8SECONDS_ORDER RECAP.xlsx` | 59 + 25 | 119.392 + 36.800 |
+  | Daehan Global (DHG) | BEANPOLE KIDS, XEXYMIX | [RECAP BPK]; `260619 MJ) 25FW XEXYMIX RE-ORDER RECAP.xlsx` | 12; 2 | 10.380; 4.185 |
+  | JBEE | NEPA, CROCODILE | `261019 MJ) 27SS JBEE ORDER RECAP.xlsx` | 9 | 67.100 |
+  | KOFA | BLACKYAK, NEPA | `261015 MJ) 27SS KOFA-BLACKYAK ORDER RECAP.xlsx` | 2 | 4.000 |
+  | Dakyung Mulsan (DKM) | MIZUNO | `261019 HANG) 27SS MIZUNO (DKMS) ORDER RECAP.xlsx` | 26 | 43.909 |
+
+- **Bản mới nhận ngày 23/10** (số trong bảng vẫn theo bản cũ, ASTRA sẽ cập nhật): `261021. DHG) 27SS_8SECONDS_ORDER RECAP.xlsx`, `261021 MJ) 27SS JBEE ORDER RECAP.xlsx`, `261022 MJ) 26FW/27SS CHALLENGER ORDER RECAP.xlsb`, và thêm mùa `260821 HANG) 26FW MIZUNO (DKMS) ORDER RECAP.xlsx`. Email nhận được có CHALLENGER, Daehan Global, MIZUNO, JBEE; chưa có email nào của KOFA.
 - **Câu hỏi:**
-  1. KLMAS có muốn theo dõi đơn của Daehan Global / 8 SECONDS trên cùng hệ thống ngay giai đoạn 1 không?
-  2. Ai được xem dữ liệu này? Người của CHALLENGER có được thấy không?
-- *ASTRA đang hiểu:* có nạp vào hệ thống nhưng tách riêng theo brand; dashboard mặc định chỉ hiện CHALLENGER; buyer CHALLENGER không thấy dữ liệu 8 SECONDS.
+  1. Giai đoạn 1 KLMAS muốn theo dõi những khách nào? Nếu chỉ chọn 1–2 khách ngoài CHALLENGER thì là khách nào?
+  2. DHG, JBEE, KOFA, DKM là khách đặt hàng với KLMAS, còn 8 SECONDS, NEPA, MIZUNO… là brand của họ, đúng không? Vì sao NEPA có ở cả JBEE và KOFA? (File [KẾ HOẠCH NEPA] nhà máy GIA NGUYEN được để chung với file của KOFA, còn kế hoạch NEPA nhà máy WISER MAX để chung với JBEE.)
+  3. Ai được xem dữ liệu của từng khách? Người của CHALLENGER có được thấy đơn của khách khác không?
+- *ASTRA đang hiểu:* giai đoạn 1 làm đầy đủ cho CHALLENGER; các khách khác hiện ở mức tổng quan (style, số lượng, ETD, nhà máy); dữ liệu tách theo khách và mỗi khách chỉ xem được đơn của mình.
 
 **Trả lời của KLMAS:**
 
-### Q15. Ai sẽ xem dashboard ở giai đoạn 1?
+### Q15. File kế hoạch sản xuất (PRODUCTION PLAN) dùng thế nào?
+
+- **Ở đâu:** [KẾ HOẠCH BPK]: mỗi sheet là một nhà máy (`HGC` = HAGACO, `SH` = SON HA, `XT` = XUAN THANH, `B85`). [KẾ HOẠCH NEPA]: sheet `PLAN`. Mỗi dòng (từ dòng 7) là một style:
+  - cột B `LINE / WORKER` (vd. `4 / 13`, `1 / 50~55`);
+  - cột K `DAILY & TARGET`: số lượng mục tiêu mỗi ngày (vd. 45);
+  - cột M, N, O: ngày cắt, vào chuyền, may xong dự kiến;
+  - cột P: ngày xuất xưởng dự kiến; cột S: hạn xuất hàng (`DUE ETD / RDD-14 DAYS`);
+  - cột V `BAL`.
+- **Ví dụ:** [KẾ HOẠCH BPK] sheet `HGC` dòng 7, style LBV-27002 (BI7139UE1, 1.100 cái): mục tiêu 45 cái/ngày, may xong 23/11, xuất xưởng 26/11, trong khi hạn xuất là 17/11; cột V ghi **−5**.
+- **Câu hỏi:**
+  1. Ngày cắt, vào chuyền, may xong trong file này là kế hoạch chính thức để so với thực tế trong báo cáo ngày, đúng không? Ai lập (KLMAS hay nhà máy) và bao lâu cập nhật một lần?
+  2. `4 / 13` nghĩa là chuyền số 4 có 13 công nhân, hay 4 chuyền với 13 công nhân? `1 / 50~55` nghĩa là gì?
+  3. Cột V (`BAL`, tiêu đề phụ `ETA+2`) = RDD trừ (ngày hàng đến Incheon + 2 ngày); số âm nghĩa là dự kiến trễ so với RDD, đúng không?
+  4. **Kế hoạch của các khách khác đã có (23/10):** [KẾ HOẠCH CHALLENGER] 26FW và 27SS, [KẾ HOẠCH NEPA] WISER MAX, `260620 HUONG - DONGMY + HAGACO - 26FW - MIZUNO PRODUCTION PLAN (RE_CHECK).xlsx`, bản mới `261021R MJ) DHG BPK -ALL 27SS PRODUCTION PLAN.xlsx`. Các file cùng một mẫu cột. Riêng cột hạn hàng đến khác nhau: WISER MAX ghi `ETA / RDD-2 DAYS`, GIA NGUYEN ghi `ETA / RDD-3 DAYS`, BPK ghi `ETA+2`. Số ngày này tuỳ khách hay tuỳ người lập file?
+  5. [HIỆN TRẠNG ĐƠN DHG] là bảng "생산계획표 · 오더 현황표" do Daehan Global in ngày 21/10, có cột `납기 여유` (vd. LBV-27002: ETA Incheon 04/12, RDD 08/12, ghi `+4일`) và `상태`. Bảng này lấy từ hệ thống của Daehan Global hay từ file kế hoạch KLMAS gửi? KLMAS có phải nhập số vào hệ thống đó không?
+- *ASTRA đang hiểu:* đây là kế hoạch chính thức do KLMAS lập; `4 / 13` = chuyền 4, 13 công nhân; BAL âm = dự kiến trễ; số ngày trước RDD tuỳ khách; bảng của Daehan Global được làm từ kế hoạch KLMAS gửi. Style nào chưa có báo cáo ngày thì hệ thống dự báo theo số mục tiêu/ngày ở cột K.
+
+**Trả lời của KLMAS:**
+
+### Q16. Ai sẽ xem dashboard ở giai đoạn 1?
 
 - **Câu hỏi:** những ai cần xem: MR, QC, quản lý, ban giám đốc? Buyer có cần xem ở giai đoạn này không?
 - *ASTRA đang hiểu:* chỉ người nội bộ KLMAS và ASTRA; chưa mở cho buyer.
+
+**Trả lời của KLMAS:**
+
+### Q17. Các mốc của một style trong email: mốc nào cần theo dõi trên dashboard?
+
+- **Ở đâu:** email về style **CHF3WJK6701** (CHALLENGER, nhà máy TRUONG PHUC), xếp theo ngày gửi:
+
+  | Ngày | Tiêu đề email (rút gọn) | ASTRA hiểu là mốc |
+  |---|---|---|
+  | 14/05 | `0514) CHF3WJK6701 작업 지시서+패턴 파일` | Buyer gửi tài liệu kỹ thuật và rập để may mẫu FPP |
+  | 18/05 | `260518 (CHALLENGER- TRUONG PHUC) CHF3WJK6701- FPP REQUEST W/S+ PATTERN…` | KLMAS chuyển cho nhà máy may mẫu FPP |
+  | 24/06 | `0624) CHF3WJK6701 FPP CMT+ 그레이딩 패턴` | Nhận xét mẫu FPP (kèm rập nhảy size) |
+  | 29/06 | `… FPP CFMD MAIN W.S + GRADING PATTERN+ MINI MARKER` | Duyệt FPP, gửi gói sản xuất đại trà |
+  | 07/07 | `260707 (CHALLENGER- TP) CHF3WJK6701 검단 리포트` | Kiểm vải |
+  | 20/07 | `0720) CHF3WJK6701 아소트 변경건( 원단 불량으로 인해 조정)` và `… THAY ĐỔI SỐ LƯỢNG ĐƠN HÀNG {1ST CHANGE ASSORT Q'TY}` | Đổi số lượng theo size/màu do vải lỗi |
+  | 10/08 | `260810 (CHALLENGER- TP) CHF3WJK6701 - FACTORY'S CONSUMPTION & BALANCE SHEET` | Định mức và cân đối vật tư |
+  | 12/08 | `0812) CHF3WJK6701 INLINE CMT` | Nhận xét mẫu inline |
+  | 17/08 | `260819ETD SEA SHIPMENT TP TO CHALLENGER #LCL ABKHPH2608058` | Xuất hàng (ETD 19/08) |
+
+  Daehan Global và MIZUNO có thêm `DUYỆT DM` (duyệt định mức, vd. `Re: DUYỆT DM ma hang LBV-26002`), `FABRIC INSPECTION REPORT`, `INLINE HANOI INTERNAL COMMENT`. Báo cáo kiểm hàng gửi theo đợt: `[KLMAS] CHALLENGER INSPECTION REPORT 260907` (5 style).
+- **Câu hỏi:**
+  1. Thứ tự mốc trên có đúng và giống nhau cho mọi khách không? Có mốc nào thiếu (vd. mẫu TOP, chưa thấy email nào)?
+  2. Mốc nào cần hiện trên dashboard? Mốc nào có hạn, và hạn được ghi ở đâu (vd. [PRODUCTION STATUS] cột FPP CFMD, INLINE SMPL, TOP SMPL)?
+  3. "HANOI INTERNAL COMMENT" là nhận xét nội bộ của KLMAS trước khi gửi buyer, đúng không?
+- *ASTRA đang hiểu:* đúng thứ tự trên; dashboard hiện ngày thực tế của từng mốc (lấy từ email) cạnh ngày kế hoạch trong [PRODUCTION STATUS].
+
+**Trả lời của KLMAS:**
+
+### Q18. Địa chỉ email của các bên: xin xác nhận để hệ thống tự nhận ra thư của ai
+
+- **Ở đâu:** địa chỉ gửi và nhận trong 184 luồng thư:
+
+  | Địa chỉ / tên miền | ASTRA đoán là |
+  |---|---|
+  | `@klmasvn.com` | KLMAS |
+  | `@daehan.co.kr` | Daehan Global (buyer) |
+  | `challengerkorea@daum.net` | CHALLENGER (buyer) |
+  | `@jbeesc.com` | JBEE (buyer) |
+  | `@hafashion.com.vn` | HAGACO (nhà máy) |
+  | `@dongmygarment.com.vn` | DONG MY (nhà máy) |
+  | `@abklogx.com`, `@jaketnd.com` | Forwarder (ABK, JAKE) |
+  | Gmail cá nhân, vd. `congtysxtmtruongphuctv@gmail.com`, `lehoa.exb85@gmail.com`, `congtymaythanhvan@gmail.com` | Nhà máy (TRUONG PHUC, B85, ?) |
+  | `@naver.com` (vài địa chỉ), `@leeintl.co.kr` | Chưa rõ |
+
+- **Câu hỏi:**
+  1. Bảng trên có đúng không? Xin bổ sung các địa chỉ Gmail và naver của nhà máy và buyer.
+  2. MIZUNO / Dakyung Mulsan và KOFA dùng địa chỉ nào? (Chưa thấy email của KOFA.)
+  3. `@leeintl.co.kr` là bên nào?
+- *ASTRA đang hiểu:* như bảng. Thư từ địa chỉ chưa biết không bị bỏ, chỉ được để riêng để người rà lại.
+
+**Trả lời của KLMAS:**
+
+### Q19. Email cũ (mùa 24, 25): KLMAS có thể xuất theo cách nào?
+
+- **Ở đâu:** email nhận được là từng luồng thư lưu từ Gmail (tên `KLMAS CO., LTD 메일 - <tiêu đề>`), lưu từ một hộp thư. File đính kèm chỉ có tên, không có nội dung; file lớn là link tải có hạn (vd. `대용량파일 1개 (85.85MB) ~ 2026.08.19 ( 30일 보관…)`).
+- **Câu hỏi:**
+  1. KLMAS dùng Gmail của Google Workspace. Có thể xuất cả hộp thư bằng Google Takeout (file `.mbox`) không? Nếu dùng Outlook thì file `.pst`. Cách này nhanh hơn nhiều so với lưu từng luồng.
+  2. Cần lấy hộp thư của những ai (người phụ trách từng khách, văn phòng Hà Nội / Hồ Chí Minh)? Từ tháng nào? Ước tính bao nhiêu thư?
+  3. File đính kèm: KLMAS đã lưu đủ trên Google Drive (thư mục theo style) chưa, hay ASTRA cần lấy từ email?
+  4. Trước khi xuất toàn bộ, KLMAS gửi giúp **một file `.mbox` nhỏ** (khoảng 1 tuần thư) để ASTRA chạy thử.
+- *ASTRA đang hiểu:* dùng `.mbox` từ Google Takeout; file đính kèm lấy từ Google Drive.
+
+**Trả lời của KLMAS:**
+
+### Q20. ASTRA có được dùng dịch vụ AI để đọc nội dung email không?
+
+- **Bối cảnh:** hiện hệ thống đọc email bằng quy tắc (tiêu đề, mã style, từ khoá tiếng Việt / Hàn / Anh), chạy trên máy của ASTRA, không gửi nội dung ra ngoài. Để hiểu các yêu cầu viết tự do (vd. "giảm 20 cái size M, màu NAVY"), cần dùng dịch vụ AI Claude của Anthropic; khi đó nội dung email được gửi tới dịch vụ này để xử lý. Mọi thay đổi AI đọc được chỉ là **đề xuất**, người của KLMAS duyệt rồi mới vào số liệu.
+- **Câu hỏi:** KLMAS có đồng ý không? Nếu đồng ý, có giới hạn gì (vd. che giá, chỉ dùng cho email với nhà máy, không dùng cho email với buyer)?
+- *ASTRA đang hiểu:* chưa đồng ý; chỉ dùng cách đọc theo quy tắc.
 
 **Trả lời của KLMAS:**
 
@@ -269,9 +389,11 @@ KLMAS có thể trả lời các câu này ngay, không cần chờ buổi demo.
 
 | Mã | Cần gửi | Để làm gì | Trạng thái |
 |---|---|---|---|
-| D1 | Báo cáo sản xuất ngày và kế hoạch sản xuất của nhà máy | Tiến độ may, dự báo ngày xong | ✅ Đã nhận báo cáo ngày của 6 nhà máy CHALLENGER và HAGACO. Kế hoạch sản xuất: **chưa** |
-| D2 | Báo cáo ngày còn thiếu: NATEXCO sau 08/09; HA HIEU trước 26/09; DONG MY 17/08 → 08/09 và sau 28/09; MTT 04/08 → 08/09 và sau 02/10; toàn bộ của TIEN THANH, FG VINA | Không bị "mù" tiến độ (Q03) | Chưa nhận |
+| D1 | Báo cáo sản xuất ngày và kế hoạch sản xuất của nhà máy | Tiến độ may, dự báo ngày xong | ✅ Báo cáo ngày: đã nhận của 6 nhà máy CHALLENGER và HAGACO. ✅ Kế hoạch sản xuất: đã có CHALLENGER (26FW, 27SS), Beanpole Kids, NEPA (GIA NGUYEN, WISER MAX), MIZUNO 26FW. Chưa có: 8 SECONDS, MIZUNO 27SS |
+| D2 | Báo cáo ngày còn thiếu: NATEXCO sau 08/09; HA HIEU trước 26/09; DONG MY 17/08 → 08/09 và sau 28/09; MTT 04/08 → 08/09 và sau 02/10; toàn bộ của TIEN THANH, FG VINA. Email cho thấy đã có báo cáo NATEXCO 14/10, TIEN THANH và TRUONG PHUC 21/10 | Không bị "mù" tiến độ (Q03) | Chưa nhận file |
 | D3 | Bảng theo dõi kiểm hàng của các nhà máy còn thiếu (DONG MY, TAN BINH MINH), nếu có | Biết đã kiểm đạt bao nhiêu | Chưa nhận |
+| D9 | File đính kèm của các email đã gửi (báo cáo ngày, báo cáo kiểm hàng PDF, chứng từ xuất hàng), hoặc chỉ chỗ lưu trên Drive | Bản lưu email chỉ có tên file | Chưa nhận |
+| D10 | Một file `.mbox` (hoặc `.pst`) nhỏ, khoảng 1 tuần thư | Chạy thử trước khi nạp email cũ (Q19) | Chưa nhận |
 
 ---
 
@@ -281,45 +403,49 @@ Giai đoạn 1 chưa cần các câu này. Câu nào KLMAS biết ngay thì tr�
 
 ## Kế hoạch, xuất hàng và vật tư
 
-### Q16. RDD tính từ ETD cộng mấy ngày? *(cần khi làm lịch tính ngược từ RDD)*
+### Q21. RDD tính từ ETD cộng mấy ngày? *(cần khi làm lịch tính ngược từ RDD)*
 
 - **Ở đâu:** [RECAP 26FW], sheet `ORDER RECAP`: ô L4 ghi `RDD (-12DAY)`, nhưng từ trang thứ 4 trở đi (ô L202, L268, L334…) lại ghi `RDD (-14DAY)`. Ô BB4 ghi `BUYER DEL (RDD-10)`. Sheet `DETAIL` ô L12 ghi `ETD VN (RDD-14 DAYS)`. Biên bản họp ngày 15/10 ghi ETD = RDD − 12 (tàu 7 ngày + nhập kho 5 ngày).
-- **Câu hỏi:** quy tắc đúng hiện nay là RDD − 12, RDD − 14, hay tuỳ buyer/phương thức? "BUYER DEL (RDD-10)" là mốc gì?
-- *ASTRA đang hiểu:* ETD = RDD − 12.
+- **Các khách khác ghi khác nhau** (dòng 4 của sheet đầu tiên, cột ETD): 8 SECONDS `RDD (-20DAY)`; XEXYMIX `RDD (-10DAY)`; JBEE và KOFA `RDD-14 DAYS`; MIZUNO `ETA KOREA (etd +10)`; Beanpole Kids bản 03/10 `RDD (-14DAY)`, bản 21/10 `RDD (-8DAY)` (xem Q42).
+- **Câu hỏi:** quy tắc đúng hiện nay là RDD − 12, RDD − 14, hay tuỳ khách/phương thức? Nếu tuỳ khách, xin bảng số ngày cho từng khách. "BUYER DEL (RDD-10)" (có ở mọi file) là mốc gì?
+- **Thêm (23/10):** [KẾ HOẠCH XUẤT] CHALLENGER có cả cột `ETD VN` và `RDD`: CHF4MJK6406 ETD 07/10, RDD 19/10 (12 ngày), CHF3MLT6324 ETD 16/08, RDD 28/08 (12 ngày). Các file kế hoạch NEPA ghi `DUE ETD / RDD-14` và hàng đến `RDD-2` hoặc `RDD-3` ngày (xem Q15).
+- *ASTRA đang hiểu:* CHALLENGER: ETD = RDD − 12 (khớp [KẾ HOẠCH XUẤT]); các khách khác theo số ghi trong file của khách đó.
 
 **Trả lời của KLMAS:**
 
-### Q17. Một "lô xuất" là gì? *(cần khi làm kế hoạch xuất, booking)*
+### Q22. Một "lô xuất" là gì? *(cần khi làm kế hoạch xuất, booking)*
 
 - **Ở đâu:** [SHIPMENT], sheet `DM(27)`, ô B13 `8/12ETD-8/18ETA SEA`; sheet `TBM(35)` có `10/12ETD-10/12ETA AIR`; sheet `MTT(11)` có `10/06 ETD SHIPPING BY HC`.
 - **Câu hỏi:** cùng một ngày ETD/ETA và cùng phương thức thì các nhà máy đi chung một booking/container, hay mỗi nhà máy một booking? Có số invoice hoặc B/L để phân biệt không? "HC" là hand carry?
-- *ASTRA đang hiểu:* chung một lô theo (ETD, ETA, phương thức); HC = hand carry.
+- **Thêm (23/10, từ email):** mỗi email xuất hàng là **một nhà máy, một số booking**: `260811ETD SEA SHIPMENT MTT TO CHALLENGER #LCL ABKHPH2608037`, `260819ETD SEA SHIPMENT TP TO CHALLENGER #LCL ABKHPH2608058`, `260910ETD SEA SHIPMENT DONG MY TO CHALLENGER #LCL ABKHPH2609012`. Đầu mùa dùng số dạng `SMKCHAP…` (vd. `[CHALLENGER] ETD0614 ETA0621 DM LCL SMKCHAP2606007`). Email kèm `… SHIPPING DOC.xlsx`, bản nháp B/L và gửi C/O sau.
+- *ASTRA đang hiểu (sửa lại):* mỗi nhà máy một booking LCL; số booking (vd. `ABKHPH2608037`) là mã lô xuất; "NHÀ MÁY RA HÀNG SÁNG SỚM 9/26" là ngày hàng rời nhà máy; HC = hand carry.
 
 **Trả lời của KLMAS:**
 
-### Q18. Các ký hiệu trong ghi chú vật tư nghĩa là gì? *(cần khi làm checklist vật tư)*
+### Q23. Các ký hiệu trong ghi chú vật tư nghĩa là gì? *(cần khi làm checklist vật tư)*
 
 - **Ở đâu:** [PRODUCTION STATUS] cột U (PLAN MTR(FAB) SHIP DATE): dòng 6 `6/2ETD-6/6ETA G`, dòng 118 `6/15ETD-6/19ETA G OK`. [RECAP 26FW] các cột AA–AH (MATERIAL SHIP/ETA, LINING, SEWING, LABEL) có `L+P+SNAP`, `SBM`, `C1`.
 - **Câu hỏi:** G, C, C1, L, P, OK, SNAP, SBM, L+P+W là gì? (Biên bản họp đã giải thích G = vải chính.)
 
 **Trả lời của KLMAS:**
 
-### Q19. "RE" và "CMMT" trong cột mẫu INLINE nghĩa là gì? *(cần khi theo dõi mốc mẫu)*
+### Q24. "RE" và "CMMT" trong cột mẫu INLINE nghĩa là gì? *(cần khi theo dõi mốc mẫu)*
 
 - **Ở đâu:** [PRODUCTION STATUS] cột J (INLINE SMPL): dòng 12 `7/16 SENT - 7/20 RE / 7/21 - 2ND SENT / 7/22 CMMT`; dòng 6 `8/1 SENT / 8/3 CMMT`.
-- **Câu hỏi:** RE là mẫu bị trả lại (return) hay bị từ chối (reject)? CMMT là đã nhận comment của buyer?
-- *ASTRA đang hiểu:* RE = trả lại; CMMT = đã nhận comment.
+- **Đã rõ một phần (23/10):** tên email `… INLINE CFMD W.S + CMMT (BỔ SUNG THÊM NHẬN XÉT INLINE)` cho thấy **CMMT = comment (nhận xét)**.
+- **Câu hỏi:** RE là mẫu bị trả lại (return) hay bị từ chối (reject)?
+- *ASTRA đang hiểu:* RE = trả lại; CMMT = đã nhận nhận xét của buyer.
 
 **Trả lời của KLMAS:**
 
-### Q20. 7 style có trong bảng vải nhưng không có trong ORDER RECAP *(cần khi làm checklist vật tư)*
+### Q25. 7 style có trong bảng vải nhưng không có trong ORDER RECAP *(cần khi làm checklist vật tư)*
 
 - **Ở đâu:** [RECAP 26FW], sheet `FAB(0615)`, cột I (품번): CHF3UCP6382 (dòng 212), CHF4MCP6482 (214), CHF4UCP6484 (218), CHF4WCP6876 (222), CHF3MPT6332 (230), CHF3WPT6743 (331), CHF4WSK6851 (788, xem Q05).
 - **Câu hỏi:** các style này đã huỷ, đổi mã, hay là phụ kiện (CP) quản lý ở file khác? Vải đã đặt cho chúng được xử lý thế nào?
 
 **Trả lời của KLMAS:**
 
-### Q21. Các khối style mùa trước "CHE4…" trong Shipment Status *(cần khi nạp dữ liệu mùa cũ)*
+### Q26. Các khối style mùa trước "CHE4…" trong Shipment Status *(cần khi nạp dữ liệu mùa cũ)*
 
 - **Ở đâu:** [SHIPMENT] sheet `TP(16)` từ dòng 147 và sheet `NATEXCO(15)` từ dòng 106: các khối CHE4WJK5843, CHE4WVT5847, CHE4UNW5485, CHE4MWT5406, CHE4WJK5841. Tất cả đều trống.
 - **Câu hỏi:** các khối này còn cần không, hay là mẫu cũ còn sót lại?
@@ -329,7 +455,7 @@ Giai đoạn 1 chưa cần các câu này. Câu nào KLMAS biết ngay thì tr�
 
 ## Chất lượng và kiểm hàng
 
-### Q22. Số lỗi trong bảng kiểm được đếm thế nào? *(cần khi làm dashboard chất lượng)*
+### Q27. Số lỗi trong bảng kiểm được đếm thế nào? *(cần khi làm dashboard chất lượng)*
 
 - **Ở đâu:** [BẢNG KIỂM], sheet `NATEXCO`, các dòng tổng ở cuối:
   - Dòng 38 (C — KLMAS TTL INSPECT QTY), cột AA: **1.407** cái đã kiểm.
@@ -342,16 +468,16 @@ Giai đoạn 1 chưa cần các câu này. Câu nào KLMAS biết ngay thì tr�
 
 **Trả lời của KLMAS:**
 
-Các câu Q23–Q30 hỏi về file [DỮ LIỆU KIỂM BÊN THỨ BA] (`INPUT DATA.xlsx`), nơi tổng hợp các lần kiểm hàng của văn phòng kiểm cho các brand khác.
+Các câu Q28–Q35 hỏi về file [DỮ LIỆU KIỂM BÊN THỨ BA] (`INPUT DATA.xlsx`), nơi tổng hợp các lần kiểm hàng của văn phòng kiểm cho các brand khác.
 
-### Q23. Cột "Pre-FINAL" nghĩa là gì?
+### Q28. Cột "Pre-FINAL" nghĩa là gì?
 
 - **Ở đâu:** [DỮ LIỆU KIỂM BÊN THỨ BA], sheet `DATA`, cột K (Pre-FINAL). Dòng 2 (style DWDV74066, ngày 01/06) ghi **0,17**; cùng dòng đó cột S (DEFECT RATE) ghi **0,179**. Cột K chỉ có giá trị ở khoảng 1.000 dòng.
 - **Câu hỏi:** cột K là tỷ lệ lỗi của lần kiểm pre-final (kiểm trước khi kiểm cuối)? Hay tỷ lệ lỗi làm tròn? Khi nào thì ghi?
 
 **Trả lời của KLMAS:**
 
-### Q24. "PRE-INSPECTION" trong cột BRAND là brand nào?
+### Q29. "PRE-INSPECTION" trong cột BRAND là brand nào?
 
 - **Ở đâu:** sheet `DATA`, cột G (BRAND), **từ dòng 7.123 trở đi** (tháng 10/2026, 2.017 lần kiểm) ghi `PRE-INSPECTION` thay vì tên brand. Cột H (VENDOR) vẫn có: DAEHAN GLOBAL KOREA, SCORVV, EUNSUNG, MISEONG, FIL, KOFA… Các dòng này cũng thường trống cột A (LOCATION) và cột V (QC NAME).
 - **Câu hỏi:**
@@ -361,14 +487,14 @@ Các câu Q23–Q30 hỏi về file [DỮ LIỆU KIỂM BÊN THỨ BA] (`INPUT D
 
 **Trả lời của KLMAS:**
 
-### Q25. Cột "NUMBER ORDER" có phải là lần kiểm thứ mấy?
+### Q30. Cột "NUMBER ORDER" có phải là lần kiểm thứ mấy?
 
 - **Ở đâu:** sheet `DATA`, cột E. Style DWDV74066 màu CRS: ngày 01/06 ghi 1, 02/06 ghi 2, 03/06 ghi 3, 16/06 ghi 4. Trên phiếu giấy, ô này tương ứng "차수 / lần".
 - **Câu hỏi:** đây là lần kiểm thứ mấy của cùng style + màu, đúng không? Đếm theo màu hay theo cả style?
 
 **Trả lời của KLMAS:**
 
-### Q26. Một sản phẩm lỗi có thể ghi nhiều mã lỗi không?
+### Q31. Một sản phẩm lỗi có thể ghi nhiều mã lỗi không?
 
 - **Ở đâu:** sheet `DATA`:
   - Với DISCOVERY và FILA, SL lỗi (cột O) luôn bằng tổng số đếm theo mã (cột Q MINOR + cột R MAJOR). Ví dụ dòng 2–11: 38 = 1+5+2+1+1+6+12+2+7+1.
@@ -377,7 +503,7 @@ Các câu Q23–Q30 hỏi về file [DỮ LIỆU KIỂM BÊN THỨ BA] (`INPUT D
 
 **Trả lời của KLMAS:**
 
-### Q27. Khi nào kết quả là PASS, khi nào REJECT?
+### Q32. Khi nào kết quả là PASS, khi nào REJECT?
 
 - **Ở đâu:**
   - [BÁO CÁO KIỂM MẪU] FNJWD8411, trang 1: tỷ lệ lỗi **23,9%**, kiểm 100%, kết quả **PASS**.
@@ -390,27 +516,27 @@ Các câu Q23–Q30 hỏi về file [DỮ LIỆU KIỂM BÊN THỨ BA] (`INPUT D
 
 **Trả lời của KLMAS:**
 
-### Q28. Các nhóm mã lỗi A–G dùng cho loại hàng nào?
+### Q33. Các nhóm mã lỗi A–G dùng cho loại hàng nào?
 
 - **Ở đâu:** [DỮ LIỆU KIỂM BÊN THỨ BA], sheet `CODE`: 296 mã chia nhóm A (62 mã), B (58), C (47), D (34), E (36), F (31), G (28). Dữ liệu hiện chỉ dùng nhóm A.
 - **Câu hỏi:** đoán là A = quần áo, B = túi, C = giày, G = mũ. Còn D, E, F là gì? Phiếu giấy cho từng loại hàng có khác nhau không?
 
 **Trả lời của KLMAS:**
 
-### Q29. Có dòng nào bị nhập trùng không?
+### Q34. Có dòng nào bị nhập trùng không?
 
 - **Ở đâu:** sheet `DATA`: có 266 nhóm lần kiểm trùng hoàn toàn style, màu, ngày, SL kiểm và kiểm viên.
 - **Câu hỏi:** cùng ngày có thể kiểm cùng style + màu 2 lần với cùng số lượng (vd. 2 lô khác nhau) không? Nếu không thì đây là nhập trùng.
 
 **Trả lời của KLMAS:**
 
-### Q30. Ai nhập file INPUT DATA và nhập khi nào?
+### Q35. Ai nhập file INPUT DATA và nhập khi nào?
 
 - **Câu hỏi:** file này có phải là nơi duy nhất tổng hợp mọi phiếu kiểm của văn phòng không? Ai nhập, nhập trong ngày hay cuối tuần? Báo cáo PDF gửi khách (như FNJWD8411) có được làm từ file này không, hay làm riêng?
 
 **Trả lời của KLMAS:**
 
-### Q31. KLMAS có số phút chuẩn (SMV) cho từng style hoặc loại hàng không? *(cần khi so sánh năng suất nhà máy)*
+### Q36. KLMAS có số phút chuẩn (SMV) cho từng style hoặc loại hàng không? *(cần khi so sánh năng suất nhà máy)*
 
 - **Ở đâu:** báo cáo ngày của nhà máy có cột số công nhân (`WORKERS SỐ CÔNG NHÂN`) và số chuyền. Nếu chỉ chia sản lượng cho số công nhân thì nhà máy may áo thun sẽ luôn "năng suất" hơn nhà máy may jacket.
 - **Câu hỏi:** KLMAS hoặc nhà máy có bảng SMV (số phút may chuẩn cho một sản phẩm) không?
@@ -419,21 +545,21 @@ Các câu Q23–Q30 hỏi về file [DỮ LIỆU KIỂM BÊN THỨ BA] (`INPUT D
 
 ## Mã hàng và danh mục
 
-### Q32. Mã nhóm hàng trong mã style *(cần khi báo cáo theo loại hàng)*
+### Q37. Mã nhóm hàng trong mã style *(cần khi báo cáo theo loại hàng)*
 
 - **Ở đâu:** chữ thứ 6–7 của mã style, vd. CHF3M**JK**6301. Các mã đang có: PT, LT, WT, JK, ST, SK, HP, VT, IT, MK, HC, GW, OP.
 - **Câu hỏi:** xin bảng nghĩa của các mã (JK = jacket, PT = pants…), nhất là ST, IT, MK, HC, GW, OP, HP.
 
 **Trả lời của KLMAS:**
 
-### Q33. Quy tắc đặt mã style *(cần khi tự động nhận diện mã)*
+### Q38. Quy tắc đặt mã style *(cần khi tự động nhận diện mã)*
 
 - **Ở đâu:** mã dạng CH + **F** + **3** + M + JK + 6301. [RECAP 26FW] có cả mã bắt đầu bằng `CHF2` (dòng 537, 541) và `CHF5` (`CHF5UGW6070`, mã R4, dòng 545).
 - **Câu hỏi:** chữ thứ 3 (E/F/G) có phải năm (2025/2026/2027), và số thứ 4 (1–4) là Xuân/Hè/Thu/Đông? Số 5 nghĩa là gì?
 
 **Trả lời của KLMAS:**
 
-### Q34. "(BE: …)" trong ô màu có phải là màu cũ trước khi đổi?
+### Q39. "(BE: …)" trong ô màu có phải là màu cũ trước khi đổi?
 
 - **Ở đâu:** [RECAP 26FW], sheet `ORDER RECAP`, cột H: dòng 321 `CREAM (BE: INDIE PINK)`, dòng 347 `CREAM (BE: OATMEAL)`, dòng 407 `KHAKI GREY (BE: SAND)`.
 - **Câu hỏi:** "BE:" nghĩa là "before" (màu trước khi đổi), đúng không?
@@ -441,29 +567,105 @@ Các câu Q23–Q30 hỏi về file [DỮ LIỆU KIỂM BÊN THỨ BA] (`INPUT D
 
 **Trả lời của KLMAS:**
 
-### Q35. "해리감" trong cột PART của bảng vải là phần nào?
+### Q40. "해리감" trong cột PART của bảng vải là phần nào?
 
 - **Ở đâu:** [RECAP 26FW], sheet `FAB(0615)`, cột Q (PART), dòng 345 (style CHF3WPT6746).
 - **Câu hỏi:** 해리감 là phần vải nào của sản phẩm?
 
 **Trả lời của KLMAS:**
 
-### Q36. Năm ETD của 5 style 27SS *(không ảnh hưởng: cả 5 style đều đã huỷ)*
+### Q41. Năm của ngày ETD bị ghi sai ở các file mùa 27SS *(không ảnh hưởng số hiện tại; cần để hệ thống tự phát hiện)*
 
-- **Ở đâu:** [RECAP 27SS], sheet `ORDER RECAP`, cột L: CHG1WJK7504 (dòng 25) 17/01/2026; CHG2WJK7604 (dòng 157) 14/03/2026; CHG2MST7238 (dòng 274) và CHG2WST7651 (dòng 348) 21/03/2026; CHFG2WIT7957 (dòng 681) 28/02/2026. Cả 5 đều có trạng thái CANCEL.
-- **Câu hỏi:** chỉ để xác nhận: các ngày này đáng lẽ là năm 2027, đúng không?
+- **Ở đâu:**
+  - [RECAP 27SS], sheet `ORDER RECAP`, cột L: CHG1WJK7504 (dòng 25) 17/01/2026; CHG2WJK7604 (dòng 157) 14/03/2026; CHG2MST7238 (dòng 274) và CHG2WST7651 (dòng 348) 21/03/2026; CHFG2WIT7957 (dòng 681) 28/02/2026. Cả 5 đều có trạng thái CANCEL.
+  - Bản trước `261005 MJ) 27SS CHALLENGER ORDER RECAP.xlsb` có **97 style** ghi năm 2026; bản 15/10 đã sửa thành 2027.
+  - Cùng kiểu: `261019 MJ) 27SS JBEE ORDER RECAP.xlsx` (ETD sớm nhất 17/01/2026); `261015 MJ) 27SS KOFA-BLACKYAK ORDER RECAP.xlsx` (ETD 30/01–05/02/2026); [KẾ HOẠCH NEPA] `261020_NEPA - GIA NGUYEN…` dòng 8 (ngày cắt 05/01/2026, trong khi dòng 7 là 21/12/2026), và cả hai dòng có hạn xuất `DUE ETD` 08/02/2026, trước ngày cắt; [RECAP BPK] (xem Q42).
+- **Câu hỏi:**
+  1. Các ngày này đáng lẽ là năm 2027, đúng không?
+  2. Hệ thống sẽ tự cảnh báo khi ngày không khớp với mùa (vd. ETD năm 2026 trong file 27SS). KLMAS có muốn nhận cảnh báo này cho người lập file không?
+
+**Trả lời của KLMAS:**
+
+## Các khách khác ngoài CHALLENGER
+
+### Q42. ORDER RECAP Beanpole Kids bản 21/10: nhiều ô thay đổi hoặc bị lỗi, số nào đúng? *(cần khi nạp đơn của khách khác)*
+
+- **Ở đâu:** [RECAP BPK] so với bản trước `261003.DUNG) BPK 27SS ORDER RECAP.xlsx`, sheet `RECAP` (cột M = ETD, cột N = ACTUAL RDD):
+
+  | Ô | Bản 03/10 | Bản 21/10 |
+  |---|---|---|
+  | Tiêu đề cột ETD, ô M4 | `RDD (-14DAY)` | `RDD (-8DAY)` |
+  | Ngày UP DATE, ô D2 | 03/10/2026 | 07/09/2026 (lùi về trước) |
+  | ETD LBV-27010 và LBV-27011, ô M21 và M25 | 29/12/2026 | 11/01/2026 |
+  | ETD LBV-27014, ô M29 | 15/12/2026 | 28/12/2025 |
+  | ETD LBV-27017, ô M41 | 26/01/2027 | 08/02/2026 |
+  | RDD LBV-27015, ô N33 | 24/11/2026 | chữ `12//1` |
+  | Sheet `DETAIL` | đủ số | ngày hiện năm 1900–1904; tổng `G.TTL` = `#N/A` |
+
+- **Thay đổi có vẻ là thật:** LBV-27005 và LBV-27006 chuyển SON HA → XUAN THANH; LBV-27006 và LBV-27015 ghi `CANCLE` (sheet DETAIL, cột REMARK); thêm LBV-27016-1 (600 cái, dòng 45) và LBV-26017-1 (500 cái, dòng 49); LBV-27014 900 → 910; LBV-27016 1.000 → 1.020.
+- **Câu hỏi:**
+  1. Từ nay ETD của Beanpole Kids = RDD − 8 ngày, không còn − 14? ([KẾ HOẠCH BPK] ngày 16/10 vẫn ghi `DUE ETD / RDD-14 DAYS`.)
+  2. Các ETD năm 2025 và đầu 2026 ở bảng trên đáng lẽ là năm sau, đúng không?
+  3. Sheet `RECAP` là số chính, còn sheet `DETAIL` chỉ là bảng tóm tắt (có thể lỗi công thức), đúng không?
+  4. LBV-27016-1 và LBV-26017-1 là đơn đặt thêm, hay tách lô từ style gốc?
+- *ASTRA đang hiểu:* sheet RECAP là số chính; các năm trên bị gõ nhầm; đuôi `-1` là đơn đặt thêm.
+
+**Trả lời của KLMAS:**
+
+## Email, xuất hàng và các loại file mới
+
+### Q43. Quy ước tiêu đề email xuất hàng và nhập vật tư *(cần khi tự đọc email xuất hàng)*
+
+- **Ở đâu:** tiêu đề email có dạng cố định:
+  - Xuất thành phẩm: `260811ETD SEA SHIPMENT MTT TO CHALLENGER #LCL ABKHPH2608037`; `260514ETD-0519ETA SEA SHIPMENT DKM TO DONG MY #FCL 40 WRLS260025`; `260821ETD-0821ETA AIR SHIPMENT HAGACO TO DKM`.
+  - Vật tư về nhà máy: `9/27->9/29ETD (delay) FROM ICH TO B85 SHIPMENT - JAKEHPH2609051`; `6/25ETD FROM SH TO HAGACO SHIPMENT - AIR SSAL2606220`; `261018ETD SEA SHIPMENT JBSC TO B85 #LCL SE2610016`.
+- **Câu hỏi:**
+  1. Mọi người ở KLMAS đều đặt tiêu đề theo quy ước này? Có văn bản quy ước không?
+  2. `ICH` = Incheon, `SH` = Shanghai? Hàng `FROM ICH/SH TO <nhà máy>` là vải và phụ liệu buyer gửi sang?
+  3. Các đầu số `ABKHPH`, `SMKCHAP`, `JAKEHPH`, `SSAL`, `WRLS`, `SE` là số booking của forwarder nào?
+  4. `9/27->9/29ETD (delay)` nghĩa là ETD đổi từ 27/9 sang 29/9?
+- *ASTRA đang hiểu:* đúng cả 4 ý. Hệ thống sẽ ghi ngày ETD và các lần trễ cho từng lô vật tư và từng lô xuất.
+
+**Trả lời của KLMAS:**
+
+### Q44. Các loại file mới: file nào cần đưa vào dashboard? *(cần khi mở rộng nguồn dữ liệu)*
+
+- **Ở đâu:** các loại file lần đầu ASTRA nhận được (23/10):
+
+  | Loại | Ví dụ tên file | ASTRA định làm |
+  |---|---|---|
+  | Kế hoạch xuất | [KẾ HOẠCH XUẤT]: cột `FIXED EX-FACT`, `FIXED ETD`, `FIXED ETA`, `SHIP MODE`, `pcs/box`, `box q'ty` | Đọc ở giai đoạn 1 |
+  | Định mức, cân đối vật tư | `260810 - 26FW - ( CHALLENGER - TP) … FACTORY'S CONSUMPTION & BALANCE SHEET`; `CHF3WJK6701최종요척260624.xls` | Ghi nhận như một mốc; đọc số sau |
+  | Kiểm vải | `260707 (CHALELNGER - TP) CHF3WJK6701_검단 리포트.xlsx`; `FABRIC INSPECTION REPORT` | Ghi nhận như một mốc |
+  | Dự kiến thiếu hàng | `260713 (CHALLENGER - TP) CHF3WJK6701 쇼티지 수량 예상.xlsx` | Chưa rõ |
+  | Hàng loại B, huỷ bán thành phẩm | `261012 LBV 26003-26005-26010-26016 B GARMENT DETAIL B품확인건.xlsx`; `BI6938U13 + BI6938G03 스타일 자수 재단물 폐기.xlsx` | Chưa rõ |
+  | Hiện trạng đơn của Daehan Global | [HIỆN TRẠNG ĐƠN DHG] | Dùng để đối chiếu (Q15) |
+  | Tài liệu kỹ thuật | W.S, CMT, mini marker, file rập (`.dxf`, `.PDS`, `.sty`, `.rul`) | Chỉ lưu tên và ngày, không đọc nội dung |
+
+- **Câu hỏi:**
+  1. [KẾ HOẠCH XUẤT] và [SHIPMENT] khác nhau thế nào? Khi hai file ghi ngày xuất khác nhau, file nào đúng?
+  2. Trong các loại còn lại, loại nào KLMAS muốn thấy trên dashboard (vd. thiếu hàng, hàng loại B)?
+- *ASTRA đang hiểu:* [KẾ HOẠCH XUẤT] là ngày đã chốt với forwarder, [SHIPMENT] là số đã xuất thực tế; các loại khác để sau giai đoạn 1.
+
+**Trả lời của KLMAS:**
+
+### Q45. Bảng phân công người phụ trách *(cần khi gửi cảnh báo đúng người)*
+
+- **Ở đâu:** mỗi email thường gửi kèm (CC) 8–12 người của KLMAS. Người gửi khác nhau theo việc: kỹ thuật và mẫu, kế hoạch, xuất hàng, báo cáo sản xuất, kiểm hàng.
+- **Câu hỏi:** xin bảng: khách / nhà máy → người phụ trách chính theo từng việc (mẫu, kế hoạch, xuất hàng, kiểm hàng). Có địa chỉ nhóm (vd. địa chỉ chung của văn phòng) không?
+- *ASTRA đang hiểu:* chưa có; cảnh báo tạm gửi cho người lập file (MJ, HUONG, HANG, TRANG…).
 
 **Trả lời của KLMAS:**
 
 ## Phạm vi các giai đoạn sau
 
-### Q37. Sẽ mở rộng sang brand nào tiếp theo?
+### Q46. Sẽ mở rộng sang brand nào tiếp theo?
 
 - **Câu hỏi:** sau CHALLENGER (và 8 SECONDS), brand nào nên đưa vào tiếp theo? Brand đó có file ORDER RECAP / báo cáo kiểm theo mẫu riêng không?
 
 **Trả lời của KLMAS:**
 
-### Q38. Có cần lưu ảnh thiết kế trong ORDER RECAP không?
+### Q47. Có cần lưu ảnh thiết kế trong ORDER RECAP không?
 
 - **Ở đâu:** [RECAP 26FW] cột G (DESIGN) có ảnh thiết kế của từng style.
 - **Câu hỏi:** khi làm màn hình ORDER RECAP trên hệ thống, có cần hiển thị ảnh này không?
@@ -471,14 +673,14 @@ Các câu Q23–Q30 hỏi về file [DỮ LIỆU KIỂM BÊN THỨ BA] (`INPUT D
 
 **Trả lời của KLMAS:**
 
-### Q39. Giá, thanh toán, PO, C/O đang được quản lý ở đâu? *(ngoài phạm vi hiện tại)*
+### Q48. Giá, thanh toán, PO, C/O đang được quản lý ở đâu? *(ngoài phạm vi hiện tại)*
 
 - **Ở đâu:** [RECAP 26FW], sheet `ORDER RECAP`: cột BE (TARGET CMPH), BF (FIXED FACTORY), BG (FINAL 공장 가격 CMPH), CC (FOB PRICE), CF (PO NO// KOREA), CG (PO NO// CHINA), CV (CO SENDING), CW trở đi (thanh toán) gần như để trống.
 - **Câu hỏi:** các thông tin này nằm ở file hay hệ thống nào khác? Có cần đưa vào hệ thống sau này không?
 
 **Trả lời của KLMAS:**
 
-### Q40. Đơn giá vải ghi theo tiền gì? *(ngoài phạm vi hiện tại)*
+### Q49. Đơn giá vải ghi theo tiền gì? *(ngoài phạm vi hiện tại)*
 
 - **Ở đâu:** [RECAP 26FW], sheet `FAB(0615)`, cột V (원단단가): dòng 6 ghi 4400 (nơi xuất vải cột T = KR), dòng 7 ghi `5500->5000` (KR), dòng 10 ghi 0.85 (VN), dòng 4 ghi 4.8 (CN).
 - **Câu hỏi:** vải từ Hàn ghi bằng KRW, vải từ Trung Quốc và Việt Nam ghi bằng USD, đúng không? Đơn vị tính theo yard hay mét?
@@ -493,7 +695,7 @@ Các câu Q23–Q30 hỏi về file [DỮ LIỆU KIỂM BÊN THỨ BA] (`INPUT D
 | D5 | Minimap / order list của ít nhất 2 brand khác | Tự động đọc minimap | Chưa nhận |
 | D6 | 1 tuần báo cáo kiểm chi tiết (có mã lỗi, ảnh) và mẫu báo cáo kiểm của 3–6 brand | App kiểm hàng, PDF theo brand | Chưa nhận |
 | D7 | Danh sách kiểm viên, khu vực, nhà máy phụ trách; địa chỉ các nhà máy | Gợi ý phân công kiểm viên | Chưa nhận |
-| D8 | 20–30 email / tin nhắn Kakao với buyer (có thể che thông tin nhạy cảm) | Tự động đọc yêu cầu thay đổi, gợi ý trả lời | Chưa nhận |
+| D8 | 20–30 email / tin nhắn Kakao với buyer (có thể che thông tin nhạy cảm) | Tự động đọc yêu cầu thay đổi, gợi ý trả lời | ✅ Email: đã nhận 184 luồng (23/10). Kakao: chưa nhận |
 
 ---
 
@@ -501,7 +703,11 @@ Các câu Q23–Q30 hỏi về file [DỮ LIỆU KIỂM BÊN THỨ BA] (`INPUT D
 
 **Nguồn file:** bản gốc nằm trên Google Drive của KLMAS. Thư mục `raw-docs/` là bản tải về cục bộ; cây thư mục trong đó do đội dự án tự sắp, KLMAS không dùng. Khi viết cho KLMAS chỉ dùng **tên file** (kèm sheet, ô, dòng), không dùng đường dẫn.
 
-**Mức ưu tiên:** 1 = sai thì số chính trên dashboard sai (trước là "1A. Trả lời trước demo"); 2 = cần cho giai đoạn 1, KLMAS trả lời ngay được (trước là "1B. Xác nhận khi demo"); 3 = để sau giai đoạn 1 (trước là "Phần 2"). Câu Q23–Q30 chỉ cần nếu PO duyệt task M1-12 (dashboard kiểm hàng bên thứ ba), phân tích ở `analys-docs/review_qc_third_party.md`.
+**Mức ưu tiên:** 1 = sai thì số chính trên dashboard sai (trước là "1A. Trả lời trước demo"); 2 = cần cho giai đoạn 1, KLMAS trả lời ngay được (trước là "1B. Xác nhận khi demo"); 3 = để sau giai đoạn 1 (trước là "Phần 2"). Câu Q28–Q35 chỉ cần nếu PO duyệt task M1-12 (dashboard kiểm hàng bên thứ ba), phân tích ở `analys-docs/review_qc_third_party.md`.
+
+**Đổi mã 23/10/2026:** thêm Q17–Q20 (mốc email, địa chỉ email các bên, email cũ, dùng AI đọc email; Ưu tiên 2) và Q43–Q45 (tiêu đề email xuất hàng, loại file mới, phân công; Ưu tiên 3); thêm D9, D10. Q17–Q38 của bản 21/10 → Q21–Q42; Q39–Q42 → Q46–Q49. Nguồn: `analys-docs/review_new_docs_emails.md`. Bảng đổi mã 19/10 bên dưới là theo mã của bản 21/10.
+
+**Đổi mã 21/10/2026:** thêm Q15 (kế hoạch sản xuất) và Q38 (Beanpole Kids bản 21/10). Q15 cũ → Q16; Q16–Q36 cũ → Q17–Q37; Q37–Q40 cũ → Q39–Q42. Bảng dưới đã theo mã hiện tại.
 
 **Bảng đổi mã (19/10/2026).** Mã cũ còn trong lịch sử git và các bản đã gửi trước đó. Mã yêu cầu dữ liệu: R5→D1, R7→D2, R8→D3, R1→D4, R2→D5, R3→D6, R4→D7, R6→D8.
 
@@ -521,32 +727,32 @@ Các câu Q23–Q30 hỏi về file [DỮ LIỆU KIỂM BÊN THỨ BA] (`INPUT D
 | Q14 | Q12 |
 | Q15 | Q13 |
 | Q28 | Q14 |
-| Q-T5 | Q15 |
-| Q7 | Q16 |
-| Q5 | Q17 |
-| Q9 | Q18 |
-| Q10 | Q19 |
-| Q17 | Q20 |
-| Q18 | Q21 |
-| Q25 | Q22 |
-| QI1 | Q23 |
-| QI2 | Q24 |
-| QI3 | Q25 |
-| QI4 | Q26 |
-| QI5 | Q27 |
-| QI6 | Q28 |
-| QI7 | Q29 |
-| QI8 | Q30 |
-| Q29 | Q31 |
-| Q11 | Q32 |
-| Q12 | Q33 |
-| Q20 | Q34 |
-| Q21 | Q35 |
-| Q16 | Q36 |
-| Q-T6 | Q37 |
-| Q22 | Q38 |
-| Q19 | Q39 |
-| Q8 | Q40 |
+| Q-T5 | Q16 |
+| Q7 | Q17 |
+| Q5 | Q18 |
+| Q9 | Q19 |
+| Q10 | Q20 |
+| Q17 | Q21 |
+| Q18 | Q22 |
+| Q25 | Q23 |
+| QI1 | Q24 |
+| QI2 | Q25 |
+| QI3 | Q26 |
+| QI4 | Q27 |
+| QI5 | Q28 |
+| QI6 | Q29 |
+| QI7 | Q30 |
+| QI8 | Q31 |
+| Q29 | Q32 |
+| Q11 | Q33 |
+| Q12 | Q34 |
+| Q20 | Q35 |
+| Q21 | Q36 |
+| Q16 | Q37 |
+| Q-T6 | Q39 |
+| Q22 | Q40 |
+| Q19 | Q41 |
+| Q8 | Q42 |
 
 **Quyết định nội bộ ASTRA, không hỏi KLMAS:**
 - **T1:** giai đoạn 1 chỉ báo cáo và đối soát từ file; ứng dụng nhập liệu làm sau.
