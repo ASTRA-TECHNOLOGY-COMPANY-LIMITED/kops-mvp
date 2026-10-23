@@ -7,7 +7,9 @@ Each load must have:
   - no console error / page error, and no render error banner;
   - every chart drawn, or the "no data yet" message (never empty axes);
   - synthetic-data chips (.syn.sim) present with syn=1 on the pages that show synthetic data, absent with syn=0;
-  - no horizontal page scroll (mobile 390 px);
+  - no horizontal page scroll (mobile 390 px) and no element outside the 390 px screen (G-04);
+  - with synthetic data on (and on 27SS): axe-core WCAG 2.2 A / AA rules with 0 serious / critical findings and AA text contrast;
+keyboard-only flows (G-04): login + password change, bell -> notifications -> row -> Style 360, chatbot open / send / Escape;
 and the main KPIs equal the marts (DuckDB, read only): CHALLENGER 26FW order qty / shipped % / on-time %, 27SS action
 count. Screenshots go to <dir> (outside the repo: they show KLMAS data).
 """
@@ -38,6 +40,25 @@ PROBE = """() => {
           overflow: document.documentElement.scrollWidth - window.innerWidth,
           kpi: Object.fromEntries([...document.querySelectorAll('[data-kpi]')].map(k => [k.dataset.kpi, k.dataset.v]))};
 }"""
+
+
+# G-04: accessibility with axe-core (vendored, testvendor/README.md): WCAG 2.x A / AA rules; serious / critical must be 0
+AXE = Path(__file__).parent / "testvendor" / "axe-core-4.10.2.min.js"
+AXE_RUN = """async () => (await axe.run(document, {runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']}))
+  .violations.map(v => ({id: v.id, impact: v.impact, n: v.nodes.length, at: v.nodes[0]?.target.join(' ')}))"""
+# phones (390 px): nothing in the header / page sticks out of the viewport (tables and charts scroll inside their own box)
+WIDE = """() => [...document.querySelectorAll('header *, main *')].filter(el => { const r = el.getBoundingClientRect();
+  return r.width && r.right > innerWidth + 1 && !el.closest('.tw, .chart, .chat-a') && getComputedStyle(el).visibility !== 'hidden'; })
+  .slice(0, 3).map(el => el.tagName + '.' + el.className + ' ' + el.textContent.trim().slice(0, 30))"""
+
+
+def _tab_to(page, test: str, limit: int = 80) -> bool:
+    """Press Tab until document.activeElement matches the JS predicate `test` (keyboard-only navigation)."""
+    for _ in range(limit):
+        page.keyboard.press("Tab")
+        if page.evaluate(f"() => {{ const a = document.activeElement; return !!a && ({test}); }}"):
+            return True
+    return False
 
 
 def _expected() -> dict:
@@ -105,6 +126,16 @@ def run(argv: list[str]) -> int:
                 check(f"{name}: every chart drawn or 'no data yet'", not r["bad"], ", ".join(r["bad"]))
                 check(f"{name}: language", r["lang"] == lang, r["lang"])
                 check(f"{name}: no horizontal scroll", r["overflow"] <= 1, f"{r['overflow']} px")
+                if syn == "1" or season == "27SS":
+                    page.add_script_tag(path=str(AXE))
+                    ax = page.evaluate(AXE_RUN)
+                    bad = [v for v in ax if v["impact"] in ("serious", "critical") and v["id"] != "color-contrast"]
+                    check(f"{name}: axe 0 serious / critical", not bad, "; ".join(f"{v['id']} x{v['n']} {v['at']}" for v in bad[:3]))
+                    cc = [v for v in ax if v["id"] == "color-contrast"]
+                    check(f"{name}: text contrast AA (axe)", not cc, f"{cc[0]['n']} node(s) e.g. {cc[0]['at']}" if cc else "")
+                if vp == "mobile":
+                    wide = page.evaluate(WIDE)
+                    check(f"{name}: 390 px, nothing outside the screen", not wide, "; ".join(wide))
                 if syn == "0":
                     check(f"{name}: no synthetic-data chip", r["sim"] == 0, f"{r['sim']} chip(s)")
                 elif season == "26FW" and page_id in SIM_PAGES:
@@ -121,15 +152,21 @@ def run(argv: list[str]) -> int:
             lp.on("pageerror", lambda e: lerr.append(str(e)))
             lp.goto(f"{base}/?tab=quality")
             check("Login: a page without session opens the login form", "/login" in lp.url and lp.is_visible("#fLogin"), lp.url)
-            lp.fill("#u", "ui-first"); lp.fill("#p", first_pw); lp.click("#fLogin button[type=submit]")
+            # keyboard only (G-04): Tab to the user name, type, Tab, type, Enter; the change form gets the focus itself
+            kb = _tab_to(lp, "a.id === 'u'", 6)
+            lp.keyboard.type("ui-first"); lp.keyboard.press("Tab")
+            kb = kb and lp.evaluate("document.activeElement.id === 'p' && getComputedStyle(document.activeElement).outlineStyle !== 'none'")
+            lp.keyboard.type(first_pw); lp.keyboard.press("Enter")
             lp.wait_for_selector("#fChange", state="visible", timeout=10000)
-            lp.fill("#n1", new_pw); lp.fill("#n2", new_pw); lp.click("#fChange button[type=submit]")
+            kb = kb and lp.evaluate("document.activeElement.id === 'n1'")
+            lp.keyboard.type(new_pw); lp.keyboard.press("Tab"); lp.keyboard.type(new_pw); lp.keyboard.press("Enter")
             lp.wait_for_selector("body[data-load-ms]", timeout=30000)
             lp.wait_for_timeout(300)
             shell = lp.evaluate("""() => ({tab: document.querySelector('aside nav button[aria-current=page]')?.dataset.t,
               logo: document.querySelector('#logo')?.naturalWidth || 0, kops: document.querySelector('.brand')?.textContent.includes('KOPS'),
               foot: document.querySelector('footer')?.textContent || '', bell: document.querySelector('#bellCount')?.textContent || '',
               chat: !document.querySelector('#chatBtn').hidden, user: document.querySelector('#userBtn')?.textContent || ''})""")
+            check("Keyboard: login and password change without the mouse (Tab order, visible focus)", kb, "")
             check("Login: password changed at first login, back to the page asked for", shell["tab"] == "quality" and not lerr, f"{shell['tab']} {lerr[:2]}")
             check("Shell: header logo + KOPS, footer company / version / data date, user menu", shell["logo"] > 0 and shell["kops"] and
                   "©" in shell["foot"] and "KOPS " in shell["foot"] and "ui-first" in shell["user"], json.dumps(shell, ensure_ascii=False)[:200])
@@ -149,6 +186,25 @@ def run(argv: list[str]) -> int:
             metas = lp.evaluate("() => [...document.querySelectorAll('.chat-a .meta')].map(m => m.textContent)")
             check("Chatbot: 5 sample questions answered with source and data date", len(metas) == 5 and all("Nguồn" in m and "dữ liệu tới" in m for m in metas),
                   " | ".join(m[:60] for m in metas))
+            # keyboard (G-04): Escape closes the chat and gives the focus back; Enter opens it with the focus in the question box
+            lp.keyboard.press("Escape")
+            k1 = lp.evaluate("[document.getElementById('chatPanel').hidden, document.activeElement.id]")
+            lp.keyboard.press("Enter"); lp.wait_for_timeout(200)
+            k2 = lp.evaluate("document.activeElement.id")
+            lp.keyboard.type("Nhà máy nào không gửi báo cáo ngày?"); lp.keyboard.press("Enter")
+            lp.wait_for_function("document.querySelectorAll('.chat-a .meta').length >= 6 && !document.getElementById('chatWait')", timeout=20000)
+            check("Keyboard: chatbot Escape closes (focus back on the button), Enter opens with focus in the input, Enter sends",
+                  k1 == [True, "chatBtn"] and k2 == "chatInput", f"{k1} {k2}")
+            lp.keyboard.press("Escape")
+            # notifications: Tab to the bell, Enter opens the list, Tab to a row, Enter opens its Style 360
+            lp.goto(f"{base}/?tab=overview&lang=vi&noanim=1"); lp.wait_for_selector("body[data-load-ms]")
+            k3 = _tab_to(lp, "a.id === 'bellBtn'", 20) and bool(lp.get_attribute("#bellBtn", "aria-label"))
+            lp.keyboard.press("Enter"); lp.wait_for_timeout(300)
+            k4 = lp.evaluate("STATE.tab") == "notifications" and _tab_to(lp, "a.matches('#tNotes tr.click')", 80)
+            if k4:
+                lp.keyboard.press("Enter"); lp.wait_for_timeout(800)
+            k5 = lp.evaluate("STATE.tab")
+            check("Keyboard: bell -> notifications -> row -> Style 360", k3 and k4 and k5 == "style", f"bell {k3} row {k4} tab {k5}")
             lc.close()
             # replace the logo (branding/ folder): the page shows the new file without a rebuild
             import tempfile
