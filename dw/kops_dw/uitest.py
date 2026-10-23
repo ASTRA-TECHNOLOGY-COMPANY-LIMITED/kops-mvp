@@ -126,7 +126,7 @@ def run(argv: list[str]) -> int:
             lp.fill("#n1", new_pw); lp.fill("#n2", new_pw); lp.click("#fChange button[type=submit]")
             lp.wait_for_selector("body[data-load-ms]", timeout=30000)
             lp.wait_for_timeout(300)
-            shell = lp.evaluate("""() => ({tab: document.querySelector('aside nav button[aria-selected=true]')?.dataset.t,
+            shell = lp.evaluate("""() => ({tab: document.querySelector('aside nav button[aria-current=page]')?.dataset.t,
               logo: document.querySelector('#logo')?.naturalWidth || 0, kops: document.querySelector('.brand')?.textContent.includes('KOPS'),
               foot: document.querySelector('footer')?.textContent || '', bell: document.querySelector('#bellCount')?.textContent || '',
               chat: !document.querySelector('#chatBtn').hidden, user: document.querySelector('#userBtn')?.textContent || ''})""")
