@@ -59,6 +59,16 @@ make logs        # xem log; make down: dừng; make rebuild: dựng lại image;
   là 1,24 GB); `make up` với volume trống 2 phút 18 giây (build kho lạnh 106 s); `make refresh` 43 s; `make check-ui` 92 s
   (153 lượt mở trang, 891 kiểm tra); 92/92 check trong container = ngoài container.
 
+### Chatbot hỏi đáp dữ liệu (F-04)
+
+- **Chế độ cơ bản** (mặc định, không cần API key, không gửi gì ra ngoài): nhận diện ý định + mã style / mùa / khách / nhà máy, chạy
+  truy vấn cố định trên mart, trả lời ngắn kèm bảng, nguồn, ngày dữ liệu. Câu không hiểu thì nói rõ và gợi ý câu mẫu, không đoán.
+  Golden: `dw/eval/chat_cases.json` (43 câu VI / KO), chạy `python -m kops_dw chat-eval`.
+- **Chế độ AI** (tắt mặc định): `KOPS_CHAT_LLM=1` + `ANTHROPIC_API_KEY` trong `.env`, `pip install anthropic`. Claude dùng các truy
+  vấn của chế độ cơ bản và một tool `query_mart` chỉ chạy SELECT trên schema `mart` / `dim` (kết nối chỉ đọc, chặn hàm đọc file,
+  500 dòng, 5 giây). **Bật chế độ này nghĩa là câu hỏi và số liệu kho dữ liệu (mã style, số lượng, tiêu đề email…) được gửi tới
+  Claude API. PO phải xác nhận phạm vi đồng ý của KLMAS trước khi bật: đồng ý P2 (23/10) mới nói về nội dung email.**
+
 ### Thêm file KLMAS mới (hằng ngày)
 
 1. **Tải file** từ Google Drive của KLMAS, **giữ nguyên tên file** (không đổi tên, không ghi đè bản cũ: bản mới có ngày mới ở

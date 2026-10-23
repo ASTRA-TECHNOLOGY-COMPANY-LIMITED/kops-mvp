@@ -47,5 +47,28 @@ def notification_checks() -> list[tuple[str, bool, str]]:
     return out
 
 
+def sql_guard_checks() -> list[tuple[str, bool, str]]:
+    """query_mart (chatbot AI mode): only one SELECT on mart / dim; everything else refused before it reaches DuckDB."""
+    from .chat_llm import SqlRefused, check_sql
+    allowed = ["SELECT style_no FROM mart.mgr_style LIMIT 1", "WITH t AS (SELECT * FROM dim.style) SELECT count(*) FROM t"]
+    refused = ["SELECT * FROM core.email", "SELECT * FROM etl.source_file", "SELECT * FROM read_csv('/etc/passwd')",
+               "SELECT getenv('ANTHROPIC_API_KEY')", "SELECT 1; DROP TABLE mart.mgr_style", "DELETE FROM mart.mgr_style",
+               "ATTACH 'x.db'", "COPY mart.mgr_style TO 'x.csv'", "SELECT * FROM 'build/kops.duckdb'", "PRAGMA database_list"]
+    bad = []
+    for q in allowed:
+        try:
+            check_sql(q)
+        except SqlRefused as e:
+            bad.append(f"refused: {q} ({e})")
+    for q in refused:
+        try:
+            check_sql(q)
+            bad.append(f"allowed: {q}")
+        except SqlRefused:
+            pass
+    return [("Chatbot query_mart guard: SELECT on mart / dim only (2 allowed, 10 refused)", not bad, "; ".join(bad) or "ok")]
+
+
 def check() -> list[tuple[str, bool, str]]:
-    return notification_checks()
+    from .chat_eval import check as chat_check
+    return notification_checks() + chat_check() + sql_guard_checks()

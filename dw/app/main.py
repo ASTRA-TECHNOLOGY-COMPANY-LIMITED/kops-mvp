@@ -8,6 +8,7 @@
 """
 from __future__ import annotations
 
+import json
 import re
 import secrets
 import socket
@@ -251,6 +252,51 @@ def create_app(bootstrap: bool = True) -> FastAPI:
         if status == "done":
             state.audit("notification_done", user, ",".join(map(str, ids[:20])), body.get("note"))
         return {"ok": True, "n": n}
+
+    # ---------------------------------------------------------------- chatbot (F-04)
+    @app.get("/api/chat/samples")
+    def chat_samples(user: dict = Depends(auth.require_user)):
+        from . import chat, chat_llm
+        return {"samples": chat.samples(), "mode": "ai" if chat_llm.enabled() else "basic"}
+
+    @app.post("/api/chat")
+    async def chat_ask(request: Request, user: dict = Depends(auth.require_csrf)):
+        auth.require_role("manager")(request)          # viewers only read the dashboards
+        from . import chat, chat_llm
+        body = await request.json()
+        q, lang = str(body.get("question", ""))[:500], body.get("lang") if body.get("lang") in ("vi", "ko") else "vi"
+        filters = {k: v for k, v in (body.get("filters") or {}).items() if k in ("season", "customer", "factory") and isinstance(v, str)}
+        if chat_llm.enabled():
+            try:
+                ans = chat_llm.ask(q, lang)
+            except Exception as e:                      # noqa: BLE001 - fall back to the offline mode, say so
+                ans = chat.ask(q, lang, filters)
+                ans["note"] = f"AI mode unavailable ({type(e).__name__}); basic mode answer"
+        else:
+            ans = chat.ask(q, lang, filters)
+        ans.setdefault("mode", "basic")
+        cid = state.execute("INSERT INTO chat_log (user_id, at, lang, mode, question, intent, answer) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                            (user["id"], state.now(), lang, ans["mode"], q, ans.get("intent"), json.dumps(ans, ensure_ascii=False, default=str)[:20000]))
+        ans["id"] = cid
+        return JSONResponse(json.loads(json.dumps(ans, ensure_ascii=False, default=str)))
+
+    @app.post("/api/chat/{cid}/feedback")
+    async def chat_feedback(cid: int, request: Request, user: dict = Depends(auth.require_csrf)):
+        body = await request.json()
+        rating = 1 if body.get("rating") == 1 else -1 if body.get("rating") == -1 else None
+        n = state.execute("UPDATE chat_log SET rating = ?, rating_note = ? WHERE id = ? AND user_id = ?",
+                          (rating, (str(body.get("note") or "")[:500]) or None, cid, user["id"]))
+        return {"ok": bool(n)}
+
+    @app.get("/api/chat/history")
+    def chat_history(user: dict = Depends(auth.require_user)):
+        return state.rows("SELECT id, at, lang, mode, question, intent, rating FROM chat_log WHERE user_id = ? ORDER BY id DESC LIMIT 50", (user["id"],))
+
+    @app.get("/api/chat/rated")
+    def chat_rated(user: dict = Depends(auth.require_role("admin"))):
+        """Questions rated 👎 (and unanswered ones) so the admin can improve the bot."""
+        return state.rows("""SELECT c.id, c.at, u.username, c.lang, c.mode, c.question, c.intent, c.rating, c.rating_note FROM chat_log c
+                             JOIN user u ON u.id = c.user_id WHERE c.rating = -1 OR c.intent IS NULL ORDER BY c.id DESC LIMIT 200""")
 
     # ---------------------------------------------------------------- settings (admin, F-03)
     @app.get("/api/settings")

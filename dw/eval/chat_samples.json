@@ -1,0 +1,26 @@
+{
+ "vi": {
+  "Tình hình đơn hàng": ["Style CHF3WJK6701 đang ở bước nào? Đã xuất bao nhiêu?", "LEV-27002 / BI7139UE1 khi nào cắt, khi nào xuất, có kịp RDD không?",
+    "Tuần này có những lô nào xuất? Của nhà máy nào?", "CHALLENGER 27SS còn bao nhiêu pcs chưa vào chuyền?", "Style nào đã qua ETD mà chưa xuất đủ?"],
+  "Rủi ro": ["BI7139UE1 có rủi ro gì? Vì sao?", "Những style nào có BAL âm hoặc dự báo trễ RDD?", "Style nào sắp cắt mà chưa có FPP CFMD hoặc chưa duyệt định mức?",
+    "Nhà máy nào không gửi báo cáo ngày quá 1 ngày làm việc?", "Lô vật tư nào bị dời ETD? Có ảnh hưởng ngày cắt không?", "Style nào đổi nhà máy hoặc đổi số lượng nhiều lần nhất?"],
+  "Nhà máy và chất lượng": ["So sánh tỉ lệ đúng hạn và tỉ lệ lỗi của các nhà máy mùa 26FW.", "TRUONG PHUC trễ trung bình bao nhiêu ngày? Style nào trễ nhất?",
+    "Top 5 mã lỗi ở NATEXCO và xu hướng theo tháng.", "Nhà máy nào đang nhận nhiều SL nhất tháng 12?"],
+  "Xu hướng theo mùa": ["Mùa 26FW size nào chiếm tỉ trọng lớn nhất? So với 27SS?", "Màu nào được đặt nhiều nhất mùa FW, mùa SS?", "Tỉ lệ size của áo khoác nữ (WJK) CHALLENGER qua các mùa.",
+    "Item nào tăng mạnh nhất 27SS so với 26FW?", "Chất liệu vải chính nào phổ biến nhất mùa FW?", "Tỉ lệ hàng nam / nữ theo brand.", "Assort size của NEPA pants 7ND1709 khác gì CHALLENGER pants?"],
+  "Thay đổi và email": ["Tuần qua buyer yêu cầu thay đổi gì? Đã cập nhật vào ORDER RECAP chưa?", "Còn bao nhiêu đề xuất thay đổi chờ duyệt? Của khách nào?",
+    "Email gần nhất về LBV-27006 nói gì?", "KLMAS trả lời email buyer trong bao lâu?"],
+  "Dữ liệu": ["Số nào trên dashboard là giả định? Giả định gì?", "File ORDER RECAP mới nhất của JBEE là bản nào, ngày nào?", "Có lệch số nào giữa ORDER RECAP và SHIPPING SCHEDULE?",
+    "Câu hỏi nào đang chờ KLMAS trả lời ảnh hưởng tới con số này?"]
+ },
+ "ko": {
+  "오더 현황": ["CHF3WJK6701 스타일은 어느 단계인가요? 얼마나 선적됐나요?", "BI7139UE1은 언제 재단하고 언제 선적하나요? RDD에 맞출 수 있나요?",
+    "이번 주 선적 예정 건은 어느 공장인가요?", "챌린저 27SS 중 아직 재단 안 된 스타일은?", "ETD가 지났는데 선적이 끝나지 않은 스타일은?"],
+  "리스크": ["BI7139UE1의 위험은 무엇이고 왜인가요?", "BAL 음수이거나 RDD 지연 위험이 있는 스타일은?", "재단이 임박했는데 FPP CFMD 승인이 없는 스타일은?",
+    "일일 보고를 보내지 않은 공장은?", "ETD가 연기된 자재는? 재단일에 영향이 있나요?"],
+  "공장과 품질": ["26FW 공장별 납기 준수율과 불량률을 비교해 주세요.", "TRUONG PHUC 평균 지연은 며칠인가요?", "NATEXCO 상위 불량 코드는?", "12월 물량이 가장 많은 공장은?"],
+  "시즌 트렌드": ["26FW 가장 많이 주문된 컬러 Top 5는?", "26FW 사이즈 비중은?", "26FW 대비 27SS에서 늘어난 아이템은?", "FW 시즌 메인 원단은?", "브랜드별 남녀 비중은?"],
+  "변경과 이메일": ["승인 대기 중인 변경 요청은 몇 건인가요?", "LBV-27006 최근 이메일은?", "KLMAS 이메일 응답 시간은?"],
+  "데이터": ["대시보드에서 가정 데이터는 무엇인가요?", "JBEE 최신 ORDER RECAP 파일은?", "ORDER RECAP과 SHIPPING SCHEDULE 사이에 차이가 있나요?"]
+ }
+}

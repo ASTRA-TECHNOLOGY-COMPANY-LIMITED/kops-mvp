@@ -61,6 +61,17 @@ main{padding:18px 20px 40px;min-width:0;max-width:1400px}
 .form{display:grid;gap:8px;max-width:420px}.form input,.form select{max-width:none;width:100%}.form label{color:var(--text-2);font-size:12.5px}
 button.primary{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:7px 14px;font:inherit;font-weight:600;cursor:pointer}
 .ok{color:var(--good)}.bad{color:var(--critical)}
+#chatPanel{position:fixed;right:16px;bottom:16px;z-index:40;width:min(440px,calc(100vw - 32px));height:min(640px,calc(100vh - 90px));
+  display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;box-shadow:0 10px 40px rgb(0 0 0 / .25)}
+#chatPanel[hidden]{display:none}
+.chat-head{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line)}.chat-head b{flex:1}
+.chat-body{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:10px}
+.chat-q{align-self:flex-end;background:color-mix(in srgb,var(--accent) 14%,transparent);border-radius:10px;padding:7px 10px;max-width:85%}
+.chat-a{background:var(--surface-2);border-radius:10px;padding:8px 10px;max-width:100%;white-space:pre-wrap}
+.chat-a .meta{color:var(--text-2);font-size:12px;margin-top:6px;white-space:normal}.chat-a table{font-size:12px;margin-top:6px}
+.chat-a .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;white-space:normal}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chips button{border:1px solid var(--line-strong);background:var(--surface);color:var(--text);border-radius:999px;padding:3px 10px;font:inherit;font-size:12.5px;cursor:pointer;text-align:left}
+.chat-form{display:flex;gap:6px;padding:10px 12px;border-top:1px solid var(--line)}.chat-form input{flex:1;max-width:none}
 .nlist{list-style:none;padding:0;margin:0}.nlist li{padding:6px 0;border-bottom:1px solid var(--line)}
 .card h4{margin:12px 0 4px;font-size:13.5px}.card ul{margin:0;padding-left:20px}.card li{margin:3px 0}
 .qref{text-decoration:underline dotted;cursor:help}
@@ -118,6 +129,11 @@ html:lang(ko) body{word-break:keep-all}
 </div>
 <footer id="foot"><span id="footBrand"></span><span id="fVersion"></span><span id="built"></span>
   <a href="/?tab=guide" id="fGuide"></a><a href="dashboard.html" id="lAnalyst"></a></footer>
+<section id="chatPanel" hidden aria-label="chat">
+  <div class="chat-head"><b id="chatTitle"></b><span class="note" id="chatMode"></span><button class="icon" id="chatClose" aria-label="close">✕</button></div>
+  <div class="chat-body" id="chatBody"></div>
+  <form class="chat-form" id="chatForm"><input id="chatInput" maxlength="500" autocomplete="off"><button class="primary" type="submit" id="chatSend"></button></form>
+</section>
 <script src="vendor/echarts-5.5.1.min.js"></script>
 <script>
 'use strict';
@@ -676,7 +692,8 @@ function pageSettings() {
   return `<div class="card" style="margin-bottom:12px"><h3>${L('Ngưỡng cảnh báo')}</h3><p class="sub">${L('Áp dụng từ lần làm mới dữ liệu tiếp theo (make refresh). Mọi thay đổi được ghi lịch sử.')}</p>
     <form class="form" id="setForm" style="max-width:640px"><div id="setFields"></div>
       <label>${L('Ghi chú thay đổi')}<input id="setNote" maxlength="300"></label><button class="primary" type="submit">${L('Lưu')}</button><div id="setMsg"></div></form>
-    <h4>${L('Lịch sử thay đổi')}</h4><div id="setHist" class="tw"></div></div>` + pageUsers();
+    <h4>${L('Lịch sử thay đổi')}</h4><div id="setHist" class="tw"></div></div>
+    <div class="card" style="margin-bottom:12px"><h3>${L('Chatbot: câu bị đánh giá kém hoặc chưa hiểu')}</h3><div id="chatRated" class="tw"></div></div>` + pageUsers();
 }
 async function bindSettings() {
   const f = $('#setForm'); if (!f) return;
@@ -686,6 +703,10 @@ async function bindSettings() {
   $('#setHist').innerHTML = s.history.length ? `<table><thead><tr><th>${L('Thời điểm')}</th><th>${L('Người dùng')}</th><th>${L('Ngưỡng')}</th><th>${L('Trước')}</th><th>${L('Sau')}</th><th>${L('Ghi chú')}</th></tr></thead><tbody>${
     s.history.map(h => `<tr><td>${esc(h.at)}</td><td>${esc(h.by_user)}</td><td>${esc(SETTING_LABEL[h.key] || h.key)}</td><td>${esc(h.old_value)}</td><td>${esc(h.new_value)}</td><td>${esc(h.note || '')}</td></tr>`).join('')}</tbody></table>`
     : `<div class="note">${L('Chưa có thay đổi')}</div>`;
+  const cr = await getJSON('api/chat/rated');
+  $('#chatRated').innerHTML = cr.length ? `<table><thead><tr><th>${L('Thời điểm')}</th><th>${L('Người dùng')}</th><th>${L('Câu hỏi')}</th><th>${L('Ý định')}</th><th>${L('Ghi chú')}</th></tr></thead><tbody>${
+    cr.map(c => `<tr><td>${esc(c.at)}</td><td>${esc(c.username)}</td><td>${esc(c.question)}</td><td>${esc(c.intent || L('chưa hiểu'))}</td><td>${c.rating === -1 ? '👎 ' : ''}${esc(c.rating_note || '')}</td></tr>`).join('')}</tbody></table>`
+    : `<div class="note">${L('Chưa có')}</div>`;
   f.onsubmit = async e => { e.preventDefault();
     const values = Object.fromEntries([...f.querySelectorAll('#setFields input')].map(i => [i.name, +i.value]));
     const r = await api('api/settings', {values, note: $('#setNote').value});
@@ -747,6 +768,47 @@ $('#userBtn').onclick = () => { const m = $('#userMenu'); m.hidden = !m.hidden; 
 $('#userMenu').onclick = async e => { const b = e.target.closest('[data-go]'); if (!b) return; $('#userMenu').hidden = true;
   if (b.dataset.go === 'logout') { await api('api/logout'); location.href = '/login'; } else showTab(b.dataset.go); };
 document.addEventListener('click', e => { if (!e.target.closest('.umenu')) $('#userMenu').hidden = true; });
+
+/* ---------------------------------------------------------------- chatbot (F-04): basic mode offline; AI mode only if enabled server side */
+let CHAT_SAMPLES = null;
+async function openChat() {
+  $('#chatPanel').hidden = false; $('#chatInput').focus();
+  if (!CHAT_SAMPLES) {
+    const r = await getJSON('api/chat/samples'); CHAT_SAMPLES = r.samples[LANG] || r.samples.vi || {};
+    $('#chatMode').textContent = r.mode === 'ai' ? L('chế độ AI (Claude)') : L('chế độ cơ bản, không gửi dữ liệu ra ngoài');
+    $('#chatBody').innerHTML = `<div class="note">${L('Hỏi về tình hình đơn, rủi ro, nhà máy, xu hướng size / màu theo mùa. Câu mẫu:')}</div>` +
+      Object.entries(CHAT_SAMPLES).map(([g, qs]) => `<div><div class="note"><b>${esc(g)}</b></div><div class="chips">${qs.map(q => `<button type="button" data-q="${esc(q)}">${esc(q)}</button>`).join('')}</div></div>`).join('');
+  }
+}
+function chatAnswerHtml(a) {
+  const tbl = a.table && a.table.rows && a.table.rows.length ? `<div class="tw"><table><thead><tr>${a.table.cols.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${
+    a.table.rows.slice(0, 10).map(r => `<tr>${r.map(v => `<td>${fmt(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>${a.table.rows.length > 10 ? `<div class="note">${L('{n} dòng, hiện 10 dòng đầu', {n: a.table.rows.length})}</div>` : ''}</div>` : '';
+  const links = (a.links || []).map(l => `<button class="icon" data-go-tab="${esc(l.tab)}" data-go-style="${esc(l.style || '')}">${esc(l.style ? 'Style 360 · ' + l.label : L('Mở trang'))}</button>`).join('');
+  const sugg = (a.suggestions || []).length ? `<div class="chips">${a.suggestions.map(q => `<button type="button" data-q="${esc(q)}">${esc(q)}</button>`).join('')}</div>` : '';
+  const meta = a.intent ? `<div class="meta">${a.synthetic ? synChip(null) + ' ' : ''}${L('Nguồn: {s}', {s: (a.sources || []).join(', ') || '–'})} · ${L('dữ liệu tới {d}', {d: a.data_date || '–'})}${a.note ? ' · ' + esc(a.note) : ''}</div>` : '';
+  const fb = a.id ? `<button class="icon" data-fb="1" data-cid="${a.id}" title="${esc(L('Trả lời đúng'))}">👍</button><button class="icon" data-fb="-1" data-cid="${a.id}" title="${esc(L('Trả lời sai hoặc chưa đủ'))}">👎</button>` : '';
+  return `<div class="chat-a">${esc(a.text)}${tbl}${sugg}${meta}<div class="acts">${links}${fb}</div></div>`;
+}
+async function sendChat(q) {
+  q = (q || '').trim(); if (!q) return;
+  const body = $('#chatBody');
+  body.insertAdjacentHTML('beforeend', `<div class="chat-q">${esc(q)}</div><div class="chat-a note" id="chatWait">…</div>`);
+  body.scrollTop = body.scrollHeight;
+  const r = await api('api/chat', {question: q, lang: LANG, filters: {season: STATE.season === ALL ? null : STATE.season, customer: STATE.customer === ALL ? null : STATE.customer}});
+  $('#chatWait')?.remove();
+  body.insertAdjacentHTML('beforeend', r.ok ? chatAnswerHtml(r.data) : `<div class="chat-a bad">${L('Lỗi, thử lại sau')}</div>`);
+  body.scrollTop = body.scrollHeight;
+}
+$('#chatBtn').onclick = openChat;
+$('#chatClose').onclick = () => { $('#chatPanel').hidden = true; };
+$('#chatForm').onsubmit = e => { e.preventDefault(); const q = $('#chatInput').value; $('#chatInput').value = ''; sendChat(q); };
+$('#chatBody').addEventListener('click', async e => {
+  const c = e.target.closest('[data-q]'); if (c) { sendChat(c.dataset.q); return; }
+  const g = e.target.closest('[data-go-tab]'); if (g) { if (g.dataset.goStyle) openStyle(g.dataset.goStyle); else showTab(g.dataset.goTab); return; }
+  const f = e.target.closest('[data-fb]');
+  if (f) { const note = f.dataset.fb === '-1' ? prompt(L('Sai ở đâu? (không bắt buộc)')) : null;
+    const r = await api(`api/chat/${f.dataset.cid}/feedback`, {rating: +f.dataset.fb, note}); if (r.ok) f.parentElement.querySelectorAll('[data-fb]').forEach(b => { b.disabled = true; }); }
+});
 
 /* ---------------------------------------------------------------- notifications (F-03), trends (F-05), guide (F-08) */
 /* notifications (F-03): rebuilt by the app from the marts after each build; status per user */
@@ -884,6 +946,7 @@ $('#langBtn').onclick = () => { const next = LANG === 'vi' ? 'ko' : 'vi'; try { 
   const u = new URL(location.href); u.searchParams.set('lang', next); u.searchParams.set('tab', STATE.tab); location.href = u.toString(); };
 function applyStatic() {
   document.documentElement.lang = LANG; document.title = L('KOPS Quản lý');
+  $('#chatTitle').textContent = L('Hỏi đáp dữ liệu'); $('#chatSend').textContent = L('Gửi'); $('#chatInput').placeholder = L('Nhập câu hỏi…');
   $('#fGuide').textContent = L('Hướng dẫn'); $('#bellBtn').title = L('Thông báo'); $('#chatBtn').title = L('Hỏi đáp dữ liệu');
   $('#menuBtn').setAttribute('aria-label', L('Menu')); $('#lSyn').textContent = L('Hiện dữ liệu giả định'); $('#lAnalyst').textContent = L('Dashboard phân tích →');
   $('#langBtn').textContent = LANG === 'vi' ? '한국어' : L('Tiếng Việt'); $('#langBtn').title = L('Đổi ngôn ngữ (VI / KO)');
@@ -900,6 +963,7 @@ $('#themeBtn').onclick = () => { const r = document.documentElement, dark = r.da
   updateLogo();
   try {
     ME = await getJSON('api/me'); buildUserMenu(); buildMenu();
+    $('#chatBtn').hidden = ME.role === 'viewer';              // chatbot: managers and admins
     APP = await getJSON('api/app');
     $('#footBrand').textContent = '© ' + (APP.brand_name || 'KLMAS'); $('#fVersion').textContent = 'KOPS ' + (APP.version || '');
     IDX = await getJSON('api/data/mgr/index.json'); COMMON = await getJSON('api/data/mgr/_common.json');

@@ -42,6 +42,9 @@ def main(argv=None):
         from app.bootstrap import reset_admin
         print(reset_admin())
         return
+    if cmd == "chat-eval":       # chatbot golden cases (dw/eval/chat_cases.json), basic mode
+        from app.chat_eval import cli
+        sys.exit(cli())
     if cmd == "check-ui":      # Playwright UI test of the manager dashboard (E-07)
         from .uitest import run as check_ui
         sys.exit(check_ui(argv[1:]))
